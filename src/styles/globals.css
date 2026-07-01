@@ -1,0 +1,124 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: #0e1512;
+}
+
+@layer utilities {
+  .glass {
+    background: rgba(18, 18, 18, 0.55);
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow:
+      0 16px 36px -18px rgba(0, 0, 0, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.world {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: radial-gradient(
+    120% 60% at 50% 0%,
+    #f6c86a 0%,
+    #f3a64f 22%,
+    #e9793d 34%,
+    #274a52 52%,
+    #0e1512 68%
+  );
+}
+
+.world::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 56%;
+  background: linear-gradient(180deg, #1c1712 0%, #241c15 18%, #3d332a 42%, #4a3b29 62%, #2a2119 100%);
+}
+
+.world-sun {
+  position: absolute;
+  top: 6%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, #ffe9b8 0%, #f3b454 45%, rgba(243, 180, 84, 0) 75%);
+  filter: blur(1px);
+  box-shadow: 0 0 90px 30px rgba(243, 180, 84, 0.35);
+}
+
+.world-field {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 44%;
+  height: 14%;
+  background: linear-gradient(180deg, #4f7a3e 0%, #35502b 100%);
+  -webkit-mask-image: linear-gradient(180deg, black 55%, transparent 100%);
+  mask-image: linear-gradient(180deg, black 55%, transparent 100%);
+}
+
+.world-grain {
+  position: absolute;
+  inset: 0;
+  top: 44%;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1.4px);
+  background-size: 5px 5px;
+}
+
+.spore {
+  position: absolute;
+  border-radius: 50%;
+  background: #a8d672;
+  filter: blur(1px);
+  box-shadow: 0 0 10px 3px rgba(168, 214, 114, 0.55);
+  animation: glow 3.6s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
