@@ -14,7 +14,12 @@ html,
 body {
   padding: 0;
   margin: 0;
-  background: #0e1512;
+  background: #070b09;
+}
+
+/* crossfade nativo do navegador entre navegações (progressive enhancement) */
+@view-transition {
+  navigation: auto;
 }
 
 @layer utilities {
@@ -28,291 +33,101 @@ body {
       inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
 
+  .glass-light {
+    background: rgba(248, 250, 252, 0.14);
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow:
+      0 24px 60px -24px rgba(0, 0, 0, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  }
+
   .tabular {
     font-variant-numeric: tabular-nums;
   }
 }
 
-.world {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  background: radial-gradient(
-    120% 60% at 50% 0%,
-    #f6c86a 0%,
-    #f3a64f 22%,
-    #e9793d 34%,
-    #274a52 52%,
-    #0e1512 68%
-  );
+/* --- planta hero: balanço + reação a pulso de nutriente --- */
+.plant-sway {
+  transform-origin: 50% 100%;
+  animation: plant-sway 5.5s ease-in-out infinite;
 }
 
-.world::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 56%;
-  background: linear-gradient(180deg, #1c1712 0%, #241c15 18%, #3d332a 42%, #4a3b29 62%, #2a2119 100%);
+.plant-leaf {
+  transform-origin: center;
+  animation: plant-leaf-idle 4.5s ease-in-out infinite;
 }
 
-.world-sun {
-  position: absolute;
-  top: 6%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 50% 50%, #ffe9b8 0%, #f3b454 45%, rgba(243, 180, 84, 0) 75%);
-  filter: blur(1px);
-  box-shadow: 0 0 90px 30px rgba(243, 180, 84, 0.35);
+.plant-bud {
+  animation: plant-bud-idle 3.2s ease-in-out infinite;
 }
 
-.world-field {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 44%;
-  height: 14%;
-  background: linear-gradient(180deg, #4f7a3e 0%, #35502b 100%);
-  -webkit-mask-image: linear-gradient(180deg, black 55%, transparent 100%);
-  mask-image: linear-gradient(180deg, black 55%, transparent 100%);
+.plant-pulse .plant-leaf {
+  animation: plant-leaf-pulse 0.6s ease-out;
 }
 
-.world-grain {
-  position: absolute;
-  inset: 0;
-  top: 44%;
-  opacity: 0.5;
-  mix-blend-mode: overlay;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1.4px);
-  background-size: 5px 5px;
+.plant-pulse .plant-bud {
+  animation: plant-bud-pulse 0.7s ease-out;
 }
 
-/* --- fertilizante caindo --- */
-.granule {
-  position: absolute;
-  top: -4%;
-  border-radius: 45% 45% 50% 50%;
-  animation-name: granule-fall;
-  animation-timing-function: ease-in;
-  animation-iteration-count: infinite;
-  opacity: 0;
+@keyframes plant-sway {
+  0%,
+  100% {
+    transform: rotate(-2.2deg);
+  }
+  50% {
+    transform: rotate(2.2deg);
+  }
 }
 
-.granule--tan {
-  background: linear-gradient(155deg, #e4c99a, #b4885a);
-  box-shadow: 0 0 4px 1px rgba(212, 180, 131, 0.35);
+@keyframes plant-leaf-idle {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.03) rotate(1.5deg);
+  }
 }
 
-.granule--brand {
-  background: linear-gradient(155deg, #a8d672, #5faf45);
-  box-shadow: 0 0 4px 1px rgba(168, 214, 114, 0.4);
+@keyframes plant-bud-idle {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
-@keyframes granule-fall {
+@keyframes plant-leaf-pulse {
   0% {
-    transform: translate(0, 0) rotate(0deg);
-    opacity: 0;
-  }
-  6% {
-    opacity: 1;
-  }
-  70% {
-    transform: translate(var(--drift), 58vh) rotate(200deg);
-    opacity: 1;
-  }
-  78% {
-    transform: translate(var(--drift), 61vh) rotate(230deg);
-    opacity: 0;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-/* --- broto florescendo na linha do solo --- */
-.sprout {
-  position: absolute;
-  bottom: 44%;
-  width: 2px;
-  height: 46px;
-  transform-origin: bottom center;
-  animation: none;
-}
-
-.sprout-ring {
-  position: absolute;
-  bottom: -3px;
-  left: 50%;
-  width: 26px;
-  height: 8px;
-  margin-left: -13px;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(168, 214, 114, 0.55), rgba(168, 214, 114, 0));
-  transform: scale(0);
-  animation-name: sprout-ring-pulse;
-  animation-timing-function: ease-out;
-  animation-iteration-count: infinite;
-}
-
-.sprout-stem {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  width: 3px;
-  height: 100%;
-  margin-left: -1.5px;
-  border-radius: 3px;
-  background: linear-gradient(180deg, #7cc56e, #3d722d);
-  transform: scaleY(0);
-  transform-origin: bottom center;
-  animation-name: sprout-stem-grow;
-  animation-timing-function: ease-out;
-  animation-iteration-count: infinite;
-}
-
-.sprout-leaf {
-  position: absolute;
-  bottom: 24px;
-  left: 50%;
-  width: 16px;
-  height: 9px;
-  margin-left: -1px;
-  border-radius: 0 100% 0 100%;
-  background: linear-gradient(135deg, #a8d672, #5faf45);
-  transform: scale(0) rotate(var(--rot-from));
-  animation-timing-function: ease-out;
-  animation-iteration-count: infinite;
-}
-
-.sprout-leaf--l {
-  transform-origin: right center;
-  animation-name: sprout-leaf-unfurl-l;
-}
-
-.sprout-leaf--r {
-  transform-origin: left center;
-  border-radius: 100% 0 100% 0;
-  animation-name: sprout-leaf-unfurl-r;
-}
-
-.sprout-bloom {
-  position: absolute;
-  bottom: 42px;
-  left: 50%;
-  width: 8px;
-  height: 8px;
-  margin-left: -4px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #ffe9b8, #d4b483 65%);
-  box-shadow: 0 0 6px 2px rgba(243, 180, 84, 0.45);
-  transform: scale(0);
-  animation-name: sprout-bloom-pop;
-  animation-timing-function: ease-out;
-  animation-iteration-count: infinite;
-}
-
-@keyframes sprout-ring-pulse {
-  0%,
-  4% {
-    transform: scale(0);
-    opacity: 0;
-  }
-  8% {
     transform: scale(1);
-    opacity: 1;
+    filter: none;
   }
-  18%,
+  40% {
+    transform: scale(1.18);
+    filter: drop-shadow(0 0 6px rgba(47, 189, 119, 0.85));
+  }
   100% {
-    transform: scale(1.8);
-    opacity: 0;
-  }
-}
-
-@keyframes sprout-stem-grow {
-  0%,
-  10% {
-    transform: scaleY(0);
-    opacity: 0;
-  }
-  14% {
-    opacity: 1;
-  }
-  38%,
-  86% {
-    transform: scaleY(1);
-    opacity: 1;
-  }
-  96%,
-  100% {
-    transform: scaleY(1);
-    opacity: 0;
-  }
-}
-
-@keyframes sprout-leaf-unfurl-l {
-  0%,
-  28% {
-    transform: scale(0) rotate(var(--rot-from));
-    opacity: 0;
-  }
-  46% {
-    transform: scale(1) rotate(var(--rot-to));
-    opacity: 1;
-  }
-  84% {
-    transform: scale(1) rotate(var(--rot-to));
-    opacity: 1;
-  }
-  96%,
-  100% {
-    opacity: 0;
-  }
-}
-
-@keyframes sprout-leaf-unfurl-r {
-  0%,
-  28% {
-    transform: scale(0) rotate(var(--rot-from));
-    opacity: 0;
-  }
-  46% {
-    transform: scale(1) rotate(var(--rot-to));
-    opacity: 1;
-  }
-  84% {
-    transform: scale(1) rotate(var(--rot-to));
-    opacity: 1;
-  }
-  96%,
-  100% {
-    opacity: 0;
-  }
-}
-
-@keyframes sprout-bloom-pop {
-  0%,
-  52% {
-    transform: scale(0);
-    opacity: 0;
-  }
-  64% {
-    transform: scale(1.2);
-    opacity: 1;
-  }
-  72%,
-  86% {
     transform: scale(1);
-    opacity: 1;
+    filter: none;
   }
-  96%,
+}
+
+@keyframes plant-bud-pulse {
+  0% {
+    transform: scale(1);
+    filter: none;
+  }
+  40% {
+    transform: scale(1.5);
+    filter: drop-shadow(0 0 10px rgba(243, 180, 84, 0.9));
+  }
   100% {
-    transform: scale(0.7);
-    opacity: 0;
+    transform: scale(1);
+    filter: none;
   }
 }
 

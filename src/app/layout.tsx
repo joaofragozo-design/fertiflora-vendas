@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from 'next'
+import { Sora, Manrope } from 'next/font/google'
 import { Toaster } from 'sonner'
 import '@/styles/globals.css'
+
+const sora = Sora({ variable: '--font-sora', subsets: ['latin'], weight: ['600', '700', '800'] })
+const manrope = Manrope({ variable: '--font-manrope', subsets: ['latin'], weight: ['400', '500', '600', '700'] })
 
 export const metadata: Metadata = {
   title: {
@@ -12,7 +16,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0e1512',
+  themeColor: '#070b09',
   colorScheme: 'dark',
   width: 'device-width',
   initialScale: 1,
@@ -21,8 +25,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" className="dark">
-      <body className="min-h-screen bg-ink-900 font-sans text-white antialiased">
+    <html lang="pt-BR" className={`dark ${sora.variable} ${manrope.variable}`}>
+      <body className="min-h-screen bg-ink-950 font-sans text-white antialiased">
         {children}
         <Toaster theme="dark" position="top-center" richColors />
       </body>
