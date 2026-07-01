@@ -92,24 +92,227 @@ body {
   background-size: 5px 5px;
 }
 
-.spore {
+/* --- fertilizante caindo --- */
+.granule {
   position: absolute;
-  border-radius: 50%;
-  background: #a8d672;
-  filter: blur(1px);
-  box-shadow: 0 0 10px 3px rgba(168, 214, 114, 0.55);
-  animation: glow 3.6s ease-in-out infinite;
+  top: -4%;
+  border-radius: 45% 45% 50% 50%;
+  animation-name: granule-fall;
+  animation-timing-function: ease-in;
+  animation-iteration-count: infinite;
+  opacity: 0;
 }
 
-@keyframes glow {
-  0%,
-  100% {
-    opacity: 0.35;
-    transform: scale(0.85);
+.granule--tan {
+  background: linear-gradient(155deg, #e4c99a, #b4885a);
+  box-shadow: 0 0 4px 1px rgba(212, 180, 131, 0.35);
+}
+
+.granule--brand {
+  background: linear-gradient(155deg, #a8d672, #5faf45);
+  box-shadow: 0 0 4px 1px rgba(168, 214, 114, 0.4);
+}
+
+@keyframes granule-fall {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0;
   }
-  50% {
-    opacity: 0.9;
-    transform: scale(1.05);
+  6% {
+    opacity: 1;
+  }
+  70% {
+    transform: translate(var(--drift), 58vh) rotate(200deg);
+    opacity: 1;
+  }
+  78% {
+    transform: translate(var(--drift), 61vh) rotate(230deg);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* --- broto florescendo na linha do solo --- */
+.sprout {
+  position: absolute;
+  bottom: 44%;
+  width: 2px;
+  height: 46px;
+  transform-origin: bottom center;
+  animation: none;
+}
+
+.sprout-ring {
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  width: 26px;
+  height: 8px;
+  margin-left: -13px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(168, 214, 114, 0.55), rgba(168, 214, 114, 0));
+  transform: scale(0);
+  animation-name: sprout-ring-pulse;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+}
+
+.sprout-stem {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  height: 100%;
+  margin-left: -1.5px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #7cc56e, #3d722d);
+  transform: scaleY(0);
+  transform-origin: bottom center;
+  animation-name: sprout-stem-grow;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+}
+
+.sprout-leaf {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  width: 16px;
+  height: 9px;
+  margin-left: -1px;
+  border-radius: 0 100% 0 100%;
+  background: linear-gradient(135deg, #a8d672, #5faf45);
+  transform: scale(0) rotate(var(--rot-from));
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+}
+
+.sprout-leaf--l {
+  transform-origin: right center;
+  animation-name: sprout-leaf-unfurl-l;
+}
+
+.sprout-leaf--r {
+  transform-origin: left center;
+  border-radius: 100% 0 100% 0;
+  animation-name: sprout-leaf-unfurl-r;
+}
+
+.sprout-bloom {
+  position: absolute;
+  bottom: 42px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffe9b8, #d4b483 65%);
+  box-shadow: 0 0 6px 2px rgba(243, 180, 84, 0.45);
+  transform: scale(0);
+  animation-name: sprout-bloom-pop;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes sprout-ring-pulse {
+  0%,
+  4% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  8% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  18%,
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+@keyframes sprout-stem-grow {
+  0%,
+  10% {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  38%,
+  86% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  96%,
+  100% {
+    transform: scaleY(1);
+    opacity: 0;
+  }
+}
+
+@keyframes sprout-leaf-unfurl-l {
+  0%,
+  28% {
+    transform: scale(0) rotate(var(--rot-from));
+    opacity: 0;
+  }
+  46% {
+    transform: scale(1) rotate(var(--rot-to));
+    opacity: 1;
+  }
+  84% {
+    transform: scale(1) rotate(var(--rot-to));
+    opacity: 1;
+  }
+  96%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes sprout-leaf-unfurl-r {
+  0%,
+  28% {
+    transform: scale(0) rotate(var(--rot-from));
+    opacity: 0;
+  }
+  46% {
+    transform: scale(1) rotate(var(--rot-to));
+    opacity: 1;
+  }
+  84% {
+    transform: scale(1) rotate(var(--rot-to));
+    opacity: 1;
+  }
+  96%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes sprout-bloom-pop {
+  0%,
+  52% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  64% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  72%,
+  86% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  96%,
+  100% {
+    transform: scale(0.7);
+    opacity: 0;
   }
 }
 

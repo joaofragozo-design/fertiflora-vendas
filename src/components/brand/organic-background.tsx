@@ -1,24 +1,35 @@
-const SPORES = [
-  { left: '8%', bottom: '4%', size: 3, delay: '0s' },
-  { left: '17%', bottom: '18%', size: 4, delay: '.35s' },
-  { left: '26%', bottom: '9%', size: 3, delay: '.7s' },
-  { left: '34%', bottom: '28%', size: 5, delay: '1.05s' },
-  { left: '44%', bottom: '6%', size: 3, delay: '1.4s' },
-  { left: '52%', bottom: '22%', size: 4, delay: '1.75s' },
-  { left: '61%', bottom: '11%', size: 3, delay: '2.1s' },
-  { left: '69%', bottom: '31%', size: 5, delay: '2.45s' },
-  { left: '78%', bottom: '7%', size: 3, delay: '2.8s' },
-  { left: '86%', bottom: '20%', size: 4, delay: '3.15s' },
-  { left: '14%', bottom: '35%', size: 3, delay: '.2s' },
-  { left: '58%', bottom: '37%', size: 3, delay: '1.2s' },
+import type { CSSProperties } from 'react'
+
+const GRANULES = [
+  { left: '4%', duration: '9s', delay: '0s', drift: '14px', size: 5, tone: 'tan' },
+  { left: '13%', duration: '11s', delay: '1.4s', drift: '-10px', size: 4, tone: 'brand' },
+  { left: '22%', duration: '8.5s', delay: '3.1s', drift: '8px', size: 6, tone: 'tan' },
+  { left: '31%', duration: '10.5s', delay: '.6s', drift: '-14px', size: 4, tone: 'brand' },
+  { left: '40%', duration: '9.5s', delay: '4.2s', drift: '10px', size: 5, tone: 'tan' },
+  { left: '49%', duration: '12s', delay: '2s', drift: '-8px', size: 4, tone: 'brand' },
+  { left: '58%', duration: '8.8s', delay: '5.1s', drift: '12px', size: 6, tone: 'tan' },
+  { left: '67%', duration: '10s', delay: '.2s', drift: '-12px', size: 4, tone: 'brand' },
+  { left: '76%', duration: '11.5s', delay: '3.7s', drift: '9px', size: 5, tone: 'tan' },
+  { left: '85%', duration: '9.2s', delay: '1.9s', drift: '-9px', size: 4, tone: 'brand' },
+  { left: '94%', duration: '10.8s', delay: '4.8s', drift: '11px', size: 5, tone: 'tan' },
 ]
 
-/** Fundo atmosférico compartilhado (céu -> campo -> corte de solo) usado no splash e no login. */
+const SPROUTS = [
+  { left: '10%', delay: '0s', duration: '13s', scale: 0.85 },
+  { left: '27%', delay: '3.2s', duration: '14s', scale: 1.05 },
+  { left: '45%', delay: '6.4s', duration: '12.5s', scale: 0.9 },
+  { left: '63%', delay: '1.6s', duration: '13.5s', scale: 1 },
+  { left: '80%', delay: '4.8s', duration: '14.5s', scale: 0.95 },
+  { left: '91%', delay: '8s', duration: '13s', scale: 0.8 },
+]
+
+/** Fundo atmosférico compartilhado: céu -> campo -> solo, com fertilizante caindo e brotos florescendo. */
 export function OrganicBackground() {
   return (
     <div className="world" aria-hidden="true">
       <div className="world-sun" />
       <div className="world-field" />
+
       <svg
         className="pointer-events-none absolute bottom-0 left-0 h-[44%] w-full opacity-50"
         viewBox="0 0 400 300"
@@ -30,19 +41,47 @@ export function OrganicBackground() {
         <path d="M250,0 C265,40 235,70 250,110" stroke="#6b5637" strokeWidth="1.5" fill="none" opacity="0.4" />
         <path d="M120,0 C105,35 130,60 115,100" stroke="#6b5637" strokeWidth="1.5" fill="none" opacity="0.4" />
       </svg>
-      {SPORES.map((s, i) => (
+
+      {GRANULES.map((g, i) => (
         <span
           key={i}
-          className="spore"
+          className={`granule granule--${g.tone}`}
           style={{
-            left: s.left,
-            bottom: s.bottom,
-            width: s.size,
-            height: s.size,
-            animationDelay: s.delay,
-          }}
+            left: g.left,
+            width: g.size,
+            height: g.size,
+            animationDuration: g.duration,
+            animationDelay: g.delay,
+            '--drift': g.drift,
+          } as CSSProperties}
         />
       ))}
+
+      {SPROUTS.map((s, i) => (
+        <div
+          key={i}
+          className="sprout"
+          style={{
+            left: s.left,
+            animationDuration: s.duration,
+            animationDelay: s.delay,
+            transform: `scale(${s.scale})`,
+          }}
+        >
+          <span className="sprout-ring" style={{ animationDuration: s.duration, animationDelay: s.delay }} />
+          <span className="sprout-stem" style={{ animationDuration: s.duration, animationDelay: s.delay }} />
+          <span
+            className="sprout-leaf sprout-leaf--l"
+            style={{ animationDuration: s.duration, animationDelay: s.delay, '--rot-from': '-70deg', '--rot-to': '-28deg' } as CSSProperties}
+          />
+          <span
+            className="sprout-leaf sprout-leaf--r"
+            style={{ animationDuration: s.duration, animationDelay: s.delay, '--rot-from': '70deg', '--rot-to': '28deg' } as CSSProperties}
+          />
+          <span className="sprout-bloom" style={{ animationDuration: s.duration, animationDelay: s.delay }} />
+        </div>
+      ))}
+
       <div className="world-grain" />
     </div>
   )
