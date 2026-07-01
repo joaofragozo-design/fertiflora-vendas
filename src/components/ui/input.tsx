@@ -18,7 +18,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             htmlFor={inputId}
             className={cn(
               'text-[11px] font-bold uppercase tracking-wide',
-              tone === 'light' ? 'text-slate-800/55' : 'text-white/40'
+              tone === 'light' ? 'text-slate-800/65' : 'text-white/40'
             )}
           >
             {label}

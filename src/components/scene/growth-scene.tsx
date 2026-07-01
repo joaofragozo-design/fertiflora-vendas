@@ -15,6 +15,7 @@ interface GrowthSceneProps {
  */
 export function GrowthScene({ className }: GrowthSceneProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
   const engineRef = useRef<GrowthEngine | null>(null)
 
   useEffect(() => {
@@ -46,7 +47,10 @@ export function GrowthScene({ className }: GrowthSceneProps) {
       const rect = parent.getBoundingClientRect()
       engine.handlePointerDown(e.clientX - rect.left, e.clientY - rect.top)
     }
-    const onSurge = () => engine.surge()
+    const onSurge = () => {
+      engine.surge()
+      wrapperRef.current?.classList.add('growth-dive')
+    }
     const onVisibility = () => {
       if (document.hidden) engine.stop()
       else engine.start()
@@ -70,7 +74,7 @@ export function GrowthScene({ className }: GrowthSceneProps) {
   }, [])
 
   return (
-    <div className={className ?? 'fixed inset-0 z-0'} aria-hidden="true">
+    <div ref={wrapperRef} className={`growth-wrapper ${className ?? 'fixed inset-0 z-0'}`} aria-hidden="true">
       <canvas ref={canvasRef} className="block h-full w-full" />
     </div>
   )
