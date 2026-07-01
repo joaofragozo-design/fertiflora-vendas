@@ -23,7 +23,8 @@ export function GrowthScene({ className }: GrowthSceneProps) {
     if (!canvas) return
 
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const engine = new GrowthEngine(canvas, { reducedMotion })
+    const fineCursor = window.matchMedia('(pointer: fine)').matches
+    const engine = new GrowthEngine(canvas, { reducedMotion, fineCursor })
     engine.onArrive = () => window.dispatchEvent(new Event('growth:pulse'))
     engineRef.current = engine
 

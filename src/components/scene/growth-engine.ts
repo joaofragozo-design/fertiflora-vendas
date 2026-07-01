@@ -67,15 +67,20 @@ export class GrowthEngine {
   private frameTimes: number[] = []
   private targetCount: number
 
+  // nutriente que acompanha o mouse com atraso — só em dispositivos com ponteiro fino (mouse/trackpad)
+  private cursorFollow: { x: number; y: number; alpha: number; wobble: number } = { x: 0, y: 0, alpha: 0, wobble: 0 }
+  private fineCursor: boolean
+
   private surgeUntil = 0
   private reducedMotion: boolean
   public onArrive: (() => void) | null = null
 
-  constructor(private canvas: HTMLCanvasElement, opts: { reducedMotion?: boolean } = {}) {
+  constructor(private canvas: HTMLCanvasElement, opts: { reducedMotion?: boolean; fineCursor?: boolean } = {}) {
     const ctx = canvas.getContext('2d')
     if (!ctx) throw new Error('Canvas 2D não suportado')
     this.ctx = ctx
     this.reducedMotion = !!opts.reducedMotion
+    this.fineCursor = !!opts.fineCursor
 
     const cores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 4 : 4
     this.targetCount = cores <= 4 ? 16 : 22
@@ -166,6 +171,11 @@ export class GrowthEngine {
 
   handlePointerMove(x: number, y: number) {
     this.pointer = { x, y }
+    if (this.cursorFollow.alpha === 0) {
+      // reaparece já perto do ponteiro, sem "voar" a partir do canto
+      this.cursorFollow.x = x
+      this.cursorFollow.y = y
+    }
   }
 
   handlePointerLeave() {
@@ -293,6 +303,20 @@ export class GrowthEngine {
     for (let i = this.ripples.length - 1; i >= 0; i--) {
       if (now - this.ripples[i].start > 900) this.ripples.splice(i, 1)
     }
+
+    if (this.fineCursor) {
+      const cf = this.cursorFollow
+      cf.wobble += t * 0.05
+      if (this.pointer) {
+        cf.alpha = lerp(cf.alpha, 0.85, 0.06 * t)
+        const wobbleX = Math.sin(cf.wobble) * 3
+        const wobbleY = Math.cos(cf.wobble * 1.3) * 3
+        cf.x = lerp(cf.x, this.pointer.x + wobbleX, 0.1 * t)
+        cf.y = lerp(cf.y, this.pointer.y + wobbleY, 0.1 * t)
+      } else {
+        cf.alpha = lerp(cf.alpha, 0, 0.08 * t)
+      }
+    }
   }
 
   private drawFrame(now: number) {
@@ -348,6 +372,19 @@ export class GrowthEngine {
       ctx.arc(p.x, p.y, size * 3.2, 0, Math.PI * 2)
       ctx.fill()
     }
+    // nutriente que acompanha o cursor — um só, brilho suave, levemente atrasado
+    if (this.fineCursor && this.cursorFollow.alpha > 0.01) {
+      const cf = this.cursorFollow
+      const grad = ctx.createRadialGradient(cf.x, cf.y, 0, cf.x, cf.y, 13)
+      grad.addColorStop(0, `rgba(197,232,201,${cf.alpha})`)
+      grad.addColorStop(0.5, `rgba(159,214,164,${cf.alpha * 0.5})`)
+      grad.addColorStop(1, 'rgba(0,0,0,0)')
+      ctx.fillStyle = grad
+      ctx.beginPath()
+      ctx.arc(cf.x, cf.y, 13, 0, Math.PI * 2)
+      ctx.fill()
+    }
+
     ctx.globalCompositeOperation = 'source-over'
 
     // ondas de toque — finas
