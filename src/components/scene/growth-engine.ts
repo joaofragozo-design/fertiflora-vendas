@@ -73,7 +73,6 @@ export class GrowthEngine {
 
   private surgeUntil = 0
   private reducedMotion: boolean
-  public onArrive: (() => void) | null = null
 
   constructor(private canvas: HTMLCanvasElement, opts: { reducedMotion?: boolean; fineCursor?: boolean } = {}) {
     const ctx = canvas.getContext('2d')
@@ -290,10 +289,7 @@ export class GrowthEngine {
         const pos = this.pointAlongRoot(root, Math.min(1, p.t))
         p.x = pos.x
         p.y = pos.y
-        if (p.t >= 1) {
-          p.state = 'arriving'
-          this.onArrive?.()
-        }
+        if (p.t >= 1) p.state = 'arriving'
       } else {
         p.t += t * 0.06
         if (p.t >= 1.8) Object.assign(p, this.spawnParticle())

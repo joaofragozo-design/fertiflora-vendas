@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
-import { Sprout } from 'lucide-react'
+import Link from 'next/link'
+import { Sprout, Plus } from 'lucide-react'
 import { GrowthScene } from '@/components/scene/growth-scene'
-import { Plant } from '@/components/scene/plant'
 import { Logo } from '@/components/brand/logo'
 import { SignOutButton } from '@/components/forms/sign-out-button'
 import { createClient } from '@/lib/supabase/server'
@@ -16,7 +16,6 @@ export default async function DashboardPage() {
   return (
     <main className="relative min-h-screen overflow-hidden">
       <GrowthScene />
-      <Plant />
 
       <div className="relative z-10 mx-auto flex max-w-md flex-col gap-5 p-5 pt-6">
         <header className="flex items-center justify-between">
@@ -34,6 +33,16 @@ export default async function DashboardPage() {
           </p>
           <p className="mt-2 text-xs text-white/35 tabular">{user.email && emailToUsername(user.email)}</p>
         </div>
+
+        <Link href="/cotacao" className="glass flex items-center gap-3 rounded-2xl p-4 transition-colors hover:bg-white/10">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500/20 text-brand-300">
+            <Plus className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="font-display text-sm font-bold">Nova Cotação</div>
+            <div className="text-xs text-white/45">Montar cotação pro cliente</div>
+          </div>
+        </Link>
       </div>
     </main>
   )

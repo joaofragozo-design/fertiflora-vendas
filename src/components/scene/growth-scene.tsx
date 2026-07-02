@@ -8,10 +8,9 @@ interface GrowthSceneProps {
 }
 
 /**
- * Cena de fundo persistente: solo, raízes e nutrientes fluindo até a planta.
- * Reage a ponteiro/toque. Dispara `growth:pulse` a cada nutriente que chega
- * (o componente Plant escuta) e escuta `growth:surge` pra disparar o boost
- * cinematográfico (ex.: ao confirmar o login).
+ * Cena de fundo persistente: raízes finas e nutrientes no terço inferior da
+ * tela. Reage a ponteiro/toque e ao cursor do mouse. Escuta `growth:surge`
+ * pra disparar o boost cinematográfico (ex.: ao confirmar o login).
  */
 export function GrowthScene({ className }: GrowthSceneProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -25,7 +24,6 @@ export function GrowthScene({ className }: GrowthSceneProps) {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const fineCursor = window.matchMedia('(pointer: fine)').matches
     const engine = new GrowthEngine(canvas, { reducedMotion, fineCursor })
-    engine.onArrive = () => window.dispatchEvent(new Event('growth:pulse'))
     engineRef.current = engine
 
     const parent = canvas.parentElement!

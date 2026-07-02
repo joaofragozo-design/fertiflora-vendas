@@ -4,7 +4,6 @@ import type { Metadata } from 'next'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import { LoginForm } from '@/components/forms/login-form'
 import { GrowthScene } from '@/components/scene/growth-scene'
-import { Plant } from '@/components/scene/plant'
 import { SurgeFade } from '@/components/scene/surge-fade'
 import { Logo } from '@/components/brand/logo'
 import { createClient } from '@/lib/supabase/server'
@@ -36,7 +35,6 @@ export default async function LoginPage() {
   return (
     <main className="relative min-h-screen overflow-hidden">
       <GrowthScene />
-      <Plant />
 
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-5">
         <SurgeFade>
