@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle2, AlertTriangle, Download, Printer, ArrowLeftCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, AlertTriangle, Download, Printer, ArrowLeftCircle, CalendarClock, Pencil } from 'lucide-react'
 import { calcularCotacao, COMISSAO_BASE_NIVEL } from '@/lib/pricing/calculadora'
+import { calcularPrazoMedio, type Parcela } from '@/lib/pricing/prazo-medio'
 import { gerarImagemResumo, type ResumoSecao } from '@/lib/pricing/resumo-image'
+import { PrazoMedioScreen } from '@/components/cotacao/prazo-medio-screen'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils/cn'
@@ -16,6 +18,9 @@ interface CotacaoScreenProps {
   vendedor: string
 }
 
+type Visao = 'form' | 'prazo' | 'resumo'
+type ModoPagamento = 'avista' | 'parcelado'
+
 const ESTADOS = [
   { uf: 'SC', icms: '4,00%' }, { uf: 'MT', icms: '4,00%' }, { uf: 'PR', icms: '0,00%' },
   { uf: 'SP', icms: '4,00%' }, { uf: 'MS', icms: '4,00%' }, { uf: 'RO', icms: '4,00%' },
@@ -26,18 +31,30 @@ function fmtBRL(v: number) { return 'R$ ' + v.toLocaleString('pt-BR', { minimumF
 function fmtUSD(v: number) { return '$ ' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
 function fmtPct(v: number) { return (v * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%' }
 function fmtDate(iso: string) { return new Date(iso).toLocaleDateString('pt-BR') }
+function fmtDateInput(iso: string) { return new Date(iso + 'T00:00:00').toLocaleDateString('pt-BR') }
 function toDateInput(d: Date) { return d.toISOString().slice(0, 10) }
 
+/** "30/08 1% · 30/04/2027 40%" — mesmo formato que o vendedor pediu pra aparecer. */
+function resumoParcelas(parcelas: Parcela[]) {
+  return parcelas
+    .filter((p) => p.percentual > 0 && p.data)
+    .map((p) => `${fmtDateInput(p.data)} ${fmtPct(p.percentual)}`)
+    .join(' · ')
+}
+
 export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenProps) {
+  const [visao, setVisao] = useState<Visao>('form')
   const [produto, setProduto] = useState('')
   const [estado, setEstado] = useState('MS')
   const [entrega, setEntrega] = useState(toDateInput(new Date(Date.now() + 60 * 86400000)))
-  const [pagamento, setPagamento] = useState(toDateInput(new Date(Date.now() + 300 * 86400000)))
   const [frete, setFrete] = useState('750')
   const [agenciador, setAgenciador] = useState('0')
   const [precoVendido, setPrecoVendido] = useState('')
   const [dolar, setDolar] = useState<number | null>(null)
-  const [mostrarResumo, setMostrarResumo] = useState(false)
+
+  const [modoPagamento, setModoPagamento] = useState<ModoPagamento>('avista')
+  const [pagamentoAvista, setPagamentoAvista] = useState(toDateInput(new Date(Date.now() + 300 * 86400000)))
+  const [parcelas, setParcelas] = useState<Parcela[]>([])
 
   useEffect(() => {
     fetch('/api/dolar').then((r) => r.json()).then((d) => setDolar(d.bid)).catch(() => setDolar(5.2))
@@ -45,8 +62,15 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
 
   const precoBase = useMemo(() => formulas.find((f) => f.nome === produto)?.precoUsdAvista, [formulas, produto])
 
+  const prazoCalc = useMemo(() => calcularPrazoMedio(parcelas, new Date()), [parcelas])
+
+  const pagamentoEfetivo = useMemo(() => {
+    if (modoPagamento === 'avista') return pagamentoAvista ? new Date(pagamentoAvista + 'T00:00:00') : null
+    return prazoCalc.dataMedia
+  }, [modoPagamento, pagamentoAvista, prazoCalc.dataMedia])
+
   const resultado = useMemo(() => {
-    if (!precoBase || !dolar || !entrega || !pagamento) return null
+    if (!precoBase || !dolar || !entrega || !pagamentoEfetivo) return null
     const precoVendidoNum = parseFloat(precoVendido)
     if (!precoVendidoNum || precoVendidoNum <= 0) return null
 
@@ -54,14 +78,14 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
       precoAvistaUSD: precoBase,
       estado,
       entrega: new Date(entrega + 'T00:00:00'),
-      pagamento: new Date(pagamento + 'T00:00:00'),
+      pagamento: pagamentoEfetivo,
       frete: parseFloat(frete) || 0,
       agenciadorPct: (parseFloat(agenciador) || 0) / 100,
       precoVendido: precoVendidoNum,
       dolarAgora: dolar,
       dataTabela: new Date(dataTabela),
     })
-  }, [precoBase, dolar, entrega, pagamento, frete, agenciador, precoVendido, estado, dataTabela])
+  }, [precoBase, dolar, entrega, pagamentoEfetivo, frete, agenciador, precoVendido, estado, dataTabela])
 
   const diasAteTravar = dolar ? Math.round((new Date(entrega).getTime() - new Date(dataTabela).getTime()) / 86400000) : null
 
@@ -82,8 +106,8 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
         ['Produto', produto],
         ['Estado', estado === 'OUTRO' ? '—' : estado],
         ['Data', fmtDate(dataTabela)],
-        ['Entrega', new Date(entrega + 'T00:00:00').toLocaleDateString('pt-BR')],
-        ['Pagamento', new Date(pagamento + 'T00:00:00').toLocaleDateString('pt-BR')],
+        ['Entrega', fmtDateInput(entrega)],
+        ['Pagamento', modoPagamento === 'avista' ? fmtDateInput(pagamentoAvista) : resumoParcelas(parcelas)],
       ] },
       { title: 'Custos', rows: [
         ['ICMS', resultado.icms > 0 ? 'Incluso' : 'Isento'],
@@ -103,7 +127,21 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
     a.remove()
   }
 
-  const secoes = mostrarResumo ? montarSecoes() : []
+  if (visao === 'prazo') {
+    return (
+      <PrazoMedioScreen
+        parcelasIniciais={parcelas}
+        onCancelar={() => setVisao('form')}
+        onConfirmar={(novasParcelas) => {
+          setParcelas(novasParcelas)
+          setModoPagamento('parcelado')
+          setVisao('form')
+        }}
+      />
+    )
+  }
+
+  const secoes = visao === 'resumo' ? montarSecoes() : []
 
   return (
     <main className="min-h-screen bg-ink-950 pb-16">
@@ -131,7 +169,7 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
           )}
         </div>
 
-        {!mostrarResumo && (
+        {visao === 'form' && (
           <>
             <div className="glass flex flex-col gap-4 rounded-3xl p-5">
               <h2 className="font-display flex items-center gap-2 text-sm font-bold">
@@ -171,9 +209,52 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
                 <Input tone="dark" label="Frete (R$)" type="number" min={0} step={10} value={frete} onChange={(e) => setFrete(e.target.value)} />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Input tone="dark" label="Entrega" type="date" value={entrega} onChange={(e) => setEntrega(e.target.value)} />
-                <Input tone="dark" label="Pagamento" type="date" value={pagamento} onChange={(e) => setPagamento(e.target.value)} />
+              <Input tone="dark" label="Entrega" type="date" value={entrega} onChange={(e) => setEntrega(e.target.value)} />
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wide text-white/40">Pagamento</label>
+                <div className="flex gap-1.5 rounded-2xl bg-white/[0.06] p-1">
+                  <button
+                    onClick={() => setModoPagamento('avista')}
+                    className={cn('flex-1 rounded-xl py-2 text-xs font-bold transition-colors', modoPagamento === 'avista' ? 'bg-brand-500 text-ink-950' : 'text-white/50')}
+                  >
+                    À vista
+                  </button>
+                  <button
+                    onClick={() => setVisao('prazo')}
+                    className={cn('flex-1 rounded-xl py-2 text-xs font-bold transition-colors', modoPagamento === 'parcelado' ? 'bg-brand-500 text-ink-950' : 'text-white/50')}
+                  >
+                    A prazo / Parcelado
+                  </button>
+                </div>
+
+                {modoPagamento === 'avista' && (
+                  <input
+                    type="date"
+                    value={pagamentoAvista}
+                    onChange={(e) => setPagamentoAvista(e.target.value)}
+                    className="mt-1 rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 text-[16px] font-medium text-white outline-none focus:border-brand-400"
+                  />
+                )}
+
+                {modoPagamento === 'parcelado' && (
+                  <button
+                    onClick={() => setVisao('prazo')}
+                    className="mt-1 flex items-center gap-2.5 rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 text-left"
+                  >
+                    <CalendarClock className="h-4 w-4 shrink-0 text-brand-300" />
+                    <span className="flex-1 text-[13px] font-medium text-white">
+                      {parcelas.length > 0 ? resumoParcelas(parcelas) : 'Nenhuma parcela definida ainda'}
+                    </span>
+                    <Pencil className="h-3.5 w-3.5 shrink-0 text-white/40" />
+                  </button>
+                )}
+
+                {modoPagamento === 'parcelado' && prazoCalc.dataMedia && (
+                  <p className="text-[10.5px] text-white/40">
+                    Data média de pagamento: <b className="text-white/70">{prazoCalc.dataMedia.toLocaleDateString('pt-BR')}</b>
+                  </p>
+                )}
               </div>
 
               <Input tone="dark" label="Agenciador (%) · opcional" type="number" min={0} max={100} step={0.5} value={agenciador} onChange={(e) => setAgenciador(e.target.value)} />
@@ -218,7 +299,7 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
                   resultado?.aprovado && 'bg-brand-500/20 text-brand-300',
                   resultado && !resultado.aprovado && 'bg-danger-500/20 text-danger-400'
                 )}>
-                  {!resultado && 'Preencha os dados'}
+                  {!resultado && (modoPagamento === 'parcelado' && !prazoCalc.fechaEm100 ? 'Parcelas não fecham 100%' : 'Preencha os dados')}
                   {resultado?.aprovado && <><CheckCircle2 className="h-3.5 w-3.5" />Aprovado</>}
                   {resultado && !resultado.aprovado && <><AlertTriangle className="h-3.5 w-3.5" />Reprovado</>}
                 </span>
@@ -258,12 +339,12 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
                 </div>
               </div>
 
-              <Button disabled={!resultado} onClick={() => setMostrarResumo(true)}>Gerar resumo para o cliente</Button>
+              <Button disabled={!resultado} onClick={() => setVisao('resumo')}>Gerar resumo para o cliente</Button>
             </div>
           </>
         )}
 
-        {mostrarResumo && resultado && (
+        {visao === 'resumo' && resultado && (
           <div className="glass-light flex flex-col gap-4 rounded-[28px] p-6">
             <div className="flex flex-col items-center gap-1 border-b border-slate-800/10 pb-4 text-center">
               <div className="font-display text-base font-bold text-brand-700">🌱 FertiFlora</div>
@@ -277,9 +358,9 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
                     {sec.title}
                   </div>
                   {sec.rows.map((row, i) => (
-                    <div key={row[0]} className={cn('flex justify-between border-b border-slate-800/10 py-2.5 text-[13px]', sec.destaque === i && 'py-3')}>
+                    <div key={row[0]} className={cn('flex justify-between gap-3 border-b border-slate-800/10 py-2.5 text-[13px]', sec.destaque === i && 'py-3')}>
                       <span className={sec.destaque === i ? 'font-bold text-slate-800' : 'text-slate-800/60'}>{row[0]}</span>
-                      <span className={cn('tabular font-bold', sec.destaque === i ? 'text-[16px] text-brand-700' : 'text-slate-800')}>{row[1]}</span>
+                      <span className={cn('tabular text-right font-bold', sec.destaque === i ? 'text-[16px] text-brand-700' : 'text-slate-800')}>{row[1]}</span>
                     </div>
                   ))}
                 </div>
@@ -288,7 +369,7 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
 
             <Button onClick={baixarResumo}><Download className="h-4 w-4" />Baixar resumo</Button>
             <Button variant="ghost" onClick={() => window.print()}><Printer className="h-4 w-4" />Imprimir</Button>
-            <Button variant="ghost" onClick={() => setMostrarResumo(false)}><ArrowLeftCircle className="h-4 w-4" />Voltar e ajustar</Button>
+            <Button variant="ghost" onClick={() => setVisao('form')}><ArrowLeftCircle className="h-4 w-4" />Voltar e ajustar</Button>
           </div>
         )}
       </div>
