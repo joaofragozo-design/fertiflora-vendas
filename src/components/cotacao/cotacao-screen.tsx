@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle2, AlertTriangle, Download, Printer, ArrowLeftCircle, CalendarClock, Pencil } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, AlertTriangle, Download, Printer, ArrowLeftCircle, CalendarClock, Pencil, X, Share2, ShieldAlert } from 'lucide-react'
 import { calcularCotacao, COMISSAO_BASE_NIVEL } from '@/lib/pricing/calculadora'
 import { calcularPrazoMedio, type Parcela } from '@/lib/pricing/prazo-medio'
 import { gerarImagemResumo, type ResumoSecao } from '@/lib/pricing/resumo-image'
@@ -72,10 +72,15 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
     return prazoCalc.dataMedia
   }, [modoPagamento, pagamentoAvista, prazoCalc.dataMedia])
 
+  const precoVendidoNum = parseFloat(precoVendido) || 0
+  const temPrecoNegociado = precoVendidoNum > 0
+
+  // Calculado assim que fórmula + datas + dólar estão prontos, mesmo sem preço
+  // vendido ainda -- preço de tabela não depende dele, só a comissão depende.
+  // Com precoVendido=0 os campos de comissão/aprovado ficam sem sentido, então
+  // a UI só os mostra quando `temPrecoNegociado` é true.
   const resultado = useMemo(() => {
     if (!precoBase || !dolar || !entrega || !pagamentoEfetivo) return null
-    const precoVendidoNum = parseFloat(precoVendido)
-    if (!precoVendidoNum || precoVendidoNum <= 0) return null
 
     return calcularCotacao({
       precoAvistaUSD: precoBase,
@@ -88,13 +93,14 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
       dolarAgora: dolar,
       dataTabela: new Date(dataTabela),
     })
-  }, [precoBase, dolar, entrega, pagamentoEfetivo, frete, agenciador, precoVendido, estado, dataTabela])
+  }, [precoBase, dolar, entrega, pagamentoEfetivo, frete, agenciador, precoVendidoNum, estado, dataTabela])
 
   const diasAteTravar = dolar ? Math.round((new Date(entrega).getTime() - new Date(dataTabela).getTime()) / 86400000) : null
+  const validadeHoje = new Date().toLocaleDateString('pt-BR')
 
   function montarSecoes(): ResumoSecao[] {
     if (!resultado) return []
-    const v = parseFloat(precoVendido)
+    const v = precoVendidoNum
     const precoRows: [string, string][] = [
       ['Preço U$D/tonelada', fmtUSD(v / (dolar ?? 1))],
       ['Preço/tonelada', fmtBRL(v)],
@@ -120,14 +126,37 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
     ]
   }
 
+  function gerarImagem() {
+    return gerarImagemResumo(montarSecoes(), `Válida somente hoje, ${validadeHoje}`, `vendedor ${vendedor}`)
+  }
+
   function baixarResumo() {
-    const dataUrl = gerarImagemResumo(montarSecoes(), `Cotação sujeita a confirmação · vendedor ${vendedor}`)
     const a = document.createElement('a')
-    a.href = dataUrl
+    a.href = gerarImagem()
     a.download = 'cotacao-fertiflora.png'
     document.body.appendChild(a)
     a.click()
     a.remove()
+  }
+
+  async function compartilharWhatsApp() {
+    const dataUrl = gerarImagem()
+    const blob = await (await fetch(dataUrl)).blob()
+    const file = new File([blob], 'cotacao-fertiflora.png', { type: 'image/png' })
+
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'Cotação FertiFlora' })
+        return
+      } catch {
+        // usuário cancelou o share sheet — não faz nada
+        return
+      }
+    }
+
+    // Sem suporte a compartilhar arquivo (ex.: desktop): abre o WhatsApp Web com um resumo em texto
+    const texto = `Cotação FertiFlora — válida somente hoje (${validadeHoje}). Baixe o resumo em imagem e envie por aqui.`
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank')
   }
 
   if (visao === 'prazo') {
@@ -172,6 +201,15 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
           )}
         </div>
 
+        {visao !== 'resumo' && (
+          <div className="flex items-center gap-2.5 rounded-2xl border border-warning-500/30 bg-warning-500/10 px-3.5 py-2.5">
+            <ShieldAlert className="h-4 w-4 shrink-0 text-warning-400" />
+            <p className="text-[11.5px] font-semibold leading-snug text-warning-300">
+              Cotação válida somente hoje, <span className="tabular">{validadeHoje}</span>
+            </p>
+          </div>
+        )}
+
         {visao === 'form' && (
           <>
             <div className="glass flex flex-col gap-4 rounded-3xl p-5">
@@ -182,14 +220,26 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-bold uppercase tracking-wide text-white/40">Fórmula</label>
-                <input
-                  list="lista-formulas"
-                  value={produto}
-                  onChange={(e) => setProduto(e.target.value)}
-                  placeholder="Buscar fórmula (ex: 00-08-08)"
-                  autoComplete="off"
-                  className="rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 text-[16px] font-medium text-white outline-none placeholder:text-white/35 focus:border-brand-400 focus:bg-brand-500/10"
-                />
+                <div className="relative">
+                  <input
+                    list="lista-formulas"
+                    value={produto}
+                    onChange={(e) => setProduto(e.target.value)}
+                    placeholder="Buscar fórmula (ex: 00-08-08)"
+                    autoComplete="off"
+                    className="w-full rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 pr-11 text-[16px] font-medium text-white outline-none placeholder:text-white/35 focus:border-brand-400 focus:bg-brand-500/10"
+                  />
+                  {produto && (
+                    <button
+                      type="button"
+                      onClick={() => setProduto('')}
+                      aria-label="Limpar fórmula selecionada"
+                      className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
                 <datalist id="lista-formulas">
                   {formulas.map((f) => <option key={f.nome} value={f.nome} />)}
                 </datalist>
@@ -302,7 +352,7 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
                   <div className="tabular text-2xl font-extrabold">
                     {resultado ? fmtBRL(resultado.precoTabela) : '—'}<small className="text-sm font-bold text-white/50">/t</small>
                   </div>
-                  {resultado && (
+                  {resultado && temPrecoNegociado && (
                     <div className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-brand-300">
                       🌱 Você ganha {fmtBRL(resultado.projecaoComissao)}<span className="font-medium text-white/45">/t de comissão</span>
                     </div>
@@ -310,17 +360,18 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
                 </div>
                 <span className={cn(
                   'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[11.5px] font-extrabold',
-                  !resultado && 'bg-white/10 text-white/50',
-                  resultado?.aprovado && 'bg-brand-500/20 text-brand-300',
-                  resultado && !resultado.aprovado && 'bg-danger-500/20 text-danger-400'
+                  (!resultado || !temPrecoNegociado) && 'bg-white/10 text-white/50',
+                  resultado && temPrecoNegociado && resultado.aprovado && 'bg-brand-500/20 text-brand-300',
+                  resultado && temPrecoNegociado && !resultado.aprovado && 'bg-danger-500/20 text-danger-400'
                 )}>
                   {!resultado && (modoPagamento === 'parcelado' && !prazoCalc.fechaEm100 ? 'Parcelas não fecham 100%' : 'Preencha os dados')}
-                  {resultado?.aprovado && <><CheckCircle2 className="h-3.5 w-3.5" />Aprovado</>}
-                  {resultado && !resultado.aprovado && <><AlertTriangle className="h-3.5 w-3.5" />Reprovado</>}
+                  {resultado && !temPrecoNegociado && 'Informe o preço vendido'}
+                  {resultado && temPrecoNegociado && resultado.aprovado && <><CheckCircle2 className="h-3.5 w-3.5" />Aprovado</>}
+                  {resultado && temPrecoNegociado && !resultado.aprovado && <><AlertTriangle className="h-3.5 w-3.5" />Reprovado</>}
                 </span>
               </div>
 
-              {resultado && !resultado.aprovado && (
+              {resultado && temPrecoNegociado && !resultado.aprovado && (
                 <div className="rounded-xl border border-danger-500/35 bg-danger-500/15 p-3 text-xs leading-snug text-danger-300">
                   Preço abaixo do mínimo ({fmtBRL(resultado.precoMinimo)}/t). Entre em contato com a diretoria para aprovar essa condição.
                 </div>
@@ -337,24 +388,33 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
                 <MiniStat label="Em US$/t" value={resultado ? fmtUSD(resultado.precoUsd) : '—'} />
               </div>
 
-              <div className="flex flex-col gap-2 border-t border-white/10 pt-3">
-                <div className="flex justify-between text-xs font-bold text-white/60">
-                  <span>Sua comissão (interno)</span>
-                  <span>{resultado ? fmtPct(resultado.comissaoCalculada) : '—'}</span>
+              {resultado?.campanhaAvista != null && (
+                <div className="flex items-center justify-between rounded-xl bg-earth-tan/10 px-3.5 py-2.5">
+                  <span className="text-xs font-bold text-earth-tan">Preço campanha à vista</span>
+                  <span className="tabular text-sm font-extrabold text-earth-tan">{fmtBRL(resultado.campanhaAvista)}/t</span>
                 </div>
-                <CommRow label="Base (Nível III)" value={fmtPct(COMISSAO_BASE_NIVEL)} />
-                <CommRow label="Bônus 100% à vista" value={resultado ? `${resultado.bonusAvista >= 0 ? '+' : ''}${fmtPct(resultado.bonusAvista)}` : '—'} />
-                <CommRow label={resultado && resultado.bonusPorPreco < 0 ? 'Desconto por preço' : 'Bônus por preço'} value={resultado ? `${resultado.bonusPorPreco >= 0 ? '+' : ''}${fmtPct(resultado.bonusPorPreco)}` : '—'} />
-                <CommRow label="Ajuste agenciador" value={resultado ? `${resultado.ajusteAgenciador >= 0 ? '+' : ''}${fmtPct(resultado.ajusteAgenciador)}` : '—'} />
-                <div className="flex items-baseline justify-between border-t border-dashed border-white/15 pt-2">
-                  <span className="text-xs font-bold">Projeção por tonelada</span>
-                  <span className="tabular text-lg font-extrabold text-brand-300">
-                    {resultado ? fmtBRL(resultado.projecaoComissao) : '—'}<small className="text-[11px] font-bold text-white/50">/t</small>
-                  </span>
-                </div>
-              </div>
+              )}
 
-              <Button disabled={!resultado} onClick={() => setVisao('resumo')}>Gerar resumo para o cliente</Button>
+              {temPrecoNegociado && (
+                <div className="flex flex-col gap-2 border-t border-white/10 pt-3">
+                  <div className="flex justify-between text-xs font-bold text-white/60">
+                    <span>Sua comissão (interno)</span>
+                    <span>{resultado ? fmtPct(resultado.comissaoCalculada) : '—'}</span>
+                  </div>
+                  <CommRow label="Base (Nível III)" value={fmtPct(COMISSAO_BASE_NIVEL)} />
+                  <CommRow label="Bônus 100% à vista" value={resultado ? `${resultado.bonusAvista >= 0 ? '+' : ''}${fmtPct(resultado.bonusAvista)}` : '—'} />
+                  <CommRow label={resultado && resultado.bonusPorPreco < 0 ? 'Desconto por preço' : 'Bônus por preço'} value={resultado ? `${resultado.bonusPorPreco >= 0 ? '+' : ''}${fmtPct(resultado.bonusPorPreco)}` : '—'} />
+                  <CommRow label="Ajuste agenciador" value={resultado ? `${resultado.ajusteAgenciador >= 0 ? '+' : ''}${fmtPct(resultado.ajusteAgenciador)}` : '—'} />
+                  <div className="flex items-baseline justify-between border-t border-dashed border-white/15 pt-2">
+                    <span className="text-xs font-bold">Projeção por tonelada</span>
+                    <span className="tabular text-lg font-extrabold text-brand-300">
+                      {resultado ? fmtBRL(resultado.projecaoComissao) : '—'}<small className="text-[11px] font-bold text-white/50">/t</small>
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <Button disabled={!resultado || !temPrecoNegociado} onClick={() => setVisao('resumo')}>Gerar resumo para o cliente</Button>
             </div>
           </>
         )}
@@ -364,6 +424,13 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
             <div className="flex flex-col items-center gap-1 border-b border-slate-800/10 pb-4 text-center">
               <div className="font-display text-base font-bold text-brand-700">🌱 FertiFlora</div>
               <div className="text-xs text-slate-800/55">Resumo da cotação</div>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-xl bg-warning-500/15 px-3.5 py-2.5">
+              <ShieldAlert className="h-4 w-4 shrink-0 text-warning-600" />
+              <p className="text-[12px] font-bold leading-snug text-warning-600">
+                Cotação válida somente hoje, <span className="tabular">{validadeHoje}</span>
+              </p>
             </div>
 
             <div className="flex flex-col gap-4">
@@ -382,7 +449,8 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
               ))}
             </div>
 
-            <Button onClick={baixarResumo}><Download className="h-4 w-4" />Baixar resumo</Button>
+            <Button onClick={compartilharWhatsApp}><Share2 className="h-4 w-4" />Compartilhar com o cliente</Button>
+            <Button variant="ghost" onClick={baixarResumo}><Download className="h-4 w-4" />Baixar resumo</Button>
             <Button variant="ghost" onClick={() => window.print()}><Printer className="h-4 w-4" />Imprimir</Button>
             <Button variant="ghost" onClick={() => setVisao('form')}><ArrowLeftCircle className="h-4 w-4" />Voltar e ajustar</Button>
           </div>

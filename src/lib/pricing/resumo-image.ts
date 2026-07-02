@@ -14,11 +14,11 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath()
 }
 
-/** Desenha o resumo em canvas e devolve a imagem como data URL PNG — usado por "Baixar" e "Imprimir". */
-export function gerarImagemResumo(secoes: ResumoSecao[], rodape: string): string {
+/** Desenha o resumo em canvas e devolve a imagem como data URL PNG — usado por "Baixar", "Imprimir" e "Compartilhar". */
+export function gerarImagemResumo(secoes: ResumoSecao[], validade: string, rodape: string): string {
   const totalRows = secoes.reduce((n, s) => n + s.rows.length, 0)
   const W = 900
-  const H = 200 + secoes.length * 70 + totalRows * 58 + 90
+  const H = 260 + secoes.length * 70 + totalRows * 58 + 90
 
   const canvas = document.createElement('canvas')
   canvas.width = W
@@ -39,7 +39,15 @@ export function gerarImagemResumo(secoes: ResumoSecao[], rodape: string): string
   ctx.font = '600 20px Manrope, -apple-system, Segoe UI, Arial'
   ctx.fillText('Resumo da cotação', W / 2, 110)
 
-  let y = 165
+  // banner de validade — bem nítido, ninguém pode perder isso
+  ctx.fillStyle = 'rgba(233,162,61,0.16)'
+  roundRect(ctx, 60, 132, W - 120, 46, 12)
+  ctx.fill()
+  ctx.fillStyle = '#f3b454'
+  ctx.font = '800 18px Manrope, -apple-system, Segoe UI, Arial'
+  ctx.fillText(`⚠ ${validade}`, W / 2, 161)
+
+  let y = 225
   for (const sec of secoes) {
     const gradHead = ctx.createLinearGradient(60, 0, W - 60, 0)
     gradHead.addColorStop(0, '#9de6bd')
