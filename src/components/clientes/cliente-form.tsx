@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, UserCircle2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { Loader2, Search, UserCircle2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils/cn'
 import { clienteEmBranco, type ClienteInput, type TipoPessoa } from '@/lib/clientes/types'
+import { buscarCnpj, somenteDigitos } from '@/lib/clientes/cnpj-lookup'
 
 interface ClienteFormProps {
   onSalvar: (input: ClienteInput) => Promise<void>
@@ -16,10 +18,37 @@ interface ClienteFormProps {
 export function ClienteForm({ onSalvar, onCancelar, titulo }: ClienteFormProps) {
   const [form, setForm] = useState<ClienteInput>(clienteEmBranco())
   const [salvando, setSalvando] = useState(false)
+  const [buscandoCnpj, setBuscandoCnpj] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
   function set<K extends keyof ClienteInput>(campo: K, valor: ClienteInput[K]) {
     setForm((f) => ({ ...f, [campo]: valor }))
+  }
+
+  async function handleBuscarCnpj() {
+    setErro(null)
+    setBuscandoCnpj(true)
+    try {
+      const dados = await buscarCnpj(form.cpfCnpj)
+      setForm((f) => ({
+        ...f,
+        nome: dados.nome || f.nome,
+        nomeFantasia: dados.nomeFantasia || f.nomeFantasia,
+        telefone: dados.telefone || f.telefone,
+        cep: dados.cep || f.cep,
+        logradouro: dados.logradouro || f.logradouro,
+        numero: dados.numero || f.numero,
+        complemento: dados.complemento || f.complemento,
+        bairro: dados.bairro || f.bairro,
+        cidade: dados.cidade || f.cidade,
+        estado: dados.estado || f.estado,
+      }))
+      toast.success('Dados do CNPJ preenchidos automaticamente')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Falha ao buscar CNPJ')
+    } finally {
+      setBuscandoCnpj(false)
+    }
   }
 
   async function handleSubmit() {
@@ -63,7 +92,30 @@ export function ClienteForm({ onSalvar, onCancelar, titulo }: ClienteFormProps) 
       )}
 
       <div className="grid grid-cols-2 gap-3">
-        <Input tone="dark" label={form.tipoPessoa === 'pj' ? 'CNPJ' : 'CPF'} value={form.cpfCnpj} onChange={(e) => set('cpfCnpj', e.target.value)} />
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[11px] font-bold uppercase tracking-wide text-white/40">{form.tipoPessoa === 'pj' ? 'CNPJ' : 'CPF'}</label>
+          <div className="relative">
+            <input
+              value={form.cpfCnpj}
+              onChange={(e) => set('cpfCnpj', e.target.value)}
+              className="w-full rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 pr-11 text-[16px] font-medium text-white outline-none placeholder:text-white/35 focus:border-brand-400 focus:bg-brand-500/10"
+            />
+            {form.tipoPessoa === 'pj' && somenteDigitos(form.cpfCnpj).length === 14 && (
+              <button
+                type="button"
+                onClick={handleBuscarCnpj}
+                disabled={buscandoCnpj}
+                aria-label="Buscar dados do CNPJ"
+                className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-brand-500/25 text-brand-300 hover:bg-brand-500/40"
+              >
+                {buscandoCnpj ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+              </button>
+            )}
+          </div>
+          {form.tipoPessoa === 'pj' && (
+            <p className="text-[10.5px] text-white/40">Digite os 14 dígitos e toque na lupa pra preencher automático.</p>
+          )}
+        </div>
         <Input tone="dark" label="Inscrição estadual · opcional" value={form.inscricaoEstadual} onChange={(e) => set('inscricaoEstadual', e.target.value)} />
       </div>
 
