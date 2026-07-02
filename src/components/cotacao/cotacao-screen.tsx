@@ -34,12 +34,15 @@ function fmtDate(iso: string) { return new Date(iso).toLocaleDateString('pt-BR')
 function fmtDateInput(iso: string) { return new Date(iso + 'T00:00:00').toLocaleDateString('pt-BR') }
 function toDateInput(d: Date) { return d.toISOString().slice(0, 10) }
 
-/** "30/08 1% · 30/04/2027 40%" — mesmo formato que o vendedor pediu pra aparecer. */
-function resumoParcelas(parcelas: Parcela[]) {
-  return parcelas
-    .filter((p) => p.percentual > 0 && p.data)
-    .map((p) => `${fmtDateInput(p.data)} ${fmtPct(p.percentual)}`)
-    .join(' · ')
+function parcelasValidas(parcelas: Parcela[]) {
+  return parcelas.filter((p) => p.percentual > 0 && p.data)
+}
+
+/** Uma linha por parcela em "Dados da venda" — texto único ficava confuso com várias parcelas. */
+function linhasPagamento(modoPagamento: ModoPagamento, pagamentoAvista: string, parcelas: Parcela[]): [string, string][] {
+  if (modoPagamento === 'avista') return [['Pagamento', fmtDateInput(pagamentoAvista)]]
+  const validas = parcelasValidas(parcelas)
+  return validas.map((p, i) => [`Pagamento ${i + 1}/${validas.length} (${fmtPct(p.percentual)})`, fmtDateInput(p.data)])
 }
 
 export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenProps) {
@@ -107,7 +110,7 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
         ['Estado', estado === 'OUTRO' ? '—' : estado],
         ['Data', fmtDate(dataTabela)],
         ['Entrega', fmtDateInput(entrega)],
-        ['Pagamento', modoPagamento === 'avista' ? fmtDateInput(pagamentoAvista) : resumoParcelas(parcelas)],
+        ...linhasPagamento(modoPagamento, pagamentoAvista, parcelas),
       ] },
       { title: 'Custos', rows: [
         ['ICMS', resultado.icms > 0 ? 'Incluso' : 'Isento'],
@@ -240,20 +243,32 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
                 {modoPagamento === 'parcelado' && (
                   <button
                     onClick={() => setVisao('prazo')}
-                    className="mt-1 flex items-center gap-2.5 rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 text-left"
+                    className="mt-1 flex flex-col gap-2.5 rounded-2xl border border-white/15 bg-white/[0.06] p-4 text-left"
                   >
-                    <CalendarClock className="h-4 w-4 shrink-0 text-brand-300" />
-                    <span className="flex-1 text-[13px] font-medium text-white">
-                      {parcelas.length > 0 ? resumoParcelas(parcelas) : 'Nenhuma parcela definida ainda'}
-                    </span>
-                    <Pencil className="h-3.5 w-3.5 shrink-0 text-white/40" />
-                  </button>
-                )}
+                    <div className="flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-wide text-white/40">
+                      <CalendarClock className="h-3.5 w-3.5 text-brand-300" />
+                      Parcelas combinadas
+                      <Pencil className="ml-auto h-3.5 w-3.5 text-white/40" />
+                    </div>
 
-                {modoPagamento === 'parcelado' && prazoCalc.dataMedia && (
-                  <p className="text-[10.5px] text-white/40">
-                    Data média de pagamento: <b className="text-white/70">{prazoCalc.dataMedia.toLocaleDateString('pt-BR')}</b>
-                  </p>
+                    {parcelasValidas(parcelas).length === 0 && (
+                      <span className="text-[13px] font-medium text-white/50">Nenhuma parcela definida ainda</span>
+                    )}
+
+                    {parcelasValidas(parcelas).map((p, i) => (
+                      <div key={i} className="flex items-center justify-between rounded-xl bg-white/[0.05] px-3 py-2">
+                        <span className="tabular text-[13px] font-semibold text-white">{fmtDateInput(p.data)}</span>
+                        <span className="tabular text-[13px] font-bold text-brand-300">{fmtPct(p.percentual)}</span>
+                      </div>
+                    ))}
+
+                    {prazoCalc.dataMedia && (
+                      <div className="flex items-center justify-between border-t border-white/10 pt-2.5 text-[11.5px]">
+                        <span className="text-white/45">Data média de pagamento</span>
+                        <span className="tabular font-bold text-white">{prazoCalc.dataMedia.toLocaleDateString('pt-BR')}</span>
+                      </div>
+                    )}
+                  </button>
                 )}
               </div>
 
