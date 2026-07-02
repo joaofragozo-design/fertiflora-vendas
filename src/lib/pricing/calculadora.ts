@@ -51,6 +51,7 @@ export interface CotacaoResultado {
   ajusteAgenciador: number
   comissaoCalculada: number
   projecaoComissao: number
+  agenciadorRS: number
   aprovado: boolean
 }
 
@@ -133,6 +134,7 @@ export function calcularCotacao(input: CotacaoInput): CotacaoResultado {
   return {
     icms, eAVista, precoTabela, precoMinimo, precoSaca, precoBag, precoUsd,
     pedidoEntrega, campanhaAvista, bonusAvista, bonusPorPreco, ajusteAgenciador,
-    comissaoCalculada, projecaoComissao, aprovado,
+    comissaoCalculada, projecaoComissao, agenciadorRS,
+    aprovado,
   }
 }

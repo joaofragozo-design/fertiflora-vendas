@@ -2,11 +2,17 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle2, AlertTriangle, Download, Printer, ArrowLeftCircle, CalendarClock, Pencil, X, Share2, ShieldAlert } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, AlertTriangle, Download, Printer, ArrowLeftCircle, CalendarClock, Pencil, X, Share2, ShieldAlert, UserCircle2, ChevronRight, Loader2, Save } from 'lucide-react'
+import { toast } from 'sonner'
 import { calcularCotacao, COMISSAO_BASE_NIVEL } from '@/lib/pricing/calculadora'
 import { calcularPrazoMedio, type Parcela } from '@/lib/pricing/prazo-medio'
 import { gerarImagemResumo, type ResumoSecao } from '@/lib/pricing/resumo-image'
 import { PrazoMedioScreen } from '@/components/cotacao/prazo-medio-screen'
+import { ClientePicker } from '@/components/cotacao/cliente-picker'
+import { ClienteForm } from '@/components/clientes/cliente-form'
+import { criarCliente } from '@/lib/clientes/queries'
+import { salvarCotacao } from '@/lib/cotacoes/queries'
+import type { Cliente } from '@/lib/clientes/types'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils/cn'
@@ -18,7 +24,7 @@ interface CotacaoScreenProps {
   vendedor: string
 }
 
-type Visao = 'form' | 'prazo' | 'resumo'
+type Visao = 'form' | 'prazo' | 'resumo' | 'clientes' | 'novoCliente'
 type ModoPagamento = 'avista' | 'parcelado'
 
 const ESTADOS = [
@@ -59,6 +65,10 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
   const [pagamentoAvista, setPagamentoAvista] = useState(toDateInput(new Date(Date.now() + 300 * 86400000)))
   const [parcelas, setParcelas] = useState<Parcela[]>([])
 
+  const [cliente, setCliente] = useState<Cliente | null>(null)
+  const [salvando, setSalvando] = useState(false)
+  const [salva, setSalva] = useState(false)
+
   useEffect(() => {
     fetch('/api/dolar').then((r) => r.json()).then((d) => setDolar(d.bid)).catch(() => setDolar(5.2))
   }, [])
@@ -95,7 +105,6 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
     })
   }, [precoBase, dolar, entrega, pagamentoEfetivo, frete, agenciador, precoVendidoNum, estado, dataTabela])
 
-  const diasAteTravar = dolar ? Math.round((new Date(entrega).getTime() - new Date(dataTabela).getTime()) / 86400000) : null
   const validadeHoje = new Date().toLocaleDateString('pt-BR')
 
   function montarSecoes(): ResumoSecao[] {
@@ -112,6 +121,7 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
 
     return [
       { title: 'Dados da venda', rows: [
+        ...(cliente ? [['Cliente', cliente.nome] as [string, string]] : []),
         ['Produto', produto],
         ['Estado', estado === 'OUTRO' ? '—' : estado],
         ['Data', fmtDate(dataTabela)],
@@ -173,6 +183,63 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
     )
   }
 
+  if (visao === 'clientes') {
+    return (
+      <ClientePicker
+        onVoltar={() => setVisao('form')}
+        onNovoCliente={() => setVisao('novoCliente')}
+        onSelecionar={(c) => { setCliente(c); setVisao('form') }}
+      />
+    )
+  }
+
+  if (visao === 'novoCliente') {
+    return (
+      <main className="min-h-screen bg-ink-950 pb-16">
+        <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setVisao('clientes')} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white">
+              <ArrowLeft className="h-4.5 w-4.5" />
+            </button>
+            <h1 className="font-display text-lg font-bold">Novo Cliente</h1>
+          </div>
+          <ClienteForm
+            onCancelar={() => setVisao('clientes')}
+            onSalvar={async (input) => {
+              const novo = await criarCliente(input)
+              setCliente(novo)
+              toast.success('Cliente cadastrado')
+              setVisao('form')
+            }}
+          />
+        </div>
+      </main>
+    )
+  }
+
+  async function salvarCotacaoAtual() {
+    if (!resultado) return
+    setSalvando(true)
+    try {
+      await salvarCotacao({
+        clienteId: cliente?.id ?? null,
+        produto,
+        precoVendido: precoVendidoNum,
+        aprovado: resultado.aprovado,
+        dados: {
+          estado, entrega, frete, agenciador, modoPagamento, pagamentoAvista, parcelas,
+          dolar, precoVendido: precoVendidoNum, secoes: montarSecoes(), validadeGeracao: validadeHoje,
+        },
+      })
+      setSalva(true)
+      toast.success('Cotação salva em Cotações válidas')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Falha ao salvar cotação')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
   const secoes = visao === 'resumo' ? montarSecoes() : []
 
   return (
@@ -194,12 +261,23 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
             <div className="text-[10px] font-bold uppercase tracking-wide text-white/40">Dólar agora · tempo real</div>
             <div className="tabular text-lg font-extrabold">{dolar ? fmtBRL(dolar) : '—'}</div>
           </div>
-          {diasAteTravar !== null && (
-            <div className="ml-auto text-right text-[11px] text-white/50">
-              trava em <b className="text-white">{diasAteTravar}</b> dias
-            </div>
-          )}
         </div>
+
+        {visao === 'form' && (
+          <button
+            onClick={() => setVisao('clientes')}
+            className="glass flex items-center gap-3 rounded-2xl p-3.5 text-left transition-colors hover:bg-white/10"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-earth-tan/20 text-earth-tan">
+              <UserCircle2 className="h-4.5 w-4.5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-bold uppercase tracking-wide text-white/40">Cliente</div>
+              <div className="truncate text-sm font-bold text-white">{cliente ? cliente.nome : 'Selecionar ou cadastrar cliente'}</div>
+            </div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-white/40" />
+          </button>
+        )}
 
         {visao !== 'resumo' && (
           <div className="flex items-center gap-2.5 rounded-2xl border border-warning-500/30 bg-warning-500/10 px-3.5 py-2.5">
@@ -271,13 +349,13 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
                     onClick={() => setModoPagamento('avista')}
                     className={cn('flex-1 rounded-xl py-2 text-xs font-bold transition-colors', modoPagamento === 'avista' ? 'bg-brand-500 text-ink-950' : 'text-white/50')}
                   >
-                    À vista
+                    Pagamento único
                   </button>
                   <button
                     onClick={() => setVisao('prazo')}
                     className={cn('flex-1 rounded-xl py-2 text-xs font-bold transition-colors', modoPagamento === 'parcelado' ? 'bg-brand-500 text-ink-950' : 'text-white/50')}
                   >
-                    A prazo / Parcelado
+                    Parcelamento
                   </button>
                 </div>
 
@@ -348,13 +426,18 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
             <div className="glass flex flex-col gap-4 rounded-3xl p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-[10px] font-bold uppercase tracking-wide text-white/40">Preço de tabela</div>
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-white/40">Preço negociado</div>
                   <div className="tabular text-2xl font-extrabold">
-                    {resultado ? fmtBRL(resultado.precoTabela) : '—'}<small className="text-sm font-bold text-white/50">/t</small>
+                    {temPrecoNegociado ? fmtBRL(precoVendidoNum) : '—'}<small className="text-sm font-bold text-white/50">/t</small>
                   </div>
                   {resultado && temPrecoNegociado && (
                     <div className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-brand-300">
                       🌱 Você ganha {fmtBRL(resultado.projecaoComissao)}<span className="font-medium text-white/45">/t de comissão</span>
+                    </div>
+                  )}
+                  {resultado && temPrecoNegociado && resultado.agenciadorRS > 0 && (
+                    <div className="mt-1 flex items-center gap-1.5 text-xs font-bold text-earth-tan">
+                      🤝 Agenciador ganha {fmtBRL(resultado.agenciadorRS)}<span className="font-medium text-white/45">/t</span>
                     </div>
                   )}
                 </div>
@@ -388,6 +471,13 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
                 <MiniStat label="Em US$/t" value={resultado ? fmtUSD(resultado.precoUsd) : '—'} />
               </div>
 
+              {resultado && (
+                <div className="flex items-center justify-between rounded-xl bg-brand-500/10 px-3.5 py-2.5">
+                  <span className="text-xs font-bold text-brand-300">Preço sugerido</span>
+                  <span className="tabular text-sm font-extrabold text-brand-300">{fmtBRL(resultado.precoTabela)}/t</span>
+                </div>
+              )}
+
               {resultado?.campanhaAvista != null && (
                 <div className="flex items-center justify-between rounded-xl bg-earth-tan/10 px-3.5 py-2.5">
                   <span className="text-xs font-bold text-earth-tan">Preço campanha à vista</span>
@@ -401,7 +491,7 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
                     <span>Sua comissão (interno)</span>
                     <span>{resultado ? fmtPct(resultado.comissaoCalculada) : '—'}</span>
                   </div>
-                  <CommRow label="Base (Nível III)" value={fmtPct(COMISSAO_BASE_NIVEL)} />
+                  <CommRow label="Base" value={fmtPct(COMISSAO_BASE_NIVEL)} />
                   <CommRow label="Bônus 100% à vista" value={resultado ? `${resultado.bonusAvista >= 0 ? '+' : ''}${fmtPct(resultado.bonusAvista)}` : '—'} />
                   <CommRow label={resultado && resultado.bonusPorPreco < 0 ? 'Desconto por preço' : 'Bônus por preço'} value={resultado ? `${resultado.bonusPorPreco >= 0 ? '+' : ''}${fmtPct(resultado.bonusPorPreco)}` : '—'} />
                   <CommRow label="Ajuste agenciador" value={resultado ? `${resultado.ajusteAgenciador >= 0 ? '+' : ''}${fmtPct(resultado.ajusteAgenciador)}` : '—'} />
@@ -452,6 +542,10 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
             <Button onClick={compartilharWhatsApp}><Share2 className="h-4 w-4" />Compartilhar com o cliente</Button>
             <Button variant="ghost" onClick={baixarResumo}><Download className="h-4 w-4" />Baixar resumo</Button>
             <Button variant="ghost" onClick={() => window.print()}><Printer className="h-4 w-4" />Imprimir</Button>
+            <Button variant="ghost" disabled={salvando || salva} onClick={salvarCotacaoAtual}>
+              {salvando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {salva ? 'Cotação salva' : 'Salvar cotação'}
+            </Button>
             <Button variant="ghost" onClick={() => setVisao('form')}><ArrowLeftCircle className="h-4 w-4" />Voltar e ajustar</Button>
           </div>
         )}
