@@ -5,11 +5,12 @@ import { MapPin, Pencil } from 'lucide-react'
 import { BadgeTier } from '@/components/perfil/badge-tier'
 import { EditarPerfilModal } from '@/components/perfil/editar-perfil-modal'
 import { buscarPerfil, type Perfil } from '@/lib/perfil/queries'
-import { buscarRegiaoPrincipal, buscarTotalComissao, todosOsTiers } from '@/lib/gamificacao/queries'
+import { buscarTotalToneladas, todosOsTiers } from '@/lib/gamificacao/queries'
 import { proximoTier, tierAtual, progressoPct } from '@/lib/gamificacao/tiers'
+import { cn } from '@/lib/utils/cn'
 
-function fmtBRL(v: number) {
-  return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+function fmtT(v: number) {
+  return v.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' t'
 }
 
 interface PerfilCardProps {
@@ -19,17 +20,15 @@ interface PerfilCardProps {
 
 export function PerfilCard({ userId, usernameFallback }: PerfilCardProps) {
   const [perfil, setPerfil] = useState<Perfil | null>(null)
-  const [totalComissao, setTotalComissao] = useState<number | null>(null)
-  const [regiao, setRegiao] = useState<string | null>(null)
+  const [totalToneladas, setTotalToneladas] = useState<number | null>(null)
   const [editando, setEditando] = useState(false)
 
   useEffect(() => {
-    buscarPerfil(userId).then(setPerfil).catch(() => setPerfil({ id: userId, username: usernameFallback, apelido: null, avatarUrl: null }))
-    buscarTotalComissao(userId).then(setTotalComissao).catch(() => setTotalComissao(0))
-    buscarRegiaoPrincipal(userId).then(setRegiao).catch(() => setRegiao(null))
+    buscarPerfil(userId, usernameFallback).then(setPerfil).catch(() => setPerfil({ id: userId, username: usernameFallback, apelido: null, avatarUrl: null, pracaAtuacao: null }))
+    buscarTotalToneladas(userId).then(setTotalToneladas).catch(() => setTotalToneladas(0))
   }, [userId, usernameFallback])
 
-  const total = totalComissao ?? 0
+  const total = totalToneladas ?? 0
   const tier = tierAtual(total)
   const proximo = proximoTier(total)
   const progresso = progressoPct(total)
@@ -56,10 +55,10 @@ export function PerfilCard({ userId, usernameFallback }: PerfilCardProps) {
               </button>
             </div>
             <p className="truncate text-xs font-semibold text-white/50">&ldquo;{tier.frase}&rdquo;</p>
-            {regiao && (
+            {perfil?.pracaAtuacao && (
               <div className="mt-1 flex items-center gap-1 text-[10.5px] font-bold text-earth-tan">
                 <MapPin className="h-3 w-3" />
-                Praça de destaque: {regiao}
+                Praça de atuação: {perfil.pracaAtuacao}
               </div>
             )}
           </div>
@@ -69,8 +68,8 @@ export function PerfilCard({ userId, usernameFallback }: PerfilCardProps) {
 
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between text-[11px] font-bold">
-            <span className="text-white/60">Comissão acumulada</span>
-            <span className="tabular text-brand-300">{totalComissao === null ? '—' : fmtBRL(total)}</span>
+            <span className="text-white/60">Toneladas vendidas</span>
+            <span className="tabular text-brand-300">{totalToneladas === null ? '—' : fmtT(total)}</span>
           </div>
           {proximo && (
             <>
@@ -78,19 +77,27 @@ export function PerfilCard({ userId, usernameFallback }: PerfilCardProps) {
                 <div className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-300 transition-all" style={{ width: `${progresso}%` }} />
               </div>
               <div className="text-right text-[10px] font-semibold text-white/40">
-                Faltam {fmtBRL(Math.max(0, proximo.min - total))} pro nível {proximo.nome}
+                Faltam {fmtT(Math.max(0, proximo.min - total))} pro nível {proximo.nome}
               </div>
             </>
           )}
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {todosOsTiers().map((t) => (
-            <div key={t.chave} className="flex shrink-0 flex-col items-center gap-1">
-              <BadgeTier tier={t} size={36} bloqueado={total < t.min} />
-              <span className={`text-[9px] font-bold ${total >= t.min ? 'text-white/70' : 'text-white/25'}`}>{t.nome}</span>
-            </div>
-          ))}
+        <div className="flex gap-2.5 overflow-x-auto pb-1 pt-1">
+          {todosOsTiers().map((t) => {
+            const desbloqueado = total >= t.min
+            const atual = t.chave === tier.chave
+            return (
+              <div key={t.chave} className="flex shrink-0 flex-col items-center gap-1">
+                <div className={cn('rounded-full transition-all', atual && 'shadow-[0_0_0_2px_rgba(24,165,88,0.9),0_0_16px_rgba(24,165,88,0.55)]')}>
+                  <BadgeTier tier={t} size={atual ? 44 : 36} bloqueado={!desbloqueado} />
+                </div>
+                <span className={cn('text-[9px] font-bold', atual ? 'text-brand-300' : desbloqueado ? 'text-white/70' : 'text-white/25')}>
+                  {t.min === 0 ? t.nome : `${t.nome} t`}
+                </span>
+              </div>
+            )
+          })}
         </div>
       </div>
 

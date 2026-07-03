@@ -12,22 +12,16 @@ export async function buscarTotalComissao(vendedorId: string): Promise<number> {
   return (data ?? []).reduce((soma, row) => soma + Number(row.comissao_total ?? 0), 0)
 }
 
-export async function buscarRegiaoPrincipal(vendedorId: string): Promise<string | null> {
+/** Métrica que move os emblemas: soma de toneladas das cotações aprovadas. */
+export async function buscarTotalToneladas(vendedorId: string): Promise<number> {
   const supabase = createClient()
-  const { data, error } = await supabase.from('cotacoes').select('produto, dados').eq('vendedor_id', vendedorId)
-  if (error) throw new Error(`Falha ao calcular região: ${error.message}`)
-  const contagem = new Map<string, number>()
-  for (const row of data ?? []) {
-    const estado = (row.dados as { estado?: string } | null)?.estado
-    if (!estado || estado === 'OUTRO') continue
-    contagem.set(estado, (contagem.get(estado) ?? 0) + 1)
-  }
-  let melhor: string | null = null
-  let max = 0
-  for (const [uf, n] of contagem) {
-    if (n > max) { max = n; melhor = uf }
-  }
-  return melhor
+  const { data, error } = await supabase
+    .from('cotacoes')
+    .select('quantidade_toneladas')
+    .eq('vendedor_id', vendedorId)
+    .eq('aprovado', true)
+  if (error) throw new Error(`Falha ao calcular toneladas: ${error.message}`)
+  return (data ?? []).reduce((soma, row) => soma + Number(row.quantidade_toneladas ?? 0), 0)
 }
 
 export async function buscarConquistasChaves(vendedorId: string): Promise<Set<string>> {

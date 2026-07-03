@@ -15,6 +15,7 @@ interface EditarPerfilModalProps {
 
 export function EditarPerfilModal({ perfil, onFechar, onAtualizado }: EditarPerfilModalProps) {
   const [apelido, setApelido] = useState(perfil.apelido ?? '')
+  const [pracaAtuacao, setPracaAtuacao] = useState(perfil.pracaAtuacao ?? '')
   const [avatarUrl, setAvatarUrl] = useState(perfil.avatarUrl)
   const [salvando, setSalvando] = useState(false)
   const [enviandoFoto, setEnviandoFoto] = useState(false)
@@ -25,7 +26,7 @@ export function EditarPerfilModal({ perfil, onFechar, onAtualizado }: EditarPerf
     if (!arquivo) return
     setEnviandoFoto(true)
     try {
-      const url = await enviarAvatar(perfil.id, arquivo)
+      const url = await enviarAvatar(perfil.id, perfil.username, arquivo)
       setAvatarUrl(url)
       toast.success('Foto atualizada')
     } catch (err) {
@@ -38,8 +39,8 @@ export function EditarPerfilModal({ perfil, onFechar, onAtualizado }: EditarPerf
   async function handleSalvar() {
     setSalvando(true)
     try {
-      await atualizarApelido(perfil.id, apelido)
-      onAtualizado({ ...perfil, apelido: apelido.trim() || null, avatarUrl })
+      await atualizarApelido(perfil.id, perfil.username, apelido, pracaAtuacao)
+      onAtualizado({ ...perfil, apelido: apelido.trim() || null, avatarUrl, pracaAtuacao: pracaAtuacao.trim() || null })
       toast.success('Perfil atualizado')
       onFechar()
     } catch (err) {
@@ -83,6 +84,7 @@ export function EditarPerfilModal({ perfil, onFechar, onAtualizado }: EditarPerf
         </div>
 
         <Input tone="dark" label="Apelido" placeholder="Como quer ser chamado" value={apelido} onChange={(e) => setApelido(e.target.value)} maxLength={24} />
+        <Input tone="dark" label="Praça de atuação" placeholder="Ex: MS, região de Dourados" value={pracaAtuacao} onChange={(e) => setPracaAtuacao(e.target.value)} maxLength={40} />
 
         <Button onClick={handleSalvar} disabled={salvando}>
           {salvando && <Loader2 className="h-4 w-4 animate-spin" />}

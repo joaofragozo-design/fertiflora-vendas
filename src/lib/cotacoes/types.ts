@@ -10,6 +10,8 @@ export interface CotacaoDados {
   precoVendido: number
   secoes: { title: string; rows: [string, string][]; destaque?: number }[]
   validadeGeracao: string
+  /** Data em que o pagamento (e portanto a comissão) efetivamente cai — vista ou média das parcelas. */
+  dataComissao: string
 }
 
 export interface CotacaoSalva {

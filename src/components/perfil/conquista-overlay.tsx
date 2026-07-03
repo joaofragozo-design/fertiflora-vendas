@@ -36,7 +36,7 @@ export function ConquistaOverlay({ tiers, onFechar }: ConquistaOverlayProps) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <div className="font-display text-2xl font-extrabold text-white">Comissão {tier.nome}</div>
+        <div className="font-display text-2xl font-extrabold text-white">{tier.min.toLocaleString('pt-BR')} toneladas</div>
         <p className="text-sm font-semibold text-white/70">&ldquo;{tier.frase}&rdquo;</p>
       </div>
 

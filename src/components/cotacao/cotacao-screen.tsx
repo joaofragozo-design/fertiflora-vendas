@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils/cn'
 import type { FormulaPreco } from '@/lib/pricing/formulas'
 import { createClient } from '@/lib/supabase/client'
-import { buscarTotalComissao, verificarNovasConquistas } from '@/lib/gamificacao/queries'
+import { buscarTotalToneladas, verificarNovasConquistas } from '@/lib/gamificacao/queries'
 import type { Tier } from '@/lib/gamificacao/tiers'
 import { ConquistaOverlay } from '@/components/perfil/conquista-overlay'
 
@@ -225,13 +225,13 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
   }
 
   async function salvarCotacaoAtual() {
-    if (!resultado) return
+    if (!resultado || !pagamentoEfetivo) return
     setSalvando(true)
     try {
       const comissaoTotal = resultado.projecaoComissao * quantidadeNum
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      const totalAntes = user ? await buscarTotalComissao(user.id) : 0
+      const totalAntes = user ? await buscarTotalToneladas(user.id) : 0
 
       await salvarCotacao({
         clienteId: cliente?.id ?? null,
@@ -243,13 +243,14 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
         dados: {
           estado, entrega, frete, agenciador, modoPagamento, pagamentoAvista, parcelas,
           dolar, precoVendido: precoVendidoNum, secoes: montarSecoes(), validadeGeracao: validadeHoje,
+          dataComissao: toDateInput(pagamentoEfetivo),
         },
       })
       setSalva(true)
       toast.success('Cotação salva em Cotações válidas')
 
       if (user && resultado.aprovado) {
-        const totalDepois = totalAntes + comissaoTotal
+        const totalDepois = totalAntes + quantidadeNum
         const novas = await verificarNovasConquistas(user.id, totalAntes, totalDepois)
         if (novas.length > 0) setNovasConquistas(novas)
       }

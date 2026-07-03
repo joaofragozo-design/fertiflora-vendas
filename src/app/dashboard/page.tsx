@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Users, UserPlus, FileClock } from 'lucide-react'
+import { Plus, Users, UserPlus, FileClock, Wallet } from 'lucide-react'
 import { GrowthScene } from '@/components/scene/growth-scene'
 import { Logo } from '@/components/brand/logo'
 import { SignOutButton } from '@/components/forms/sign-out-button'
@@ -43,6 +43,16 @@ export default async function DashboardPage() {
           <div>
             <div className="font-display text-sm font-bold">Cotações</div>
             <div className="text-xs text-white/45">Válidas e histórico</div>
+          </div>
+        </Link>
+
+        <Link href="/comissoes" className="glass flex items-center gap-3 rounded-2xl p-4 transition-colors hover:bg-white/10">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500/20 text-brand-300">
+            <Wallet className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="font-display text-sm font-bold">Minhas Comissões</div>
+            <div className="text-xs text-white/45">Recebidas e a receber, mês a mês</div>
           </div>
         </Link>
 
