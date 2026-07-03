@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Sora, Manrope } from 'next/font/google'
 import { Toaster } from 'sonner'
+import { LivingBackgroundProvider } from '@/components/scene/living-background/background-provider'
 import '@/styles/globals.css'
 
 const sora = Sora({ variable: '--font-sora', subsets: ['latin'], weight: ['600', '700', '800'] })
@@ -27,8 +28,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="pt-BR" className={`dark ${sora.variable} ${manrope.variable}`}>
       <body className="min-h-screen bg-ink-950 font-sans text-white antialiased">
-        {children}
-        <Toaster theme="dark" position="top-center" richColors />
+        <LivingBackgroundProvider>
+          {children}
+          <Toaster theme="dark" position="top-center" richColors />
+        </LivingBackgroundProvider>
       </body>
     </html>
   )

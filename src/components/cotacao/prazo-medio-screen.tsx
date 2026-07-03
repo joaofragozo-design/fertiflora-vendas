@@ -61,7 +61,7 @@ export function PrazoMedioScreen({ parcelasIniciais, onConfirmar, onCancelar }: 
   const podeConfirmar = resultado.fechaEm100 && form.every((p) => !p.percentualStr || parseFloat(p.percentualStr) === 0 || !!p.data)
 
   return (
-    <main className="min-h-screen bg-ink-950 pb-16">
+    <main className="relative z-10 min-h-screen pb-16">
       <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
         <div className="flex items-center gap-3">
           <button onClick={onCancelar} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white">

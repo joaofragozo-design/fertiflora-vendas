@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, CheckCircle2, Clock3, TrendingUp } from 'lucide-react'
 import { listarComissoes, agruparPorMes, nomeMes, type ComissaoItem } from '@/lib/comissoes/queries'
 import { cn } from '@/lib/utils/cn'
+import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
 
 function fmtBRL(v: number) {
   return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -16,6 +17,7 @@ function fmtData(iso: string) {
 type Aba = 'receber' | 'recebidas'
 
 export function ComissoesScreen({ userId }: { userId: string }) {
+  usePageIntensity(0.15)
   const [itens, setItens] = useState<ComissaoItem[]>([])
   const [carregando, setCarregando] = useState(true)
   const [aba, setAba] = useState<Aba>('receber')
@@ -38,7 +40,7 @@ export function ComissoesScreen({ userId }: { userId: string }) {
   }, [filtrados, aba])
 
   return (
-    <main className="min-h-screen bg-ink-950 pb-16">
+    <main className="relative z-10 min-h-screen pb-16">
       <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
         <div className="flex items-center gap-3">
           <Link href="/dashboard" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white">

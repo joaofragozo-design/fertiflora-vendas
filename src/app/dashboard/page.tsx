@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Users, UserPlus, FileClock, Wallet } from 'lucide-react'
-import { GrowthScene } from '@/components/scene/growth-scene'
+import { AnunciarIntensidade } from '@/components/scene/living-background/anunciar-intensidade'
 import { Logo } from '@/components/brand/logo'
 import { SignOutButton } from '@/components/forms/sign-out-button'
 import { PerfilCard } from '@/components/perfil/perfil-card'
@@ -15,8 +15,8 @@ export default async function DashboardPage() {
   if (!user) redirect(ROUTES.LOGIN)
 
   return (
-    <main className="relative min-h-screen overflow-hidden">
-      <GrowthScene />
+    <main className="relative min-h-screen">
+      <AnunciarIntensidade value={0.3} />
 
       <div className="relative z-10 mx-auto flex max-w-md flex-col gap-5 p-5 pt-6">
         <header className="flex items-center justify-between">

@@ -54,11 +54,11 @@ export function PerfilCard({ userId, usernameFallback }: PerfilCardProps) {
                 <Pencil className="h-2.5 w-2.5" />
               </button>
             </div>
-            <p className="truncate text-xs font-semibold text-white/50">&ldquo;{tier.frase}&rdquo;</p>
+            <p className="text-xs font-semibold leading-snug text-white/50">&ldquo;{tier.frase}&rdquo;</p>
             {perfil?.pracaAtuacao && (
-              <div className="mt-1 flex items-center gap-1 text-[10.5px] font-bold text-earth-tan">
-                <MapPin className="h-3 w-3" />
-                Praça de atuação: {perfil.pracaAtuacao}
+              <div className="mt-1 flex items-start gap-1 text-[10.5px] font-bold leading-snug text-earth-tan">
+                <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
+                <span>Praça de atuação: {perfil.pracaAtuacao}</span>
               </div>
             )}
           </div>

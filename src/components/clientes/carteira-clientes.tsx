@@ -6,8 +6,10 @@ import { ArrowLeft, Plus, Search, Users } from 'lucide-react'
 import { listarClientes, inscreverClientesEmTempoReal } from '@/lib/clientes/queries'
 import type { Cliente } from '@/lib/clientes/types'
 import { ClienteHistorico } from '@/components/clientes/cliente-historico'
+import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
 
 export function CarteiraClientes() {
+  usePageIntensity(0.2)
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
@@ -34,7 +36,7 @@ export function CarteiraClientes() {
   }
 
   return (
-    <main className="min-h-screen bg-ink-950 pb-16">
+    <main className="relative z-10 min-h-screen pb-16">
       <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
         <div className="flex items-center gap-3">
           <Link href="/dashboard" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white">

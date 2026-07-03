@@ -21,6 +21,7 @@ import { createClient } from '@/lib/supabase/client'
 import { buscarTotalToneladas, verificarNovasConquistas } from '@/lib/gamificacao/queries'
 import type { Tier } from '@/lib/gamificacao/tiers'
 import { ConquistaOverlay } from '@/components/perfil/conquista-overlay'
+import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
 
 interface CotacaoScreenProps {
   formulas: FormulaPreco[]
@@ -56,6 +57,7 @@ function linhasPagamento(modoPagamento: ModoPagamento, pagamentoAvista: string, 
 }
 
 export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenProps) {
+  usePageIntensity(0.2)
   const [visao, setVisao] = useState<Visao>('form')
   const [produto, setProduto] = useState('')
   const [estado, setEstado] = useState('MS')
@@ -202,7 +204,7 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
 
   if (visao === 'novoCliente') {
     return (
-      <main className="min-h-screen bg-ink-950 pb-16">
+      <main className="relative z-10 min-h-screen pb-16">
         <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
           <div className="flex items-center gap-3">
             <button onClick={() => setVisao('clientes')} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white">
@@ -244,6 +246,8 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
           estado, entrega, frete, agenciador, modoPagamento, pagamentoAvista, parcelas,
           dolar, precoVendido: precoVendidoNum, secoes: montarSecoes(), validadeGeracao: validadeHoje,
           dataComissao: toDateInput(pagamentoEfetivo),
+          comissaoPorTonelada: resultado.projecaoComissao,
+          agenciadorPorTonelada: resultado.agenciadorRS,
         },
       })
       setSalva(true)
@@ -264,7 +268,7 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
   const secoes = visao === 'resumo' ? montarSecoes() : []
 
   return (
-    <main className="min-h-screen bg-ink-950 pb-16">
+    <main className="relative z-10 min-h-screen pb-16">
       <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
         <div className="flex items-center gap-3">
           <Link href="/dashboard" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white">

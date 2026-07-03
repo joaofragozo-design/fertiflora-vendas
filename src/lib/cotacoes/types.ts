@@ -12,6 +12,9 @@ export interface CotacaoDados {
   validadeGeracao: string
   /** Data em que o pagamento (e portanto a comissão) efetivamente cai — vista ou média das parcelas. */
   dataComissao: string
+  /** Congelados no momento do salvamento — o dólar pode mudar depois, o comprovante não. */
+  comissaoPorTonelada: number
+  agenciadorPorTonelada: number
 }
 
 export interface CotacaoSalva {
