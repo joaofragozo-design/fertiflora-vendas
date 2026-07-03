@@ -6,6 +6,8 @@ export async function salvarCotacao(params: {
   produto: string
   precoVendido: number
   aprovado: boolean
+  quantidadeToneladas: number
+  comissaoTotal: number
   dados: CotacaoDados
 }): Promise<CotacaoSalva> {
   const supabase = createClient()
@@ -18,6 +20,8 @@ export async function salvarCotacao(params: {
     produto: params.produto,
     preco_vendido: params.precoVendido,
     aprovado: params.aprovado,
+    quantidade_toneladas: params.quantidadeToneladas,
+    comissao_total: params.comissaoTotal,
     dados: params.dados,
   }).select('*').single()
 

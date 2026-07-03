@@ -17,6 +17,10 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils/cn'
 import type { FormulaPreco } from '@/lib/pricing/formulas'
+import { createClient } from '@/lib/supabase/client'
+import { buscarTotalComissao, verificarNovasConquistas } from '@/lib/gamificacao/queries'
+import type { Tier } from '@/lib/gamificacao/tiers'
+import { ConquistaOverlay } from '@/components/perfil/conquista-overlay'
 
 interface CotacaoScreenProps {
   formulas: FormulaPreco[]
@@ -59,6 +63,7 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
   const [frete, setFrete] = useState('750')
   const [agenciador, setAgenciador] = useState('0')
   const [precoVendido, setPrecoVendido] = useState('')
+  const [quantidade, setQuantidade] = useState('50')
   const [dolar, setDolar] = useState<number | null>(null)
 
   const [modoPagamento, setModoPagamento] = useState<ModoPagamento>('avista')
@@ -68,6 +73,7 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
   const [cliente, setCliente] = useState<Cliente | null>(null)
   const [salvando, setSalvando] = useState(false)
   const [salva, setSalva] = useState(false)
+  const [novasConquistas, setNovasConquistas] = useState<Tier[]>([])
 
   useEffect(() => {
     fetch('/api/dolar').then((r) => r.json()).then((d) => setDolar(d.bid)).catch(() => setDolar(5.2))
@@ -84,6 +90,7 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
 
   const precoVendidoNum = parseFloat(precoVendido) || 0
   const temPrecoNegociado = precoVendidoNum > 0
+  const quantidadeNum = parseFloat(quantidade) || 0
 
   // Calculado assim que fórmula + datas + dólar estão prontos, mesmo sem preço
   // vendido ainda -- preço de tabela não depende dele, só a comissão depende.
@@ -221,11 +228,18 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
     if (!resultado) return
     setSalvando(true)
     try {
+      const comissaoTotal = resultado.projecaoComissao * quantidadeNum
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      const totalAntes = user ? await buscarTotalComissao(user.id) : 0
+
       await salvarCotacao({
         clienteId: cliente?.id ?? null,
         produto,
         precoVendido: precoVendidoNum,
         aprovado: resultado.aprovado,
+        quantidadeToneladas: quantidadeNum,
+        comissaoTotal,
         dados: {
           estado, entrega, frete, agenciador, modoPagamento, pagamentoAvista, parcelas,
           dolar, precoVendido: precoVendidoNum, secoes: montarSecoes(), validadeGeracao: validadeHoje,
@@ -233,6 +247,12 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
       })
       setSalva(true)
       toast.success('Cotação salva em Cotações válidas')
+
+      if (user && resultado.aprovado) {
+        const totalDepois = totalAntes + comissaoTotal
+        const novas = await verificarNovasConquistas(user.id, totalAntes, totalDepois)
+        if (novas.length > 0) setNovasConquistas(novas)
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Falha ao salvar cotação')
     } finally {
@@ -340,7 +360,10 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
                 <Input tone="dark" label="Frete (R$)" type="number" min={0} step={10} value={frete} onChange={(e) => setFrete(e.target.value)} />
               </div>
 
-              <Input tone="dark" label="Entrega" type="date" value={entrega} onChange={(e) => setEntrega(e.target.value)} />
+              <div className="grid grid-cols-2 gap-3">
+                <Input tone="dark" label="Entrega" type="date" value={entrega} onChange={(e) => setEntrega(e.target.value)} />
+                <Input tone="dark" label="Quantidade (t)" type="number" min={0} step={1} value={quantidade} onChange={(e) => setQuantidade(e.target.value)} />
+              </div>
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-bold uppercase tracking-wide text-white/40">Pagamento</label>
@@ -550,6 +573,10 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
           </div>
         )}
       </div>
+
+      {novasConquistas.length > 0 && (
+        <ConquistaOverlay tiers={novasConquistas} onFechar={() => setNovasConquistas([])} />
+      )}
     </main>
   )
 }

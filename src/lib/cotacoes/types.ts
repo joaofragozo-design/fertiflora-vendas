@@ -19,6 +19,8 @@ export interface CotacaoSalva {
   produto: string
   precoVendido: number
   aprovado: boolean
+  quantidadeToneladas: number
+  comissaoTotal: number
   dados: CotacaoDados
   createdAt: string
 }
@@ -38,6 +40,8 @@ export function cotacaoFromRow(row: Record<string, unknown>): CotacaoSalva {
     produto: row.produto as string,
     precoVendido: Number(row.preco_vendido),
     aprovado: row.aprovado as boolean,
+    quantidadeToneladas: Number(row.quantidade_toneladas ?? 1),
+    comissaoTotal: Number(row.comissao_total ?? 0),
     dados: row.dados as CotacaoDados,
     createdAt: row.created_at as string,
   }
