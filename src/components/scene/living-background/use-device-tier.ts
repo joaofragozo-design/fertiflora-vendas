@@ -4,10 +4,8 @@ export type DeviceTier = 'off' | 'low' | 'mid' | 'high'
 
 export interface TierConfig {
   tier: DeviceTier
-  granuleCount: number
-  enableBloom: boolean
+  pontos: number
   dpr: number
-  spawnScale: number
 }
 
 function detectTier(): DeviceTier {
@@ -34,10 +32,10 @@ function detectTier(): DeviceTier {
 }
 
 const CONFIG_POR_TIER: Record<DeviceTier, Omit<TierConfig, 'tier'>> = {
-  off: { granuleCount: 0, enableBloom: false, dpr: 1, spawnScale: 0 },
-  low: { granuleCount: 18, enableBloom: false, dpr: 1, spawnScale: 0.6 },
-  mid: { granuleCount: 34, enableBloom: false, dpr: 1.5, spawnScale: 1 },
-  high: { granuleCount: 55, enableBloom: true, dpr: 2, spawnScale: 1.3 },
+  off: { pontos: 0, dpr: 1 },
+  low: { pontos: 10, dpr: 1 },
+  mid: { pontos: 16, dpr: 1.5 },
+  high: { pontos: 22, dpr: 2 },
 }
 
 /** Detecta a capacidade do dispositivo uma única vez e devolve os parâmetros de qualidade correspondentes. */
