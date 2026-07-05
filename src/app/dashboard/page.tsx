@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Users, UserPlus, FileClock, Wallet } from 'lucide-react'
+import { Plus, Users, UserPlus, FileClock, Wallet, FileText, ClipboardList, ShieldCheck } from 'lucide-react'
 import { AnunciarIntensidade } from '@/components/scene/living-background/anunciar-intensidade'
 import { Logo } from '@/components/brand/logo'
 import { SignOutButton } from '@/components/forms/sign-out-button'
@@ -13,6 +13,9 @@ export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(ROUTES.LOGIN)
+
+  const { data: perfil } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+  const ehAdmin = perfil?.role === 'admin'
 
   return (
     <main className="relative min-h-screen">
@@ -45,6 +48,38 @@ export default async function DashboardPage() {
             <div className="text-xs text-white/45">Válidas e histórico</div>
           </div>
         </Link>
+
+        <Link href="/pedidos/novo" className="glass flex items-center gap-3 rounded-2xl p-4 transition-colors hover:bg-white/10">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500/20 text-brand-300">
+            <FileText className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="font-display text-sm font-bold">Novo Pedido</div>
+            <div className="text-xs text-white/45">Gerar contrato de venda</div>
+          </div>
+        </Link>
+
+        <Link href="/pedidos" className="glass flex items-center gap-3 rounded-2xl p-4 transition-colors hover:bg-white/10">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500/20 text-brand-300">
+            <ClipboardList className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="font-display text-sm font-bold">Meus Pedidos</div>
+            <div className="text-xs text-white/45">Contratos gerados e status</div>
+          </div>
+        </Link>
+
+        {ehAdmin && (
+          <Link href="/admin/pedidos" className="glass flex items-center gap-3 rounded-2xl border border-warning-500/30 p-4 transition-colors hover:bg-white/10">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-warning-500/20 text-warning-400">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="font-display text-sm font-bold">Aprovações</div>
+              <div className="text-xs text-white/45">Pedidos aguardando decisão</div>
+            </div>
+          </Link>
+        )}
 
         <Link href="/comissoes" className="glass flex items-center gap-3 rounded-2xl p-4 transition-colors hover:bg-white/10">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500/20 text-brand-300">

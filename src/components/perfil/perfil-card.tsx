@@ -24,7 +24,7 @@ export function PerfilCard({ userId, usernameFallback }: PerfilCardProps) {
   const [editando, setEditando] = useState(false)
 
   useEffect(() => {
-    buscarPerfil(userId, usernameFallback).then(setPerfil).catch(() => setPerfil({ id: userId, username: usernameFallback, apelido: null, avatarUrl: null, pracaAtuacao: null }))
+    buscarPerfil(userId, usernameFallback).then(setPerfil).catch(() => setPerfil({ id: userId, username: usernameFallback, apelido: null, avatarUrl: null, pracaAtuacao: null, nomeCompleto: null, telefone: null }))
     buscarTotalToneladas(userId).then(setTotalToneladas).catch(() => setTotalToneladas(0))
   }, [userId, usernameFallback])
 

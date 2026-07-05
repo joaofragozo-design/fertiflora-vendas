@@ -6,6 +6,8 @@ export interface Perfil {
   apelido: string | null
   avatarUrl: string | null
   pracaAtuacao: string | null
+  nomeCompleto: string | null
+  telefone: string | null
 }
 
 /**
@@ -24,23 +26,47 @@ async function garantirPerfil(userId: string, usernameFallback: string) {
 
 export async function buscarPerfil(userId: string, usernameFallback: string): Promise<Perfil> {
   const supabase = createClient()
-  const { data, error } = await supabase.from('profiles').select('id, username, apelido, avatar_url, praca_atuacao').eq('id', userId).maybeSingle()
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, username, apelido, avatar_url, praca_atuacao, nome_completo, telefone')
+    .eq('id', userId)
+    .maybeSingle()
   if (error) throw new Error(`Falha ao carregar perfil: ${error.message}`)
 
   if (!data) {
     await garantirPerfil(userId, usernameFallback)
-    return { id: userId, username: usernameFallback, apelido: null, avatarUrl: null, pracaAtuacao: null }
+    return { id: userId, username: usernameFallback, apelido: null, avatarUrl: null, pracaAtuacao: null, nomeCompleto: null, telefone: null }
   }
 
-  return { id: data.id, username: data.username, apelido: data.apelido, avatarUrl: data.avatar_url, pracaAtuacao: data.praca_atuacao }
+  return {
+    id: data.id,
+    username: data.username,
+    apelido: data.apelido,
+    avatarUrl: data.avatar_url,
+    pracaAtuacao: data.praca_atuacao,
+    nomeCompleto: data.nome_completo,
+    telefone: data.telefone,
+  }
 }
 
-export async function atualizarApelido(userId: string, usernameFallback: string, apelido: string, pracaAtuacao: string): Promise<void> {
+export interface AtualizacaoPerfil {
+  apelido: string
+  pracaAtuacao: string
+  nomeCompleto: string
+  telefone: string
+}
+
+export async function atualizarPerfil(userId: string, usernameFallback: string, dados: AtualizacaoPerfil): Promise<void> {
   const supabase = createClient()
   await garantirPerfil(userId, usernameFallback)
   const { error } = await supabase
     .from('profiles')
-    .update({ apelido: apelido.trim() || null, praca_atuacao: pracaAtuacao.trim() || null })
+    .update({
+      apelido: dados.apelido.trim() || null,
+      praca_atuacao: dados.pracaAtuacao.trim() || null,
+      nome_completo: dados.nomeCompleto.trim() || null,
+      telefone: dados.telefone.trim() || null,
+    })
     .eq('id', userId)
   if (error) throw new Error(`Falha ao salvar perfil: ${error.message}`)
 }

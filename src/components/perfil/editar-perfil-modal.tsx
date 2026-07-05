@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { Camera, Loader2, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { atualizarApelido, enviarAvatar, type Perfil } from '@/lib/perfil/queries'
+import { atualizarPerfil, enviarAvatar, type Perfil } from '@/lib/perfil/queries'
 
 interface EditarPerfilModalProps {
   perfil: Perfil
@@ -16,6 +16,8 @@ interface EditarPerfilModalProps {
 export function EditarPerfilModal({ perfil, onFechar, onAtualizado }: EditarPerfilModalProps) {
   const [apelido, setApelido] = useState(perfil.apelido ?? '')
   const [pracaAtuacao, setPracaAtuacao] = useState(perfil.pracaAtuacao ?? '')
+  const [nomeCompleto, setNomeCompleto] = useState(perfil.nomeCompleto ?? '')
+  const [telefone, setTelefone] = useState(perfil.telefone ?? '')
   const [avatarUrl, setAvatarUrl] = useState(perfil.avatarUrl)
   const [salvando, setSalvando] = useState(false)
   const [enviandoFoto, setEnviandoFoto] = useState(false)
@@ -39,8 +41,15 @@ export function EditarPerfilModal({ perfil, onFechar, onAtualizado }: EditarPerf
   async function handleSalvar() {
     setSalvando(true)
     try {
-      await atualizarApelido(perfil.id, perfil.username, apelido, pracaAtuacao)
-      onAtualizado({ ...perfil, apelido: apelido.trim() || null, avatarUrl, pracaAtuacao: pracaAtuacao.trim() || null })
+      await atualizarPerfil(perfil.id, perfil.username, { apelido, pracaAtuacao, nomeCompleto, telefone })
+      onAtualizado({
+        ...perfil,
+        apelido: apelido.trim() || null,
+        avatarUrl,
+        pracaAtuacao: pracaAtuacao.trim() || null,
+        nomeCompleto: nomeCompleto.trim() || null,
+        telefone: telefone.trim() || null,
+      })
       toast.success('Perfil atualizado')
       onFechar()
     } catch (err) {
@@ -84,6 +93,8 @@ export function EditarPerfilModal({ perfil, onFechar, onAtualizado }: EditarPerf
         </div>
 
         <Input tone="dark" label="Apelido" placeholder="Como quer ser chamado" value={apelido} onChange={(e) => setApelido(e.target.value)} maxLength={24} />
+        <Input tone="dark" label="Nome completo" placeholder="Como aparece nos contratos" value={nomeCompleto} onChange={(e) => setNomeCompleto(e.target.value)} maxLength={80} />
+        <Input tone="dark" label="Telefone" placeholder="(45) 99999-9999" value={telefone} onChange={(e) => setTelefone(e.target.value)} maxLength={20} />
         <Input tone="dark" label="Praça de atuação" placeholder="Ex: MS, região de Dourados" value={pracaAtuacao} onChange={(e) => setPracaAtuacao(e.target.value)} maxLength={40} />
 
         <Button onClick={handleSalvar} disabled={salvando}>
