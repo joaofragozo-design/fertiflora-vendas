@@ -37,8 +37,8 @@ export function PerfilCard({ userId, usernameFallback }: PerfilCardProps) {
   return (
     <>
       <div className="glass flex flex-col gap-4 rounded-3xl p-6">
-        <div className="flex items-center gap-4">
-          <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-500/20 text-lg font-extrabold text-brand-300">
+        <div className="flex items-center gap-3.5">
+          <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-500/20 text-base font-extrabold text-brand-300">
             {perfil?.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={perfil.avatarUrl} alt={nomeExibicao} className="h-full w-full object-cover" />
@@ -49,21 +49,23 @@ export function PerfilCard({ userId, usernameFallback }: PerfilCardProps) {
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <h1 className="font-display truncate text-base font-bold text-white">{nomeExibicao}</h1>
-              <button onClick={() => setEditando(true)} className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/50">
-                <Pencil className="h-2.5 w-2.5" />
+              <h1 className="font-display min-w-0 truncate text-base font-bold text-white">{nomeExibicao}</h1>
+              <button
+                onClick={() => setEditando(true)}
+                aria-label="Editar perfil"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/50 transition-colors hover:bg-white/15 hover:text-white active:scale-90"
+              >
+                <Pencil className="h-3 w-3" />
               </button>
             </div>
             <p className="text-xs font-semibold leading-snug text-white/50">&ldquo;{tier.frase}&rdquo;</p>
             {perfil?.pracaAtuacao && (
               <div className="mt-1 flex items-start gap-1 text-[10.5px] font-bold leading-snug text-earth-tan">
                 <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
-                <span>Praça de atuação: {perfil.pracaAtuacao}</span>
+                <span className="truncate">Praça de atuação: {perfil.pracaAtuacao}</span>
               </div>
             )}
           </div>
-
-          <BadgeTier tier={tier} size={56} />
         </div>
 
         <div className="flex flex-col gap-1.5">
@@ -76,14 +78,17 @@ export function PerfilCard({ userId, usernameFallback }: PerfilCardProps) {
               <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
                 <div className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-300 transition-all" style={{ width: `${progresso}%` }} />
               </div>
-              <div className="text-right text-[10px] font-semibold text-white/40">
+              <div className="text-right text-[10px] font-semibold text-white/50">
                 Faltam {fmtT(Math.max(0, proximo.min - total))} pro nível {proximo.nome}
               </div>
             </>
           )}
         </div>
 
-        <div className="flex gap-2.5 overflow-x-auto pb-1 pt-1">
+        <div
+          className="flex gap-2.5 overflow-x-auto pb-1 pt-1"
+          style={{ maskImage: 'linear-gradient(to right, black 88%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, black 88%, transparent 100%)' }}
+        >
           {todosOsTiers().map((t) => {
             const desbloqueado = total >= t.min
             const atual = t.chave === tier.chave

@@ -61,10 +61,10 @@ export function PrazoMedioScreen({ parcelasIniciais, onConfirmar, onCancelar }: 
   const podeConfirmar = resultado.fechaEm100 && form.every((p) => !p.percentualStr || parseFloat(p.percentualStr) === 0 || !!p.data)
 
   return (
-    <main className="relative z-10 min-h-screen pb-16">
+    <main className="relative z-10 min-h-screen pb-28">
       <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
         <div className="flex items-center gap-3">
-          <button onClick={onCancelar} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white">
+          <button onClick={onCancelar} className="flex h-11 w-11 items-center justify-center rounded-full bg-white/8 text-white transition-colors hover:bg-white/12 active:scale-90" aria-label="Voltar">
             <ArrowLeft className="h-4.5 w-4.5" />
           </button>
           <h1 className="font-display text-lg font-bold">Cálculo de Prazo Médio</h1>
@@ -88,7 +88,7 @@ export function PrazoMedioScreen({ parcelasIniciais, onConfirmar, onCancelar }: 
 
               <div className="grid grid-cols-[1fr_auto] gap-3">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10.5px] font-bold uppercase tracking-wide text-white/40">Data</label>
+                  <label className="text-[10.5px] font-bold uppercase tracking-wide text-white/50">Data</label>
                   <input
                     type="date"
                     value={p.data}
@@ -97,7 +97,7 @@ export function PrazoMedioScreen({ parcelasIniciais, onConfirmar, onCancelar }: 
                   />
                 </div>
                 <div className="flex w-24 flex-col gap-1.5">
-                  <label className="text-[10.5px] font-bold uppercase tracking-wide text-white/40">%</label>
+                  <label className="text-[10.5px] font-bold uppercase tracking-wide text-white/50">%</label>
                   <div className="relative">
                     <input
                       type="text"
@@ -107,7 +107,7 @@ export function PrazoMedioScreen({ parcelasIniciais, onConfirmar, onCancelar }: 
                       placeholder="0"
                       className="w-full rounded-xl border border-white/15 bg-white/[0.06] py-3 pl-3.5 pr-6 text-[15px] font-medium text-white outline-none focus:border-brand-400"
                     />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-white/40">%</span>
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-white/50">%</span>
                   </div>
                 </div>
               </div>

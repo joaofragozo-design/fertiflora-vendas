@@ -6,6 +6,7 @@ import { ArrowLeft, CheckCircle2, Clock3, TrendingUp } from 'lucide-react'
 import { listarComissoes, agruparPorMes, nomeMes, type ComissaoItem } from '@/lib/comissoes/queries'
 import { cn } from '@/lib/utils/cn'
 import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
+import { SkeletonListaCards } from '@/components/ui/skeleton'
 
 function fmtBRL(v: number) {
   return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -40,10 +41,10 @@ export function ComissoesScreen({ userId }: { userId: string }) {
   }, [filtrados, aba])
 
   return (
-    <main className="relative z-10 min-h-screen pb-16">
+    <main className="relative z-10 min-h-screen pb-28">
       <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white">
+          <Link href="/mais" className="flex h-11 w-11 items-center justify-center rounded-full bg-white/8 text-white transition-colors hover:bg-white/12 active:scale-90" aria-label="Voltar">
             <ArrowLeft className="h-4.5 w-4.5" />
           </Link>
           <h1 className="font-display text-lg font-bold">Minhas Comissões</h1>
@@ -51,14 +52,14 @@ export function ComissoesScreen({ userId }: { userId: string }) {
 
         <div className="grid grid-cols-2 gap-3">
           <div className="glass flex flex-col gap-1 rounded-2xl p-4">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/40">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/50">
               <CheckCircle2 className="h-3.5 w-3.5 text-brand-300" />
               Recebidas
             </div>
             <div className="tabular text-lg font-extrabold text-brand-300">{fmtBRL(totalRecebido)}</div>
           </div>
           <div className="glass flex flex-col gap-1 rounded-2xl p-4">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/40">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/50">
               <Clock3 className="h-3.5 w-3.5 text-warning-400" />
               A receber
             </div>
@@ -81,7 +82,7 @@ export function ComissoesScreen({ userId }: { userId: string }) {
           </button>
         </div>
 
-        {carregando && <p className="text-center text-xs text-white/40">Carregando…</p>}
+        {carregando && <SkeletonListaCards />}
         {!carregando && grupos.length === 0 && (
           <div className="glass flex flex-col items-center gap-2 rounded-3xl p-8 text-center">
             <TrendingUp className="h-8 w-8 text-white/25" />
@@ -97,13 +98,13 @@ export function ComissoesScreen({ userId }: { userId: string }) {
             <div key={chave} className="flex flex-col gap-2">
               <div className="flex items-baseline justify-between px-1">
                 <span className="text-xs font-extrabold uppercase tracking-wide text-white/50">{nomeMes(chave)}</span>
-                <span className="tabular text-xs font-bold text-white/40">{fmtBRL(totalMes)}</span>
+                <span className="tabular text-xs font-bold text-white/50">{fmtBRL(totalMes)}</span>
               </div>
               <div className="glass flex flex-col rounded-2xl p-2">
                 {itensMes.map((item) => (
                   <div key={item.id} className="flex items-center justify-between gap-3 border-b border-white/8 px-3 py-3 last:border-0">
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-bold text-white">{item.clienteNome ?? item.produto}</div>
+                      <div className="truncate text-sm font-bold text-white">{item.clienteNome ?? 'Sem cliente vinculado'}</div>
                       <div className="truncate text-[11px] text-white/45">{item.produto} · {fmtData(item.data)}</div>
                     </div>
                     <div className={cn('tabular shrink-0 text-sm font-extrabold', item.recebida ? 'text-brand-300' : 'text-warning-400')}>

@@ -67,7 +67,7 @@ export function EditarPerfilModal({ perfil, onFechar, onAtualizado }: EditarPerf
       >
         <div className="flex items-center justify-between">
           <h2 className="font-display text-sm font-bold">Editar perfil</h2>
-          <button onClick={onFechar} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/8 text-white/60">
+          <button onClick={onFechar} aria-label="Fechar" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white/60 transition-colors hover:bg-white/15 hover:text-white active:scale-90">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -76,7 +76,8 @@ export function EditarPerfilModal({ perfil, onFechar, onAtualizado }: EditarPerf
           <button
             onClick={() => inputFotoRef.current?.click()}
             disabled={enviandoFoto}
-            className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-brand-500/20 text-2xl font-extrabold text-brand-300"
+            aria-label="Trocar foto de perfil"
+            className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-brand-500/20 text-2xl font-extrabold text-brand-300 transition-transform active:scale-95"
           >
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -89,7 +90,7 @@ export function EditarPerfilModal({ perfil, onFechar, onAtualizado }: EditarPerf
             </div>
           </button>
           <input ref={inputFotoRef} type="file" accept="image/*" className="hidden" onChange={handleFoto} />
-          <span className="text-[11px] text-white/40">Toque na foto para trocar</span>
+          <span className="text-[11px] text-white/50">Toque na foto para trocar</span>
         </div>
 
         <Input tone="dark" label="Apelido" placeholder="Como quer ser chamado" value={apelido} onChange={(e) => setApelido(e.target.value)} maxLength={24} />

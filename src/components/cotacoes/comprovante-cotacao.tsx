@@ -67,17 +67,17 @@ export function ComprovanteCotacao({ cotacao, clienteNome, onFechar }: Comprovan
   }
 
   return (
-    <main className="relative z-10 min-h-screen pb-16">
+    <main className="relative z-10 min-h-screen pb-28">
       <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
         <div className="flex items-center gap-3">
-          <button onClick={onFechar} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white">
+          <button onClick={onFechar} className="flex h-11 w-11 items-center justify-center rounded-full bg-white/8 text-white transition-colors hover:bg-white/12 active:scale-90" aria-label="Voltar">
             <ArrowLeft className="h-4.5 w-4.5" />
           </button>
           <h1 className="font-display text-lg font-bold">Comprovante</h1>
         </div>
 
         <div className="flex items-center gap-2.5 rounded-2xl border border-white/15 bg-white/[0.06] px-3.5 py-2.5">
-          <Lock className="h-4 w-4 shrink-0 text-white/40" />
+          <Lock className="h-4 w-4 shrink-0 text-white/50" />
           <p className="text-[11.5px] font-semibold leading-snug text-white/60">
             Dados congelados em <span className="tabular text-white">{fmtDataHora(cotacao.createdAt)}</span> — não mudam mesmo que o dólar varie depois.
           </p>
@@ -107,9 +107,9 @@ export function ComprovanteCotacao({ cotacao, clienteNome, onFechar }: Comprovan
         </div>
 
         <div className="glass flex flex-col gap-2.5 rounded-3xl p-5">
-          <h2 className="font-display text-xs font-bold uppercase tracking-wide text-white/40">Sua comissão (interno)</h2>
+          <h2 className="font-display text-xs font-bold uppercase tracking-wide text-white/50">Sua comissão (interno)</h2>
           {!comissaoRegistrada && (
-            <p className="text-[11px] leading-snug text-white/40">Cotação salva antes desse detalhamento existir — só o total abaixo está disponível.</p>
+            <p className="text-[11px] leading-snug text-white/50">Cotação salva antes desse detalhamento existir — só o total abaixo está disponível.</p>
           )}
           {comissaoRegistrada && (
             <div className="flex items-baseline justify-between">
@@ -129,7 +129,7 @@ export function ComprovanteCotacao({ cotacao, clienteNome, onFechar }: Comprovan
           )}
           {clienteNome && (
             <div className="flex items-baseline justify-between border-t border-white/10 pt-2.5">
-              <span className="text-xs font-semibold text-white/40">Cliente</span>
+              <span className="text-xs font-semibold text-white/50">Cliente</span>
               <span className="text-xs font-bold text-white">{clienteNome}</span>
             </div>
           )}

@@ -6,6 +6,8 @@ import { listarCotacoesDoCliente } from '@/lib/cotacoes/queries'
 import type { CotacaoSalva } from '@/lib/cotacoes/types'
 import type { Cliente } from '@/lib/clientes/types'
 import { cn } from '@/lib/utils/cn'
+import { formatarCpfCnpj, formatarTelefone } from '@/lib/utils/formatadores'
+import { SkeletonListaCards } from '@/components/ui/skeleton'
 
 function fmtBRL(v: number) { return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
 
@@ -18,19 +20,19 @@ export function ClienteHistorico({ cliente, onVoltar }: { cliente: Cliente; onVo
   }, [cliente.id])
 
   return (
-    <main className="relative z-10 min-h-screen pb-16">
+    <main className="relative z-10 min-h-screen pb-28">
       <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
         <div className="flex items-center gap-3">
-          <button onClick={onVoltar} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white">
+          <button onClick={onVoltar} className="flex h-11 w-11 items-center justify-center rounded-full bg-white/8 text-white transition-colors hover:bg-white/12 active:scale-90" aria-label="Voltar">
             <ArrowLeft className="h-4.5 w-4.5" />
           </button>
           <h1 className="font-display truncate text-lg font-bold">{cliente.nome}</h1>
         </div>
 
         <div className="glass flex flex-col gap-2 rounded-3xl p-5">
-          <Row label="Documento" value={cliente.cpfCnpj} />
+          <Row label="Documento" value={formatarCpfCnpj(cliente.cpfCnpj)} />
           {cliente.inscricaoEstadual && <Row label="Inscrição estadual" value={cliente.inscricaoEstadual} />}
-          {cliente.telefone && <Row label="Telefone" value={cliente.telefone} />}
+          {cliente.telefone && <Row label="Telefone" value={formatarTelefone(cliente.telefone)} />}
           {cliente.email && <Row label="E-mail" value={cliente.email} />}
           {cliente.cidade && <Row label="Cidade/UF" value={`${cliente.cidade}${cliente.estado ? '/' + cliente.estado : ''}`} />}
           {cliente.logradouro && <Row label="Endereço" value={`${cliente.logradouro}, ${cliente.numero ?? 's/n'}${cliente.bairro ? ' — ' + cliente.bairro : ''}`} />}
@@ -41,7 +43,7 @@ export function ClienteHistorico({ cliente, onVoltar }: { cliente: Cliente; onVo
           Histórico de cotações
         </h2>
 
-        {carregando && <p className="text-center text-xs text-white/40">Carregando…</p>}
+        {carregando && <SkeletonListaCards />}
         {!carregando && cotacoes.length === 0 && (
           <p className="glass rounded-2xl p-5 text-center text-xs text-white/45">Nenhuma cotação salva para esse cliente ainda.</p>
         )}

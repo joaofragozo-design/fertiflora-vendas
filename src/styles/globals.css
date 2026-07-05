@@ -24,7 +24,9 @@ body {
 
 @layer utilities {
   .glass {
-    background: rgba(18, 18, 18, 0.55);
+    /* Opacidade alta o bastante pra nunca deixar as partículas do fundo vivo
+       aparecerem como pontos coloridos sobre texto/números dos cards. */
+    background: rgba(15, 18, 16, 0.82);
     backdrop-filter: blur(22px) saturate(140%);
     -webkit-backdrop-filter: blur(22px) saturate(140%);
     border: 1px solid rgba(255, 255, 255, 0.14);
@@ -46,6 +48,16 @@ body {
   .tabular {
     font-variant-numeric: tabular-nums;
   }
+}
+
+/* Ícone do seletor de data nativo (branco) some em fundo escuro sem isso — cobre Chrome/Safari mobile. */
+input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.6;
+  cursor: pointer;
+}
+input[type='date']::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
 }
 
 /* --- cena de fundo: "mergulho" ao confirmar login --- */
@@ -82,6 +94,17 @@ body {
 
 .conquista-shine {
   animation: conquista-shine 1.6s ease-in-out 0.4s;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.06) 25%, rgba(255, 255, 255, 0.12) 37%, rgba(255, 255, 255, 0.06) 63%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

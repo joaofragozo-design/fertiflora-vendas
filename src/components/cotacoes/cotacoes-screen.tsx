@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle2, AlertTriangle, Eye } from 'lucide-react'
+import { Plus, CheckCircle2, AlertTriangle, Eye, FileClock } from 'lucide-react'
 import { listarCotacoes } from '@/lib/cotacoes/queries'
 import { statusCotacao, type CotacaoSalva } from '@/lib/cotacoes/types'
 import { listarClientes } from '@/lib/clientes/queries'
@@ -10,6 +10,7 @@ import type { Cliente } from '@/lib/clientes/types'
 import { cn } from '@/lib/utils/cn'
 import { ComprovanteCotacao } from '@/components/cotacoes/comprovante-cotacao'
 import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
+import { SkeletonListaCards } from '@/components/ui/skeleton'
 
 function fmtBRL(v: number) { return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
 
@@ -42,13 +43,17 @@ export function CotacoesScreen() {
   }
 
   return (
-    <main className="relative z-10 min-h-screen pb-16">
+    <main className="relative z-10 min-h-screen pb-28">
       <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white">
-            <ArrowLeft className="h-4.5 w-4.5" />
-          </Link>
           <h1 className="font-display text-lg font-bold">Cotações</h1>
+          <Link
+            href="/cotacao"
+            aria-label="Nova cotação"
+            className="ml-auto flex h-11 w-11 items-center justify-center rounded-full bg-brand-500 text-ink-950 transition-transform active:scale-90"
+          >
+            <Plus className="h-4.5 w-4.5" />
+          </Link>
         </div>
 
         <div className="flex gap-1.5 rounded-2xl bg-white/[0.06] p-1">
@@ -66,15 +71,19 @@ export function CotacoesScreen() {
           </button>
         </div>
 
-        <p className="px-1 text-[10.5px] text-white/40">
+        <p className="px-1 text-[10.5px] text-white/50">
           {aba === 'validas' ? 'Cotações salvas nos últimos 7 dias.' : 'Cotações com mais de 7 dias — movidas automaticamente pra cá.'}
         </p>
 
-        {carregando && <p className="text-center text-xs text-white/40">Carregando…</p>}
+        {carregando && <SkeletonListaCards />}
         {!carregando && filtradas.length === 0 && (
-          <p className="glass rounded-2xl p-5 text-center text-xs text-white/45">
-            {aba === 'validas' ? 'Nenhuma cotação válida no momento.' : 'Nenhuma cotação no histórico ainda.'}
-          </p>
+          <div className="glass flex flex-col items-center gap-2 rounded-3xl p-8 text-center">
+            <FileClock className="h-8 w-8 text-white/25" />
+            <p className="text-sm font-semibold text-white/60">
+              {aba === 'validas' ? 'Nenhuma cotação válida no momento' : 'Nenhuma cotação no histórico ainda'}
+            </p>
+            {aba === 'validas' && <Link href="/cotacao" className="text-xs font-bold text-brand-300">Criar uma cotação</Link>}
+          </div>
         )}
 
         <div className="flex flex-col gap-2">
@@ -95,7 +104,7 @@ export function CotacoesScreen() {
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1">
                   <div className="tabular text-sm font-extrabold text-white">{fmtBRL(c.precoVendido)}/t</div>
-                  <div className="flex items-center gap-1 text-[10px] font-bold text-white/40">
+                  <div className="flex items-center gap-1 text-[10px] font-bold text-white/50">
                     <Eye className="h-3 w-3" />
                     Ver comprovante
                   </div>

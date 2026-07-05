@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils/cn'
 import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
+import { SkeletonListaCards } from '@/components/ui/skeleton'
 
 function fmtBRL(v: number) {
   return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -49,10 +50,10 @@ export function AprovacaoScreen() {
   }
 
   return (
-    <main className="relative z-10 min-h-screen pb-16">
+    <main className="relative z-10 min-h-screen pb-28">
       <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white">
+          <Link href="/mais" className="flex h-11 w-11 items-center justify-center rounded-full bg-white/8 text-white transition-colors hover:bg-white/12 active:scale-90" aria-label="Voltar">
             <ArrowLeft className="h-4.5 w-4.5" />
           </Link>
           <h1 className="font-display flex items-center gap-2 text-lg font-bold">
@@ -76,11 +77,14 @@ export function AprovacaoScreen() {
           </button>
         </div>
 
-        {carregando && <p className="text-center text-xs text-white/40">Carregando…</p>}
+        {carregando && <SkeletonListaCards />}
         {!carregando && filtrados.length === 0 && (
-          <p className="glass rounded-2xl p-5 text-center text-xs text-white/45">
-            {aba === 'pendentes' ? 'Nenhum pedido aguardando aprovação.' : 'Nenhum pedido decidido ainda.'}
-          </p>
+          <div className="glass flex flex-col items-center gap-2 rounded-3xl p-8 text-center">
+            <ShieldCheck className="h-8 w-8 text-white/25" />
+            <p className="text-sm font-semibold text-white/60">
+              {aba === 'pendentes' ? 'Nenhum pedido aguardando aprovação' : 'Nenhum pedido decidido ainda'}
+            </p>
+          </div>
         )}
 
         <div className="flex flex-col gap-2">
@@ -141,7 +145,7 @@ export function AprovacaoScreen() {
 function MiniRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col">
-      <span className="text-[9.5px] font-semibold uppercase tracking-wide text-white/40">{label}</span>
+      <span className="text-[9.5px] font-semibold uppercase tracking-wide text-white/50">{label}</span>
       <span className="tabular text-xs font-bold text-white">{value}</span>
     </div>
   )
@@ -169,7 +173,7 @@ function ModalRejeitar({ pedido, onFechar, onRejeitado }: { pedido: Pedido; onFe
       <div className="glass flex w-full max-w-md flex-col gap-4 rounded-t-[28px] p-6 sm:rounded-[28px]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h2 className="font-display text-sm font-bold">Rejeitar pedido</h2>
-          <button onClick={onFechar} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/8 text-white/60">
+          <button onClick={onFechar} aria-label="Fechar" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white/60 transition-colors hover:bg-white/15 hover:text-white active:scale-90">
             <X className="h-4 w-4" />
           </button>
         </div>

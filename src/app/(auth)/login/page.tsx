@@ -65,7 +65,7 @@ export default async function LoginPage() {
               </Suspense>
             </div>
 
-            <p className="mt-6 text-center text-[11px] text-white/40">
+            <p className="mt-6 text-center text-[11px] text-white/50">
               © {new Date().getFullYear()} FertiFlora Organomineral. Todos os direitos reservados.
             </p>
           </div>

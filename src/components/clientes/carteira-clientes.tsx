@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Plus, Search, Users } from 'lucide-react'
+import { Plus, Search, Users } from 'lucide-react'
 import { listarClientes, inscreverClientesEmTempoReal } from '@/lib/clientes/queries'
 import type { Cliente } from '@/lib/clientes/types'
 import { ClienteHistorico } from '@/components/clientes/cliente-historico'
 import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
+import { formatarCpfCnpj } from '@/lib/utils/formatadores'
+import { SkeletonListaCards } from '@/components/ui/skeleton'
 
 export function CarteiraClientes() {
   usePageIntensity(0.2)
@@ -36,29 +38,30 @@ export function CarteiraClientes() {
   }
 
   return (
-    <main className="relative z-10 min-h-screen pb-16">
+    <main className="relative z-10 min-h-screen pb-28">
       <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white">
-            <ArrowLeft className="h-4.5 w-4.5" />
-          </Link>
           <h1 className="font-display text-lg font-bold">Carteira de Clientes</h1>
-          <Link href="/clientes/novo" className="ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-brand-500 text-ink-950">
+          <Link
+            href="/clientes/novo"
+            aria-label="Cadastrar cliente"
+            className="ml-auto flex h-11 w-11 items-center justify-center rounded-full bg-brand-500 text-ink-950 transition-transform active:scale-90"
+          >
             <Plus className="h-4.5 w-4.5" />
           </Link>
         </div>
 
         <div className="glass flex items-center gap-2.5 rounded-2xl px-4 py-3">
-          <Search className="h-4 w-4 text-white/40" />
+          <Search className="h-4 w-4 text-white/50" />
           <input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar por nome ou CPF/CNPJ"
-            className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/35"
+            className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/45"
           />
         </div>
 
-        {carregando && <p className="text-center text-xs text-white/40">Carregando clientes…</p>}
+        {carregando && <SkeletonListaCards />}
 
         {!carregando && filtrados.length === 0 && (
           <div className="glass flex flex-col items-center gap-2 rounded-3xl p-8 text-center">
@@ -80,7 +83,7 @@ export function CarteiraClientes() {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-bold text-white">{c.nome}</div>
-                <div className="truncate text-xs text-white/45">{c.cpfCnpj} · {c.cidade ?? '—'}{c.estado ? `/${c.estado}` : ''}</div>
+                <div className="truncate text-xs text-white/45">{formatarCpfCnpj(c.cpfCnpj)} · {c.cidade ?? '—'}{c.estado ? `/${c.estado}` : ''}</div>
               </div>
               <span className="shrink-0 rounded-full bg-white/8 px-2 py-1 text-[10px] font-bold uppercase text-white/50">
                 {c.tipoPessoa}

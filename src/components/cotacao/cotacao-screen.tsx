@@ -204,10 +204,10 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
 
   if (visao === 'novoCliente') {
     return (
-      <main className="relative z-10 min-h-screen pb-16">
+      <main className="relative z-10 min-h-screen pb-28">
         <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
           <div className="flex items-center gap-3">
-            <button onClick={() => setVisao('clientes')} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white">
+            <button onClick={() => setVisao('clientes')} className="flex h-11 w-11 items-center justify-center rounded-full bg-white/8 text-white transition-colors hover:bg-white/12 active:scale-90" aria-label="Voltar">
               <ArrowLeft className="h-4.5 w-4.5" />
             </button>
             <h1 className="font-display text-lg font-bold">Novo Cliente</h1>
@@ -268,10 +268,10 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
   const secoes = visao === 'resumo' ? montarSecoes() : []
 
   return (
-    <main className="relative z-10 min-h-screen pb-16">
+    <main className="relative z-10 min-h-screen pb-28">
       <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white">
+          <Link href="/cotacoes" className="flex h-11 w-11 items-center justify-center rounded-full bg-white/8 text-white transition-colors hover:bg-white/12 active:scale-90" aria-label="Voltar">
             <ArrowLeft className="h-4.5 w-4.5" />
           </Link>
           <h1 className="font-display text-lg font-bold">Nova Cotação</h1>
@@ -283,7 +283,7 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
         <div className="glass flex items-center gap-3 rounded-2xl p-3.5">
           <span className="h-2 w-2 shrink-0 rounded-full bg-brand-400 shadow-[0_0_0_0_rgba(24,165,88,0.6)]" />
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-wide text-white/40">Dólar agora · tempo real</div>
+            <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Dólar agora · tempo real</div>
             <div className="tabular text-lg font-extrabold">{dolar ? fmtBRL(dolar) : '—'}</div>
           </div>
         </div>
@@ -297,10 +297,10 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
               <UserCircle2 className="h-4.5 w-4.5" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-[10px] font-bold uppercase tracking-wide text-white/40">Cliente</div>
+              <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Cliente</div>
               <div className="truncate text-sm font-bold text-white">{cliente ? cliente.nome : 'Selecionar ou cadastrar cliente'}</div>
             </div>
-            <ChevronRight className="h-4 w-4 shrink-0 text-white/40" />
+            <ChevronRight className="h-4 w-4 shrink-0 text-white/50" />
           </button>
         )}
 
@@ -322,15 +322,15 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
               </h2>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wide text-white/40">Fórmula</label>
+                <label className="text-[11px] font-bold uppercase tracking-wide text-white/50">Fórmula</label>
                 <div className="relative">
                   <input
                     list="lista-formulas"
                     value={produto}
                     onChange={(e) => setProduto(e.target.value)}
-                    placeholder="Buscar fórmula (ex: 00-08-08)"
+                    placeholder="Buscar fórmula…"
                     autoComplete="off"
-                    className="w-full rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 pr-11 text-[16px] font-medium text-white outline-none placeholder:text-white/35 focus:border-brand-400 focus:bg-brand-500/10"
+                    className="w-full rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 pr-11 text-[15px] font-medium text-white outline-none placeholder:text-white/45 focus:border-brand-400 focus:bg-brand-500/10"
                   />
                   {produto && (
                     <button
@@ -346,14 +346,14 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
                 <datalist id="lista-formulas">
                   {formulas.map((f) => <option key={f.nome} value={f.nome} />)}
                 </datalist>
-                <p className="text-[10.5px] text-white/40">
+                <p className="text-[10.5px] text-white/50">
                   {precoBase !== undefined ? `Referência 100% à vista: ${fmtUSD(precoBase)}/t` : produto ? 'Fórmula não encontrada no catálogo.' : 'Preço de referência aparece aqui.'}
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] font-bold uppercase tracking-wide text-white/40">Estado</label>
+                  <label className="text-[11px] font-bold uppercase tracking-wide text-white/50">Estado</label>
                   <select
                     value={estado}
                     onChange={(e) => setEstado(e.target.value)}
@@ -371,7 +371,7 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wide text-white/40">Pagamento</label>
+                <label className="text-[11px] font-bold uppercase tracking-wide text-white/50">Pagamento</label>
                 <div className="flex gap-1.5 rounded-2xl bg-white/[0.06] p-1">
                   <button
                     onClick={() => setModoPagamento('avista')}
@@ -401,10 +401,10 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
                     onClick={() => setVisao('prazo')}
                     className="mt-1 flex flex-col gap-2.5 rounded-2xl border border-white/15 bg-white/[0.06] p-4 text-left"
                   >
-                    <div className="flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-wide text-white/40">
+                    <div className="flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-wide text-white/50">
                       <CalendarClock className="h-3.5 w-3.5 text-brand-300" />
                       Parcelas combinadas
-                      <Pencil className="ml-auto h-3.5 w-3.5 text-white/40" />
+                      <Pencil className="ml-auto h-3.5 w-3.5 text-white/50" />
                     </div>
 
                     {parcelasValidas(parcelas).length === 0 && (
@@ -446,7 +446,7 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
                 value={precoVendido}
                 onChange={(e) => setPrecoVendido(e.target.value)}
               />
-              <p className="text-[10.5px] text-white/40">
+              <p className="text-[10.5px] text-white/50">
                 Esse é o valor que você está fechando com o cliente — o sistema calcula ICMS, frete e sua comissão a partir dele.
               </p>
             </div>
@@ -454,7 +454,7 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
             <div className="glass flex flex-col gap-4 rounded-3xl p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-[10px] font-bold uppercase tracking-wide text-white/40">Preço negociado</div>
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Preço negociado</div>
                   <div className="tabular text-2xl font-extrabold">
                     {temPrecoNegociado ? fmtBRL(precoVendidoNum) : '—'}<small className="text-sm font-bold text-white/50">/t</small>
                   </div>
@@ -589,7 +589,7 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-white/5 p-2.5">
-      <div className="text-[9.5px] font-semibold uppercase tracking-wide text-white/40">{label}</div>
+      <div className="text-[9.5px] font-semibold uppercase tracking-wide text-white/50">{label}</div>
       <div className="tabular mt-0.5 text-[13.5px] font-extrabold">{value}</div>
     </div>
   )

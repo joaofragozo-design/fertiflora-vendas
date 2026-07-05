@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Search, UserCircle2 } from 'lucide-react'
+import { Loader2, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils/cn'
@@ -12,10 +12,9 @@ import { buscarCnpj, somenteDigitos } from '@/lib/clientes/cnpj-lookup'
 interface ClienteFormProps {
   onSalvar: (input: ClienteInput) => Promise<void>
   onCancelar?: () => void
-  titulo?: string
 }
 
-export function ClienteForm({ onSalvar, onCancelar, titulo }: ClienteFormProps) {
+export function ClienteForm({ onSalvar, onCancelar }: ClienteFormProps) {
   const [form, setForm] = useState<ClienteInput>(clienteEmBranco())
   const [salvando, setSalvando] = useState(false)
   const [buscandoCnpj, setBuscandoCnpj] = useState(false)
@@ -69,11 +68,6 @@ export function ClienteForm({ onSalvar, onCancelar, titulo }: ClienteFormProps) 
 
   return (
     <div className="glass flex flex-col gap-4 rounded-3xl p-5">
-      <h2 className="font-display flex items-center gap-2 text-sm font-bold">
-        <UserCircle2 className="h-4.5 w-4.5 text-brand-300" />
-        {titulo ?? 'Cadastro de cliente'}
-      </h2>
-
       <div className="flex gap-1.5 rounded-2xl bg-white/[0.06] p-1">
         {(['pj', 'pf'] as TipoPessoa[]).map((tipo) => (
           <button
@@ -93,12 +87,12 @@ export function ClienteForm({ onSalvar, onCancelar, titulo }: ClienteFormProps) 
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold uppercase tracking-wide text-white/40">{form.tipoPessoa === 'pj' ? 'CNPJ' : 'CPF'}</label>
+          <label className="text-[11px] font-bold uppercase tracking-wide text-white/50">{form.tipoPessoa === 'pj' ? 'CNPJ' : 'CPF'}</label>
           <div className="relative">
             <input
               value={form.cpfCnpj}
               onChange={(e) => set('cpfCnpj', e.target.value)}
-              className="w-full rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 pr-11 text-[16px] font-medium text-white outline-none placeholder:text-white/35 focus:border-brand-400 focus:bg-brand-500/10"
+              className="w-full rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 pr-11 text-[16px] font-medium text-white outline-none placeholder:text-white/45 focus:border-brand-400 focus:bg-brand-500/10"
             />
             {form.tipoPessoa === 'pj' && somenteDigitos(form.cpfCnpj).length === 14 && (
               <button
@@ -113,15 +107,20 @@ export function ClienteForm({ onSalvar, onCancelar, titulo }: ClienteFormProps) 
             )}
           </div>
           {form.tipoPessoa === 'pj' && (
-            <p className="text-[10.5px] text-white/40">Digite os 14 dígitos e toque na lupa pra preencher automático.</p>
+            <p className="text-[10.5px] text-white/50">Digite os 14 dígitos e toque na lupa pra preencher automático.</p>
           )}
         </div>
-        <Input tone="dark" label="Inscrição estadual · opcional" value={form.inscricaoEstadual} onChange={(e) => set('inscricaoEstadual', e.target.value)} />
+        <Input tone="dark" label="I.E. · opcional" value={form.inscricaoEstadual} onChange={(e) => set('inscricaoEstadual', e.target.value)} />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <Input tone="dark" label="Telefone" value={form.telefone} onChange={(e) => set('telefone', e.target.value)} />
         <Input tone="dark" label="E-mail · opcional" type="email" value={form.email} onChange={(e) => set('email', e.target.value)} />
+      </div>
+
+      <div className="mt-1 flex items-center gap-2 border-t border-white/10 pt-4">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-white/45">Endereço</span>
+        <div className="h-px flex-1 bg-white/10" />
       </div>
 
       <div className="grid grid-cols-2 gap-3">

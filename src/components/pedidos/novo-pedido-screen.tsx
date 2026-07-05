@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils/cn'
 import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
+import { SkeletonListaCards } from '@/components/ui/skeleton'
 
 function fmtBRL(v: number) {
   return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -141,10 +142,10 @@ export function NovoPedidoScreen({ userId }: { userId: string }) {
 
   if (visao === 'novoCliente') {
     return (
-      <main className="relative z-10 min-h-screen pb-16">
+      <main className="relative z-10 min-h-screen pb-28">
         <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
           <div className="flex items-center gap-3">
-            <button onClick={() => setVisao('cliente')} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white">
+            <button onClick={() => setVisao('cliente')} className="flex h-11 w-11 items-center justify-center rounded-full bg-white/8 text-white transition-colors hover:bg-white/12 active:scale-90" aria-label="Voltar">
               <ArrowLeft className="h-4.5 w-4.5" />
             </button>
             <h1 className="font-display text-lg font-bold">Novo Cliente</h1>
@@ -165,10 +166,10 @@ export function NovoPedidoScreen({ userId }: { userId: string }) {
 
   if (visao === 'selecionar') {
     return (
-      <main className="relative z-10 min-h-screen pb-16">
+      <main className="relative z-10 min-h-screen pb-28">
         <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white">
+            <Link href="/pedidos" className="flex h-11 w-11 items-center justify-center rounded-full bg-white/8 text-white transition-colors hover:bg-white/12 active:scale-90" aria-label="Voltar">
               <ArrowLeft className="h-4.5 w-4.5" />
             </Link>
             <h1 className="font-display text-lg font-bold">Novo Pedido</h1>
@@ -177,16 +178,16 @@ export function NovoPedidoScreen({ userId }: { userId: string }) {
           <p className="px-1 text-[11px] text-white/45">Selecione uma cotação válida para gerar o contrato de venda.</p>
 
           <div className="glass flex items-center gap-2.5 rounded-2xl px-4 py-3">
-            <Search className="h-4 w-4 text-white/40" />
+            <Search className="h-4 w-4 text-white/50" />
             <input
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Buscar por fórmula"
-              className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/35"
+              className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/45"
             />
           </div>
 
-          {carregando && <p className="text-center text-xs text-white/40">Carregando cotações…</p>}
+          {carregando && <SkeletonListaCards />}
           {!carregando && filtradas.length === 0 && (
             <div className="glass flex flex-col items-center gap-2 rounded-3xl p-8 text-center">
               <FileText className="h-8 w-8 text-white/25" />
@@ -223,10 +224,10 @@ export function NovoPedidoScreen({ userId }: { userId: string }) {
 
   if (visao === 'gerado' && pedidoGerado) {
     return (
-      <main className="relative z-10 min-h-screen pb-16">
+      <main className="relative z-10 min-h-screen pb-28">
         <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white">
+            <Link href="/pedidos" className="flex h-11 w-11 items-center justify-center rounded-full bg-white/8 text-white transition-colors hover:bg-white/12 active:scale-90" aria-label="Voltar">
               <ArrowLeft className="h-4.5 w-4.5" />
             </Link>
             <h1 className="font-display text-lg font-bold">Contrato gerado</h1>
@@ -253,10 +254,10 @@ export function NovoPedidoScreen({ userId }: { userId: string }) {
 
   // form
   return (
-    <main className="relative z-10 min-h-screen pb-16">
+    <main className="relative z-10 min-h-screen pb-28">
       <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
         <div className="flex items-center gap-3">
-          <button onClick={() => setVisao('selecionar')} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white">
+          <button onClick={() => setVisao('selecionar')} className="flex h-11 w-11 items-center justify-center rounded-full bg-white/8 text-white transition-colors hover:bg-white/12 active:scale-90" aria-label="Voltar">
             <ArrowLeft className="h-4.5 w-4.5" />
           </button>
           <h1 className="font-display text-lg font-bold">Novo Pedido</h1>
@@ -264,7 +265,7 @@ export function NovoPedidoScreen({ userId }: { userId: string }) {
 
         {cotacaoSelecionada && (
           <div className="glass flex flex-col gap-1 rounded-2xl p-4">
-            <div className="text-[10px] font-bold uppercase tracking-wide text-white/40">Cotação selecionada</div>
+            <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Cotação selecionada</div>
             <div className="text-sm font-bold text-white">{cotacaoSelecionada.produto}</div>
             <div className="tabular text-xs text-white/50">{fmtBRL(cotacaoSelecionada.precoVendido)}/t</div>
           </div>
@@ -275,7 +276,7 @@ export function NovoPedidoScreen({ userId }: { userId: string }) {
             <UserCircle2 className="h-4.5 w-4.5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[10px] font-bold uppercase tracking-wide text-white/40">Cliente</div>
+            <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Cliente</div>
             <div className="truncate text-sm font-bold text-white">{cliente ? cliente.nome : 'Selecionar cliente'}</div>
           </div>
         </button>
@@ -284,7 +285,7 @@ export function NovoPedidoScreen({ userId }: { userId: string }) {
           <Input tone="dark" label="Quantidade (toneladas)" type="number" min={0} step={1} value={quantidade} onChange={(e) => setQuantidade(e.target.value)} />
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-bold uppercase tracking-wide text-white/40">Embalagem</label>
+            <label className="text-[11px] font-bold uppercase tracking-wide text-white/50">Embalagem</label>
             <div className="flex gap-1.5 rounded-2xl bg-white/[0.06] p-1">
               {EMBALAGENS.map((e) => (
                 <button
@@ -300,7 +301,7 @@ export function NovoPedidoScreen({ userId }: { userId: string }) {
 
           {calculo && quantidadeNum > 0 && (
             <div className="flex flex-col gap-2 border-t border-white/10 pt-3">
-              <div className="flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-wide text-white/40">
+              <div className="flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-wide text-white/50">
                 <Package className="h-3.5 w-3.5 text-brand-300" />
                 Resumo do contrato
               </div>

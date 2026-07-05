@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, Search, UserPlus, Users } from 'lucide-react'
 import { listarClientes } from '@/lib/clientes/queries'
 import type { Cliente } from '@/lib/clientes/types'
+import { formatarCpfCnpj } from '@/lib/utils/formatadores'
+import { SkeletonListaCards } from '@/components/ui/skeleton'
 
 interface ClientePickerProps {
   onSelecionar: (cliente: Cliente) => void
@@ -27,10 +29,10 @@ export function ClientePicker({ onSelecionar, onNovoCliente, onVoltar }: Cliente
   }, [clientes, busca])
 
   return (
-    <main className="relative z-10 min-h-screen pb-16">
+    <main className="relative z-10 min-h-screen pb-28">
       <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
         <div className="flex items-center gap-3">
-          <button onClick={onVoltar} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white">
+          <button onClick={onVoltar} className="flex h-11 w-11 items-center justify-center rounded-full bg-white/8 text-white transition-colors hover:bg-white/12 active:scale-90" aria-label="Voltar">
             <ArrowLeft className="h-4.5 w-4.5" />
           </button>
           <h1 className="font-display text-lg font-bold">Selecionar Cliente</h1>
@@ -44,16 +46,16 @@ export function ClientePicker({ onSelecionar, onNovoCliente, onVoltar }: Cliente
         </button>
 
         <div className="glass flex items-center gap-2.5 rounded-2xl px-4 py-3">
-          <Search className="h-4 w-4 text-white/40" />
+          <Search className="h-4 w-4 text-white/50" />
           <input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar por nome ou CPF/CNPJ"
-            className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/35"
+            className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/45"
           />
         </div>
 
-        {carregando && <p className="text-center text-xs text-white/40">Carregando clientes…</p>}
+        {carregando && <SkeletonListaCards />}
         {!carregando && filtrados.length === 0 && (
           <div className="glass flex flex-col items-center gap-2 rounded-3xl p-8 text-center">
             <Users className="h-8 w-8 text-white/25" />
@@ -73,7 +75,7 @@ export function ClientePicker({ onSelecionar, onNovoCliente, onVoltar }: Cliente
               </div>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-bold text-white">{c.nome}</div>
-                <div className="truncate text-xs text-white/45">{c.cpfCnpj}</div>
+                <div className="truncate text-xs text-white/45">{formatarCpfCnpj(c.cpfCnpj)}</div>
               </div>
             </button>
           ))}
