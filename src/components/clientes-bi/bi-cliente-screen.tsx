@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { BarChart3, Calendar, ChevronDown, Package, Search, TrendingUp, User } from 'lucide-react'
+import { BarChart3, Calendar, ChevronDown, List, Package, Search, TrendingUp, User, X } from 'lucide-react'
 import { buscarVendedorComercialDoUsuario } from '@/lib/ranking/queries'
 import type { VendedorComercial } from '@/lib/ranking/types'
 import { buscarNotasDoCliente, listarClientesDoVendedor, listarVendedoresComNotas } from '@/lib/clientes-bi/queries'
@@ -38,6 +38,7 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
 
   const [clientes, setClientes] = useState<ClienteResumo[]>([])
   const [busca, setBusca] = useState('')
+  const [listaAberta, setListaAberta] = useState(false)
   const [clienteCodigo, setClienteCodigo] = useState<number | null>(null)
   const [carregandoClientes, setCarregandoClientes] = useState(false)
 
@@ -133,19 +134,27 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
           <input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
+            onFocus={() => setListaAberta(true)}
             placeholder="Buscar cliente…"
             className="w-full flex-1 bg-transparent text-xs font-bold text-white placeholder:text-white/35 outline-none"
           />
+          <button
+            onClick={() => setListaAberta((v) => !v)}
+            aria-label={listaAberta ? 'Fechar lista de clientes' : 'Selecionar da lista de clientes'}
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${listaAberta ? 'bg-brand-500 text-ink-950' : 'bg-white/8 text-white/50'}`}
+          >
+            {listaAberta ? <X className="h-3.5 w-3.5" /> : <List className="h-3.5 w-3.5" />}
+          </button>
         </div>
-        {busca && !clienteCodigo && (
-          <div className="flex max-h-52 flex-col overflow-y-auto rounded-xl">
+        {(busca || listaAberta) && (
+          <div className="flex max-h-64 flex-col overflow-y-auto rounded-xl">
             {carregandoClientes && <p className="p-2 text-center text-[11px] text-white/40">Carregando…</p>}
             {!carregandoClientes && clientesFiltrados.length === 0 && <p className="p-2 text-center text-[11px] text-white/40">Nenhum cliente encontrado</p>}
-            {clientesFiltrados.slice(0, 20).map((c) => (
+            {!carregandoClientes && clientesFiltrados.map((c) => (
               <button
                 key={c.codigo}
-                onClick={() => { setClienteCodigo(c.codigo); setBusca('') }}
-                className="truncate rounded-lg px-2 py-2 text-left text-xs font-semibold text-white/80 transition-colors hover:bg-white/10"
+                onClick={() => { setClienteCodigo(c.codigo); setBusca(''); setListaAberta(false) }}
+                className={`truncate rounded-lg px-2 py-2.5 text-left text-xs font-semibold transition-colors hover:bg-white/10 ${c.codigo === clienteCodigo ? 'bg-brand-500/15 text-brand-300' : 'text-white/80'}`}
               >
                 {c.nome}
               </button>
@@ -154,10 +163,10 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
         )}
       </div>
 
-      {!clienteCodigo && !busca && (
+      {!clienteCodigo && !busca && !listaAberta && (
         <div className="glass flex flex-col items-center gap-2 rounded-3xl p-8 text-center">
           <BarChart3 className="h-8 w-8 text-white/25" />
-          <p className="text-sm font-semibold text-white/60">Busque um cliente pra ver o histórico completo</p>
+          <p className="text-sm font-semibold text-white/60">Busque ou selecione um cliente na lista pra ver o histórico completo</p>
           <p className="text-xs text-white/40">{clientes.length} clientes disponíveis</p>
         </div>
       )}
@@ -166,7 +175,12 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
 
       {clienteCodigo && !carregandoNotas && clienteAtual && (
         <>
-          <h2 className="font-display truncate px-1 text-base font-bold">{clienteAtual.nome}</h2>
+          <div className="flex items-center gap-2 px-1">
+            <h2 className="font-display min-w-0 flex-1 truncate text-base font-bold">{clienteAtual.nome}</h2>
+            <button onClick={() => { setClienteCodigo(null); setListaAberta(true) }} className="shrink-0 text-[11px] font-bold text-brand-300">
+              Trocar cliente
+            </button>
+          </div>
 
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <div className="glass flex flex-col gap-1 rounded-2xl p-4">
