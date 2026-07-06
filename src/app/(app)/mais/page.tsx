@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Wallet, UserPlus, ShieldCheck, ChevronRight } from 'lucide-react'
+import { Wallet, UserPlus, ShieldCheck, Trophy, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { ROUTES } from '@/constants/routes'
 import { Logo } from '@/components/brand/logo'
@@ -30,7 +30,10 @@ export default async function MaisPage() {
           <ItemMenu href="/comissoes" icone={Wallet} titulo="Minhas Comissões" descricao="Recebidas e a receber, mês a mês" />
           <ItemMenu href="/clientes/novo" icone={UserPlus} titulo="Cadastro de Clientes" descricao="Dados para nota fiscal" />
           {ehAdmin && (
-            <ItemMenu href="/admin/pedidos" icone={ShieldCheck} titulo="Aprovações" descricao="Pedidos aguardando decisão" destaque />
+            <>
+              <ItemMenu href="/admin/pedidos" icone={ShieldCheck} titulo="Aprovações" descricao="Pedidos aguardando decisão" destaque />
+              <ItemMenu href="/admin/vendedores" icone={Trophy} titulo="Vendedores Comerciais" descricao="Gerenciar ranking, metas e faturamento" destaque />
+            </>
           )}
         </div>
       </div>

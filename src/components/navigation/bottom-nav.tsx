@@ -2,11 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, FileClock, ClipboardList, Users, Menu } from 'lucide-react'
+import { Home, FileClock, ClipboardList, Trophy, Users, Menu } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
 const ITENS = [
   { href: '/dashboard', label: 'Início', icone: Home },
+  { href: '/ranking', label: 'Ranking', icone: Trophy },
   { href: '/cotacoes', label: 'Cotações', icone: FileClock },
   { href: '/pedidos', label: 'Pedidos', icone: ClipboardList },
   { href: '/clientes', label: 'Clientes', icone: Users },
