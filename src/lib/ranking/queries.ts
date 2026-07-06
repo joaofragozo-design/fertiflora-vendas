@@ -87,6 +87,14 @@ export async function listarVendedoresComerciais(): Promise<VendedorComercial[]>
   return (data ?? []).map(vendedorComercialFromRow)
 }
 
+/** Vendedor comercial vinculado à conta logada (via profile_id) — usado pelo BI do Cliente pra saber "qual é o meu código". */
+export async function buscarVendedorComercialDoUsuario(userId: string): Promise<VendedorComercial | null> {
+  const supabase = createClient()
+  const { data, error } = await supabase.from('vendedores_comerciais').select('*').eq('profile_id', userId).maybeSingle()
+  if (error) throw new Error(`Falha ao buscar vendedor vinculado: ${error.message}`)
+  return data ? vendedorComercialFromRow(data) : null
+}
+
 export async function criarVendedorComercial(params: { codigo: number; nome: string; profileId?: string | null }): Promise<VendedorComercial> {
   const supabase = createClient()
   const { data, error } = await supabase

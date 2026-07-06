@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { AlertTriangle, FileUp, Loader2, Upload, X } from 'lucide-react'
-import { lerArquivoErp, parseRelatorioErp, type LinhaImportada } from '@/lib/ranking/importar-erp'
+import { lerArquivoErp, parseNotasFiscais, parseRelatorioErp, type LinhaImportada, type NotaFiscalLinha } from '@/lib/ranking/importar-erp'
 import { atualizarFaturadoImportado } from '@/lib/ranking/queries'
+import { substituirNotasFiscais } from '@/lib/clientes-bi/queries'
 import type { VendedorComercial } from '@/lib/ranking/types'
 import { Button } from '@/components/ui/button'
 import { fmtT } from '@/components/ranking/formatadores'
@@ -33,6 +34,7 @@ export function ImportarErpModal({ linhasAtuais, ano, onFechar, onImportado }: I
   const [aplicando, setAplicando] = useState(false)
   const [comparacoes, setComparacoes] = useState<Comparacao[] | null>(null)
   const [naoEncontrados, setNaoEncontrados] = useState<LinhaImportada[]>([])
+  const [notasFiscais, setNotasFiscais] = useState<NotaFiscalLinha[] | null>(null)
   const [erro, setErro] = useState<string | null>(null)
 
   async function handleArquivo(file: File) {
@@ -53,6 +55,7 @@ export function ImportarErpModal({ linhasAtuais, ano, onFechar, onImportado }: I
       }
       setComparacoes(encontrados)
       setNaoEncontrados([...erpPorCodigo.values()])
+      setNotasFiscais(parseNotasFiscais(texto))
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Falha ao ler o arquivo')
     } finally {
@@ -64,12 +67,13 @@ export function ImportarErpModal({ linhasAtuais, ano, onFechar, onImportado }: I
     if (!comparacoes) return
     setAplicando(true)
     try {
-      await Promise.all(
-        comparacoes
+      await Promise.all([
+        ...comparacoes
           .filter((c) => c.faturadoErp !== c.faturadoAtual)
-          .map((c) => atualizarFaturadoImportado(c.vendedor.id, ano, c.faturadoErp))
-      )
-      toast.success('Faturado atualizado a partir do ERP')
+          .map((c) => atualizarFaturadoImportado(c.vendedor.id, ano, c.faturadoErp)),
+        notasFiscais ? substituirNotasFiscais(notasFiscais) : Promise.resolve(),
+      ])
+      toast.success('Faturado e BI de clientes atualizados a partir do ERP')
       onImportado()
       onFechar()
     } catch (e) {
@@ -78,6 +82,8 @@ export function ImportarErpModal({ linhasAtuais, ano, onFechar, onImportado }: I
       setAplicando(false)
     }
   }
+
+  const clientesUnicos = notasFiscais ? new Set(notasFiscais.map((n) => `${n.vendedorCodigo}-${n.clienteCodigo}`)).size : 0
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onClick={onFechar}>
@@ -95,7 +101,7 @@ export function ImportarErpModal({ linhasAtuais, ano, onFechar, onImportado }: I
         {!comparacoes && (
           <>
             <p className="text-xs text-white/50">
-              Selecione o CSV do relatório RFT6 (Faturamento por Cliente/Produto) exportado do ERP. Vou somar o peso faturado de {ano} por vendedor e comparar com o que está no Ranking.
+              Selecione o CSV do relatório RFT6 (Faturamento por Cliente/Produto) exportado do ERP. Atualizo o Faturado de {ano} no Ranking e o histórico completo usado no BI do Cliente (dentro de Carteira de Clientes).
             </p>
             <label className="glass flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed border-white/20 p-8 text-center transition-colors hover:bg-white/10">
               {lendo ? <Loader2 className="h-6 w-6 animate-spin text-brand-300" /> : <FileUp className="h-6 w-6 text-brand-300" />}
@@ -144,9 +150,15 @@ export function ImportarErpModal({ linhasAtuais, ano, onFechar, onImportado }: I
               </div>
             )}
 
+            {notasFiscais && (
+              <p className="text-center text-[10.5px] text-white/40">
+                {notasFiscais.length.toLocaleString('pt-BR')} notas · {clientesUnicos.toLocaleString('pt-BR')} clientes serão atualizados no BI
+              </p>
+            )}
+
             <Button onClick={handleConfirmar} disabled={aplicando}>
               {aplicando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              Aplicar {comparacoes.filter((c) => c.faturadoErp !== c.faturadoAtual).length} atualização(ões)
+              Aplicar {comparacoes.filter((c) => c.faturadoErp !== c.faturadoAtual).length} atualização(ões) + BI
             </Button>
           </>
         )}

@@ -6,16 +6,21 @@ import { Plus, Search, Users } from 'lucide-react'
 import { listarClientes, inscreverClientesEmTempoReal } from '@/lib/clientes/queries'
 import type { Cliente } from '@/lib/clientes/types'
 import { ClienteHistorico } from '@/components/clientes/cliente-historico'
+import { BiClienteScreen } from '@/components/clientes-bi/bi-cliente-screen'
 import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
 import { formatarCpfCnpj } from '@/lib/utils/formatadores'
 import { SkeletonListaCards } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils/cn'
 
-export function CarteiraClientes() {
+type Aba = 'lista' | 'bi'
+
+export function CarteiraClientes({ userId, ehAdmin }: { userId: string; ehAdmin: boolean }) {
   usePageIntensity(0.2)
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
   const [selecionado, setSelecionado] = useState<Cliente | null>(null)
+  const [aba, setAba] = useState<Aba>('lista')
 
   useEffect(() => {
     let ativo = true
@@ -39,7 +44,7 @@ export function CarteiraClientes() {
 
   return (
     <main className="relative z-10 min-h-screen pb-28">
-      <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
+      <div className={cn('mx-auto flex flex-col gap-4 p-4 pt-6', aba === 'bi' ? 'max-w-md lg:max-w-5xl' : 'max-w-md')}>
         <div className="flex items-center gap-3">
           <h1 className="font-display text-lg font-bold">Carteira de Clientes</h1>
           <Link
@@ -51,46 +56,67 @@ export function CarteiraClientes() {
           </Link>
         </div>
 
-        <div className="glass flex items-center gap-2.5 rounded-2xl px-4 py-3">
-          <Search className="h-4 w-4 text-white/50" />
-          <input
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por nome ou CPF/CNPJ"
-            className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/45"
-          />
+        <div className="flex gap-1.5 rounded-2xl bg-white/[0.06] p-1">
+          <button
+            onClick={() => setAba('lista')}
+            className={cn('flex-1 rounded-xl py-2 text-xs font-bold transition-colors', aba === 'lista' ? 'bg-brand-500 text-ink-950' : 'text-white/50')}
+          >
+            Lista
+          </button>
+          <button
+            onClick={() => setAba('bi')}
+            className={cn('flex-1 rounded-xl py-2 text-xs font-bold transition-colors', aba === 'bi' ? 'bg-brand-500 text-ink-950' : 'text-white/50')}
+          >
+            BI
+          </button>
         </div>
 
-        {carregando && <SkeletonListaCards />}
+        {aba === 'bi' && <BiClienteScreen userId={userId} ehAdmin={ehAdmin} />}
 
-        {!carregando && filtrados.length === 0 && (
-          <div className="glass flex flex-col items-center gap-2 rounded-3xl p-8 text-center">
-            <Users className="h-8 w-8 text-white/25" />
-            <p className="text-sm font-semibold text-white/60">Nenhum cliente cadastrado ainda</p>
-            <Link href="/clientes/novo" className="text-xs font-bold text-brand-300">Cadastrar o primeiro cliente</Link>
-          </div>
+        {aba === 'lista' && (
+          <>
+            <div className="glass flex items-center gap-2.5 rounded-2xl px-4 py-3">
+              <Search className="h-4 w-4 text-white/50" />
+              <input
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Buscar por nome ou CPF/CNPJ"
+                className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/45"
+              />
+            </div>
+
+            {carregando && <SkeletonListaCards />}
+
+            {!carregando && filtrados.length === 0 && (
+              <div className="glass flex flex-col items-center gap-2 rounded-3xl p-8 text-center">
+                <Users className="h-8 w-8 text-white/25" />
+                <p className="text-sm font-semibold text-white/60">Nenhum cliente cadastrado ainda</p>
+                <Link href="/clientes/novo" className="text-xs font-bold text-brand-300">Cadastrar o primeiro cliente</Link>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2">
+              {filtrados.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setSelecionado(c)}
+                  className="glass flex items-center gap-3 rounded-2xl p-4 text-left transition-colors hover:bg-white/10"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 text-xs font-extrabold text-brand-300">
+                    {c.nome.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-bold text-white">{c.nome}</div>
+                    <div className="truncate text-xs text-white/45">{formatarCpfCnpj(c.cpfCnpj)} · {c.cidade ?? '—'}{c.estado ? `/${c.estado}` : ''}</div>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-white/8 px-2 py-1 text-[10px] font-bold uppercase text-white/50">
+                    {c.tipoPessoa}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </>
         )}
-
-        <div className="flex flex-col gap-2">
-          {filtrados.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setSelecionado(c)}
-              className="glass flex items-center gap-3 rounded-2xl p-4 text-left transition-colors hover:bg-white/10"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 text-xs font-extrabold text-brand-300">
-                {c.nome.slice(0, 2).toUpperCase()}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-bold text-white">{c.nome}</div>
-                <div className="truncate text-xs text-white/45">{formatarCpfCnpj(c.cpfCnpj)} · {c.cidade ?? '—'}{c.estado ? `/${c.estado}` : ''}</div>
-              </div>
-              <span className="shrink-0 rounded-full bg-white/8 px-2 py-1 text-[10px] font-bold uppercase text-white/50">
-                {c.tipoPessoa}
-              </span>
-            </button>
-          ))}
-        </div>
       </div>
     </main>
   )

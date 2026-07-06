@@ -8,5 +8,7 @@ export default async function ClientesPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(ROUTES.LOGIN)
 
-  return <CarteiraClientes />
+  const { data: perfil } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+
+  return <CarteiraClientes userId={user.id} ehAdmin={perfil?.role === 'admin'} />
 }
