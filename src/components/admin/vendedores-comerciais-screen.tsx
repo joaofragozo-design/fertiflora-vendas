@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { ArrowLeft, BarChart3, Pencil, Plus, Power, Users } from 'lucide-react'
+import { ArrowLeft, BarChart3, FileUp, Pencil, Plus, Power, Users } from 'lucide-react'
 import { listarVendedoresComerciais, listarRanking, atualizarVendedorComercial } from '@/lib/ranking/queries'
 import type { VendedorComercial } from '@/lib/ranking/types'
 import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
 import { SkeletonListaCards } from '@/components/ui/skeleton'
 import { AjustarModal } from '@/components/ranking/ajustar-modal'
 import { VendedorComercialModal } from './vendedor-comercial-modal'
+import { ImportarErpModal } from './importar-erp-modal'
 import { fmtT } from '@/components/ranking/formatadores'
 import { cn } from '@/lib/utils/cn'
 
@@ -29,6 +30,7 @@ export function VendedoresComerciaisScreen() {
   const [editando, setEditando] = useState<VendedorComercial | null>(null)
   const [criando, setCriando] = useState(false)
   const [ajustando, setAjustando] = useState<Linha | null>(null)
+  const [importando, setImportando] = useState(false)
 
   function carregar() {
     Promise.all([listarVendedoresComerciais(), listarRanking(ANO)]).then(([vendedores, ranking]) => {
@@ -68,9 +70,16 @@ export function VendedoresComerciaisScreen() {
             Vendedores Comerciais
           </h1>
           <button
+            onClick={() => setImportando(true)}
+            aria-label="Importar relatório do ERP"
+            className="ml-auto flex h-11 w-11 items-center justify-center rounded-full bg-white/8 text-white/70 transition-colors hover:bg-white/15 hover:text-white active:scale-90"
+          >
+            <FileUp className="h-4.5 w-4.5" />
+          </button>
+          <button
             onClick={() => setCriando(true)}
             aria-label="Novo vendedor"
-            className="ml-auto flex h-11 w-11 items-center justify-center rounded-full bg-brand-500 text-ink-950 transition-transform active:scale-90"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-500 text-ink-950 transition-transform active:scale-90"
           >
             <Plus className="h-4.5 w-4.5" />
           </button>
@@ -111,6 +120,14 @@ export function VendedoresComerciaisScreen() {
 
       {criando && <VendedorComercialModal vendedor={null} onFechar={() => setCriando(false)} onSalvo={carregar} />}
       {editando && <VendedorComercialModal vendedor={editando} onFechar={() => setEditando(null)} onSalvo={carregar} />}
+      {importando && (
+        <ImportarErpModal
+          linhasAtuais={linhas.map(({ vendedor, faturado }) => ({ vendedor, faturado }))}
+          ano={ANO}
+          onFechar={() => setImportando(false)}
+          onImportado={carregar}
+        />
+      )}
       {ajustando && (
         <AjustarModal
           entrada={{ id: ajustando.vendedor.id, nome: ajustando.vendedor.nome, faturado: ajustando.faturado, pedido: ajustando.pedido, meta: ajustando.meta }}

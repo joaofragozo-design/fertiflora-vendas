@@ -124,6 +124,17 @@ export async function ajustarFaturamento(vendedorId: string, ano: number, valore
   if (error) throw new Error(`Falha ao ajustar faturamento: ${error.message}`)
 }
 
+/** Atualiza só o Faturado (ex: importação do ERP) — nunca mexe no Pedido, que vem dos Pedidos aprovados no app. */
+export async function atualizarFaturadoImportado(vendedorId: string, ano: number, novoFaturado: number): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('faturamento_comercial')
+    .update({ faturado: novoFaturado, atualizado_em: new Date().toISOString() })
+    .eq('vendedor_id', vendedorId)
+    .eq('ano', ano)
+  if (error) throw new Error(`Falha ao importar faturado: ${error.message}`)
+}
+
 export async function ajustarMeta(vendedorId: string, ano: number, novaMeta: number): Promise<void> {
   const supabase = createClient()
   const { error } = await supabase
