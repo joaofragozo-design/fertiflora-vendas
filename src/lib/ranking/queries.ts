@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import { calcularFalta, calcularPercentual, calcularProjecao, diasUteisRestantes } from './calculos'
+import { calcularFalta, calcularPercentual, diasUteisRestantes } from './calculos'
 import { vendedorComercialFromRow, type RankingEntry, type VendedorComercial } from './types'
 
 /** Ranking do ano — visível para qualquer usuário autenticado (admin e vendedores). */
@@ -48,7 +48,6 @@ export async function listarRanking(ano: number): Promise<RankingEntry[]> {
       meta,
       falta: calcularFalta(total, meta),
       percentual: calcularPercentual(total, meta),
-      projecao: calcularProjecao(total, ano),
       diasUteisRestantes: diasRestantes,
     }
   })

@@ -17,12 +17,11 @@ export interface RankingEntry {
   faturado: number
   /** Contratado (Pedido aprovado) mas ainda não faturado — somado automaticamente. */
   pedido: number
-  /** faturado + pedido — base de %/falta/projeção, igual à planilha original. */
+  /** faturado + pedido — base de %/falta, igual à planilha original. */
   total: number
   meta: number
   falta: number
   percentual: number
-  projecao: number
   diasUteisRestantes: number
 }
 

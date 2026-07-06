@@ -31,14 +31,6 @@ export function diasUteisRestantes(ano: number, hoje: Date = new Date()): number
   return Math.max(0, diasUteisNoAno(ano) - diasUteisDecorridos(ano, hoje))
 }
 
-/** Projeção de fechamento do ano por ritmo (run-rate): mantendo a média diária atual até 31/dez. */
-export function calcularProjecao(faturado: number, ano: number, hoje: Date = new Date()): number {
-  const decorridos = diasUteisDecorridos(ano, hoje)
-  if (decorridos <= 0) return faturado
-  const total = diasUteisNoAno(ano)
-  return (faturado / decorridos) * total
-}
-
 export function calcularPercentual(faturado: number, meta: number): number {
   if (meta <= 0) return faturado > 0 ? 100 : 0
   return (faturado / meta) * 100

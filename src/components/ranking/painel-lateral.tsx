@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { BarChart3, Rocket, Target } from 'lucide-react'
+import { BarChart3, Rocket } from 'lucide-react'
 import type { HistoricoPonto } from '@/lib/ranking/queries'
 import type { RankingEntry } from '@/lib/ranking/types'
 import { diasUteisRestantes } from '@/lib/ranking/calculos'
@@ -40,14 +40,6 @@ export function PainelLateral({ entradas, historico, ano }: PainelLateralProps) 
       .slice(0, 3)
   }, [entradas, historico])
 
-  const melhoresProjecoes = useMemo(() => {
-    return entradas
-      .filter((e) => e.meta > 0)
-      .slice()
-      .sort((a, b) => b.projecao / b.meta - a.projecao / a.meta)
-      .slice(0, 3)
-  }, [entradas])
-
   return (
     <div className="flex w-full flex-col gap-4">
       <div className="glass flex flex-col gap-3 rounded-3xl p-5">
@@ -81,22 +73,6 @@ export function PainelLateral({ entradas, historico, ano }: PainelLateralProps) 
               <div className="truncate text-xs font-bold text-white">{entrada.nome}</div>
             </div>
             <span className="tabular shrink-0 text-xs font-extrabold text-brand-300">+{fmtT(delta)}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="glass flex flex-col gap-3 rounded-3xl p-5">
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-white/50">
-          <Target className="h-4 w-4 text-brand-300" />
-          Melhores projeções
-        </div>
-        {melhoresProjecoes.map((e) => (
-          <div key={e.id} className="flex items-center gap-2.5">
-            <AvatarVendedor nome={e.nome} avatarUrl={e.avatarUrl} size={32} />
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-xs font-bold text-white">{e.nome}</div>
-            </div>
-            <span className="tabular shrink-0 text-xs font-extrabold text-warning-400">{fmtT(e.projecao)}</span>
           </div>
         ))}
       </div>

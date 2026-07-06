@@ -58,12 +58,6 @@ export function calcularBadges(entradas: RankingEntry[], historico: HistoricoPon
     if (e.percentual >= 100) adicionar(e.id, { emoji: '🎯', label: 'Meta batida' })
   }
 
-  const comMeta = entradas.filter((e) => e.meta > 0)
-  if (comMeta.length > 0) {
-    const melhorProjecao = comMeta.reduce((a, b) => (b.projecao / b.meta > a.projecao / a.meta ? b : a))
-    if (melhorProjecao.projecao > 0) adicionar(melhorProjecao.id, { emoji: '📈', label: 'Melhor projeção' })
-  }
-
   const series = agruparPorVendedor(historico)
 
   let maiorCrescimentoId: string | null = null
