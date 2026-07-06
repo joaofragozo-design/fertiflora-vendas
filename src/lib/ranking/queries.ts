@@ -10,14 +10,16 @@ export async function listarRanking(ano: number): Promise<RankingEntry[]> {
     await Promise.all([
       supabase.from('vendedores_comerciais').select('*').eq('ativo', true),
       supabase.from('metas_comerciais').select('vendedor_id, meta_toneladas').eq('ano', ano),
-      supabase.from('faturamento_comercial').select('vendedor_id, toneladas').eq('ano', ano),
+      supabase.from('faturamento_comercial').select('vendedor_id, faturado, pedido').eq('ano', ano),
     ])
   if (errVendedores) throw new Error(`Falha ao carregar vendedores: ${errVendedores.message}`)
   if (errMetas) throw new Error(`Falha ao carregar metas: ${errMetas.message}`)
   if (errFaturamentos) throw new Error(`Falha ao carregar faturamento: ${errFaturamentos.message}`)
 
   const metaPorVendedor = new Map((metas ?? []).map((m) => [m.vendedor_id as string, Number(m.meta_toneladas)]))
-  const faturadoPorVendedor = new Map((faturamentos ?? []).map((f) => [f.vendedor_id as string, Number(f.toneladas)]))
+  const faturamentoPorVendedor = new Map(
+    (faturamentos ?? []).map((f) => [f.vendedor_id as string, { faturado: Number(f.faturado), pedido: Number(f.pedido) }])
+  )
 
   const profileIds = (vendedores ?? []).map((v) => v.profile_id).filter((id): id is string => !!id)
   const avatarPorProfile = new Map<string, string | null>()
@@ -31,7 +33,8 @@ export async function listarRanking(ano: number): Promise<RankingEntry[]> {
 
   const entradas = (vendedores ?? []).map((row): Omit<RankingEntry, 'colocacao'> => {
     const v = vendedorComercialFromRow(row)
-    const faturado = faturadoPorVendedor.get(v.id) ?? 0
+    const { faturado, pedido } = faturamentoPorVendedor.get(v.id) ?? { faturado: 0, pedido: 0 }
+    const total = faturado + pedido
     const meta = metaPorVendedor.get(v.id) ?? 0
     return {
       id: v.id,
@@ -40,14 +43,18 @@ export async function listarRanking(ano: number): Promise<RankingEntry[]> {
       profileId: v.profileId,
       avatarUrl: v.profileId ? (avatarPorProfile.get(v.profileId) ?? null) : null,
       faturado,
+      pedido,
+      total,
       meta,
-      falta: calcularFalta(faturado, meta),
-      percentual: calcularPercentual(faturado, meta),
-      projecao: calcularProjecao(faturado, ano),
+      falta: calcularFalta(total, meta),
+      percentual: calcularPercentual(total, meta),
+      projecao: calcularProjecao(total, ano),
       diasUteisRestantes: diasRestantes,
     }
   })
 
+  // Colocação segue o Faturado (já entregue) — igual à planilha original,
+  // não o Total (que inclui Pedido ainda não faturado).
   entradas.sort((a, b) => b.faturado - a.faturado)
   return entradas.map((e, i) => ({ ...e, colocacao: i + 1 }))
 }
@@ -107,12 +114,15 @@ export async function atualizarVendedorComercial(
   if (error) throw new Error(`Falha ao atualizar vendedor: ${error.message}`)
 }
 
-export async function ajustarFaturado(vendedorId: string, ano: number, novoValor: number): Promise<void> {
+export async function ajustarFaturamento(vendedorId: string, ano: number, valores: { faturado: number; pedido: number }): Promise<void> {
   const supabase = createClient()
   const { error } = await supabase
     .from('faturamento_comercial')
-    .upsert({ vendedor_id: vendedorId, ano, toneladas: novoValor, atualizado_em: new Date().toISOString() }, { onConflict: 'vendedor_id,ano' })
-  if (error) throw new Error(`Falha ao ajustar faturado: ${error.message}`)
+    .upsert(
+      { vendedor_id: vendedorId, ano, faturado: valores.faturado, pedido: valores.pedido, atualizado_em: new Date().toISOString() },
+      { onConflict: 'vendedor_id,ano' }
+    )
+  if (error) throw new Error(`Falha ao ajustar faturamento: ${error.message}`)
 }
 
 export async function ajustarMeta(vendedorId: string, ano: number, novaMeta: number): Promise<void> {

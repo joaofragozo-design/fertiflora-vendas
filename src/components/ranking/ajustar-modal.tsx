@@ -3,12 +3,12 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Loader2, X } from 'lucide-react'
-import { ajustarFaturado, ajustarMeta } from '@/lib/ranking/queries'
+import { ajustarFaturamento, ajustarMeta } from '@/lib/ranking/queries'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
 interface AjustarModalProps {
-  entrada: { id: string; nome: string; faturado: number; meta: number }
+  entrada: { id: string; nome: string; faturado: number; pedido: number; meta: number }
   ano: number
   onFechar: () => void
   onAtualizado: () => void
@@ -16,6 +16,7 @@ interface AjustarModalProps {
 
 export function AjustarModal({ entrada, ano, onFechar, onAtualizado }: AjustarModalProps) {
   const [faturado, setFaturado] = useState(String(entrada.faturado))
+  const [pedido, setPedido] = useState(String(entrada.pedido))
   const [meta, setMeta] = useState(String(entrada.meta))
   const [salvando, setSalvando] = useState(false)
 
@@ -27,7 +28,7 @@ export function AjustarModal({ entrada, ano, onFechar, onAtualizado }: AjustarMo
     setSalvando(true)
     try {
       await Promise.all([
-        ajustarFaturado(entrada.id, ano, parseNumero(faturado)),
+        ajustarFaturamento(entrada.id, ano, { faturado: parseNumero(faturado), pedido: parseNumero(pedido) }),
         ajustarMeta(entrada.id, ano, parseNumero(meta)),
       ])
       toast.success('Ranking atualizado')
@@ -49,7 +50,8 @@ export function AjustarModal({ entrada, ano, onFechar, onAtualizado }: AjustarMo
             <X className="h-4 w-4" />
           </button>
         </div>
-        <Input tone="dark" label={`Faturado ${ano} (toneladas)`} inputMode="decimal" value={faturado} onChange={(e) => setFaturado(e.target.value)} />
+        <Input tone="dark" label={`Faturado ${ano} (toneladas — já entregue)`} inputMode="decimal" value={faturado} onChange={(e) => setFaturado(e.target.value)} />
+        <Input tone="dark" label={`Pedido ${ano} (toneladas — contratado, ainda não entregue)`} inputMode="decimal" value={pedido} onChange={(e) => setPedido(e.target.value)} />
         <Input tone="dark" label={`Meta ${ano} (toneladas)`} inputMode="decimal" value={meta} onChange={(e) => setMeta(e.target.value)} />
         <Button onClick={handleSalvar} disabled={salvando}>
           {salvando && <Loader2 className="h-4 w-4 animate-spin" />}

@@ -26,9 +26,9 @@ function calcularCrescimentoPorVendedor(historico: HistoricoPonto[]): Map<string
 }
 
 export function PainelLateral({ entradas, historico, ano }: PainelLateralProps) {
-  const somaFaturado = useMemo(() => entradas.reduce((s, e) => s + e.faturado, 0), [entradas])
+  const somaTotal = useMemo(() => entradas.reduce((s, e) => s + e.total, 0), [entradas])
   const somaMeta = useMemo(() => entradas.reduce((s, e) => s + e.meta, 0), [entradas])
-  const percentualGeral = somaMeta > 0 ? (somaFaturado / somaMeta) * 100 : 0
+  const percentualGeral = somaMeta > 0 ? (somaTotal / somaMeta) * 100 : 0
   const diasRestantes = diasUteisRestantes(ano)
 
   const topCrescimento = useMemo(() => {
@@ -56,7 +56,7 @@ export function PainelLateral({ entradas, historico, ano }: PainelLateralProps) 
           Resumo geral
         </div>
         <div>
-          <div className="tabular font-display text-2xl font-extrabold text-white">{fmtT(somaFaturado)}</div>
+          <div className="tabular font-display text-2xl font-extrabold text-white">{fmtT(somaTotal)}</div>
           <div className="text-xs text-white/45">de {fmtT(somaMeta)} de meta anual</div>
         </div>
         <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">

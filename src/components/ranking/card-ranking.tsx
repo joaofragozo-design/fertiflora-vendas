@@ -7,6 +7,8 @@ import type { RankingEntry } from '@/lib/ranking/types'
 import { AvatarVendedor } from './avatar-vendedor'
 import { BarraProgresso } from './barra-progresso'
 import { ChipsBadges } from './chips-badges'
+import { InsigniaVendedor } from './insignia-vendedor'
+import { TrioFaturamento } from './trio-faturamento'
 import { fmtPct, fmtT } from './formatadores'
 
 interface CardRankingProps {
@@ -33,22 +35,20 @@ export function CardRanking({ entrada, badges, ehAdmin, onAjustar }: CardRanking
       <AvatarVendedor nome={entrada.nome} avatarUrl={entrada.avatarUrl} size={36} />
 
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          <InsigniaVendedor faturado={entrada.faturado} size={15} />
           <span className="min-w-0 flex-1 truncate text-sm font-bold text-white">{entrada.nome}</span>
           <ChipsBadges badges={badges} compacto />
           <span className="tabular shrink-0 text-xs font-extrabold text-brand-300">{fmtPct(entrada.percentual)}</span>
         </div>
 
-        <div className="mt-0.5 flex items-baseline gap-1.5">
-          <span className="tabular text-sm font-extrabold text-white">{fmtT(entrada.faturado)}</span>
-          <span className="tabular text-[10px] font-semibold text-white/40">/ {fmtT(entrada.meta)}</span>
-        </div>
+        <div className="mt-1.5"><TrioFaturamento faturado={entrada.faturado} pedido={entrada.pedido} total={entrada.total} tamanho="compacto" /></div>
 
         <div className="mt-1.5"><BarraProgresso percentual={entrada.percentual} /></div>
 
         <div className="mt-1 flex items-center justify-between text-[9.5px] font-semibold text-white/45">
           <span>Falta <span className="tabular text-white/60">{fmtT(entrada.falta)}</span></span>
-          <span>Projeção <span className="tabular text-white/60">{fmtT(entrada.projecao)}</span></span>
+          <span>Meta <span className="tabular text-white/60">{fmtT(entrada.meta)}</span></span>
           <span>{entrada.diasUteisRestantes}d úteis</span>
         </div>
       </div>

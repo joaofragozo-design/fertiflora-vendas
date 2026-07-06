@@ -13,7 +13,12 @@ export interface RankingEntry {
   profileId: string | null
   avatarUrl: string | null
   colocacao: number
+  /** Já entregue/faturado — ajustado manualmente pelo admin. Decide a colocação. */
   faturado: number
+  /** Contratado (Pedido aprovado) mas ainda não faturado — somado automaticamente. */
+  pedido: number
+  /** faturado + pedido — base de %/falta/projeção, igual à planilha original. */
+  total: number
   meta: number
   falta: number
   percentual: number

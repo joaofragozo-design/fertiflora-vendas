@@ -7,6 +7,8 @@ import type { RankingEntry } from '@/lib/ranking/types'
 import { AvatarVendedor } from './avatar-vendedor'
 import { BarraProgresso } from './barra-progresso'
 import { ChipsBadges } from './chips-badges'
+import { InsigniaVendedor } from './insignia-vendedor'
+import { TrioFaturamento } from './trio-faturamento'
 import { fmtPct, fmtT } from './formatadores'
 
 const MEDALHA = ['🥇', '🥈', '🥉'] as const
@@ -55,26 +57,22 @@ export function PodioTop3({ entradas, badgesPorVendedor, ehAdmin, onAjustar }: P
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-[10px] font-bold uppercase tracking-wider text-warning-400">Líder do ranking</div>
-            <h2 className="font-display truncate text-lg font-extrabold text-white">{lider.nome}</h2>
+            <div className="flex items-center gap-1.5">
+              <InsigniaVendedor faturado={lider.faturado} size={20} />
+              <h2 className="font-display truncate text-lg font-extrabold text-white">{lider.nome}</h2>
+            </div>
             <div className="mt-1"><ChipsBadges badges={badgesPorVendedor.get(lider.id) ?? []} /></div>
           </div>
         </div>
 
-        <div className="relative mt-4 grid grid-cols-2 gap-3">
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Faturado</div>
-            <div className="tabular text-xl font-extrabold text-white">{fmtT(lider.faturado)}</div>
-          </div>
-          <div className="text-right">
-            <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Projeção</div>
-            <div className="tabular text-xl font-extrabold text-warning-400">{fmtT(lider.projecao)}</div>
-          </div>
+        <div className="relative mt-4">
+          <TrioFaturamento faturado={lider.faturado} pedido={lider.pedido} total={lider.total} tone="gold" />
         </div>
 
         <div className="relative mt-3 flex flex-col gap-1.5">
           <BarraProgresso percentual={lider.percentual} tone="gold" altura="md" />
           <div className="flex items-center justify-between text-[10.5px] font-semibold text-white/50">
-            <span className="tabular text-warning-400">{fmtPct(lider.percentual)} da meta</span>
+            <span className="tabular text-warning-400">{fmtPct(lider.percentual)} da meta ({fmtT(lider.meta)})</span>
             <span>{lider.diasUteisRestantes} dias úteis restantes</span>
           </div>
         </div>
@@ -106,13 +104,16 @@ export function PodioTop3({ entradas, badgesPorVendedor, ehAdmin, onAjustar }: P
                   <span className="absolute -bottom-1 -right-1 text-base leading-none">{MEDALHA[idx + 1]}</span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-xs font-bold text-white">{entrada.nome}</div>
-                  <div className="tabular text-sm font-extrabold text-white">{fmtT(entrada.faturado)}</div>
+                  <div className="flex items-center gap-1">
+                    <InsigniaVendedor faturado={entrada.faturado} size={14} />
+                    <span className="truncate text-xs font-bold text-white">{entrada.nome}</span>
+                  </div>
                 </div>
               </div>
+              <TrioFaturamento faturado={entrada.faturado} pedido={entrada.pedido} total={entrada.total} tamanho="compacto" tone={tone} />
               <BarraProgresso percentual={entrada.percentual} tone={tone} />
               <div className="flex items-center justify-between text-[9.5px] font-semibold text-white/50">
-                <span className="tabular">{fmtPct(entrada.percentual)}</span>
+                <span className="tabular">{fmtPct(entrada.percentual)} · Meta {fmtT(entrada.meta)}</span>
                 <ChipsBadges badges={badgesPorVendedor.get(entrada.id) ?? []} compacto />
               </div>
             </motion.div>

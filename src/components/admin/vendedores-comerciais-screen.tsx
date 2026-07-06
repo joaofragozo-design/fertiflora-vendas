@@ -18,6 +18,7 @@ const ANO = new Date().getFullYear()
 interface Linha {
   vendedor: VendedorComercial
   faturado: number
+  pedido: number
   meta: number
 }
 
@@ -32,7 +33,14 @@ export function VendedoresComerciaisScreen() {
   function carregar() {
     Promise.all([listarVendedoresComerciais(), listarRanking(ANO)]).then(([vendedores, ranking]) => {
       const porId = new Map(ranking.map((r) => [r.id, r]))
-      setLinhas(vendedores.map((v) => ({ vendedor: v, faturado: porId.get(v.id)?.faturado ?? 0, meta: porId.get(v.id)?.meta ?? 0 })))
+      setLinhas(
+        vendedores.map((v) => ({
+          vendedor: v,
+          faturado: porId.get(v.id)?.faturado ?? 0,
+          pedido: porId.get(v.id)?.pedido ?? 0,
+          meta: porId.get(v.id)?.meta ?? 0,
+        }))
+      )
       setCarregando(false)
     })
   }
@@ -72,16 +80,18 @@ export function VendedoresComerciaisScreen() {
         {carregando && <SkeletonListaCards />}
 
         <div className="flex flex-col gap-2">
-          {linhas.map(({ vendedor, faturado, meta }) => (
+          {linhas.map(({ vendedor, faturado, pedido, meta }) => (
             <div key={vendedor.id} className={cn('glass flex items-center gap-3 rounded-2xl p-3.5', !vendedor.ativo && 'opacity-45')}>
               <div className="tabular flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/8 text-[11px] font-extrabold text-white/60">
                 #{vendedor.codigo}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-bold text-white">{vendedor.nome}</div>
-                <div className="tabular text-[11px] text-white/45">{fmtT(faturado)} de {fmtT(meta)}</div>
+                <div className="tabular text-[11px] text-white/45">
+                  Faturado {fmtT(faturado)} · Pedido {fmtT(pedido)} · Total {fmtT(faturado + pedido)} de {fmtT(meta)}
+                </div>
               </div>
-              <button onClick={() => setAjustando({ vendedor, faturado, meta })} aria-label="Ajustar faturado e meta" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/8 text-white/50 transition-colors hover:bg-white/15 hover:text-white active:scale-90">
+              <button onClick={() => setAjustando({ vendedor, faturado, pedido, meta })} aria-label="Ajustar faturado e meta" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/8 text-white/50 transition-colors hover:bg-white/15 hover:text-white active:scale-90">
                 <BarChart3 className="h-3.5 w-3.5" />
               </button>
               <button onClick={() => setEditando(vendedor)} aria-label="Editar nome e código" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/8 text-white/50 transition-colors hover:bg-white/15 hover:text-white active:scale-90">
@@ -103,7 +113,7 @@ export function VendedoresComerciaisScreen() {
       {editando && <VendedorComercialModal vendedor={editando} onFechar={() => setEditando(null)} onSalvo={carregar} />}
       {ajustando && (
         <AjustarModal
-          entrada={{ id: ajustando.vendedor.id, nome: ajustando.vendedor.nome, faturado: ajustando.faturado, meta: ajustando.meta }}
+          entrada={{ id: ajustando.vendedor.id, nome: ajustando.vendedor.nome, faturado: ajustando.faturado, pedido: ajustando.pedido, meta: ajustando.meta }}
           ano={ANO}
           onFechar={() => setAjustando(null)}
           onAtualizado={carregar}
