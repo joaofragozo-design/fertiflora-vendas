@@ -1,17 +1,18 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Calendar, ChevronDown, List, Package, Search, TrendingUp, User, X } from 'lucide-react'
+import { Calendar, ChevronDown, List, Package, Search, ShoppingCart, TrendingUp, User, X } from 'lucide-react'
 import { buscarVendedorComercialDoUsuario } from '@/lib/ranking/queries'
 import type { VendedorComercial } from '@/lib/ranking/types'
-import { buscarNotasDoCliente, listarClientesDoVendedor, listarVendedoresComNotas } from '@/lib/clientes-bi/queries'
-import { calcularInsights, calcularKpis, calcularSazonalidade, calcularSerieAnual, calcularSerieMensal, calcularTopProdutos } from '@/lib/clientes-bi/calculos'
-import type { ClienteResumo, NotaFiscalRow, VendedorComNotas } from '@/lib/clientes-bi/types'
+import { buscarNotasDoCliente, buscarPedidosDoCliente, listarClientesDoVendedor, listarVendedoresComNotas } from '@/lib/clientes-bi/queries'
+import { calcularInsights, calcularKpis, calcularResumoPedidos, calcularSazonalidade, calcularSerieAnual, calcularSerieMensal, calcularTopProdutos } from '@/lib/clientes-bi/calculos'
+import type { ClienteResumo, NotaFiscalRow, PedidoErpRow, VendedorComNotas } from '@/lib/clientes-bi/types'
 import { SkeletonListaCards } from '@/components/ui/skeleton'
 import { GraficoBarras } from './grafico-barras'
 import { VisaoGeralVendedor } from './visao-geral-vendedor'
 import { HeatmapSazonalidade } from './heatmap-sazonalidade'
 import { ContadorAnimado } from './contador-animado'
+import { PedidoProgresso } from './pedido-progresso'
 
 const ANO = new Date().getFullYear()
 const NOMES_MES_CURTO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
@@ -43,8 +44,11 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
   const [carregandoClientes, setCarregandoClientes] = useState(false)
 
   const [notas, setNotas] = useState<NotaFiscalRow[]>([])
+  const [pedidos, setPedidos] = useState<PedidoErpRow[]>([])
   const [carregandoNotas, setCarregandoNotas] = useState(false)
   const [serieChave, setSerieChave] = useState<'toneladas' | 'reais'>('toneladas')
+  const [produtosChave, setProdutosChave] = useState<'toneladas' | 'reais'>('reais')
+  const [pedidosChave, setPedidosChave] = useState<'toneladas' | 'reais'>('toneladas')
 
   // Descobre o código do vendedor: admin escolhe, vendedor comum usa o vínculo da própria conta.
   useEffect(() => {
@@ -77,8 +81,12 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
   useEffect(() => {
     if (vendedorCodigo === null || clienteCodigo === null) return
     setCarregandoNotas(true)
-    buscarNotasDoCliente(vendedorCodigo, clienteCodigo).then((lista) => {
-      setNotas(lista)
+    Promise.all([
+      buscarNotasDoCliente(vendedorCodigo, clienteCodigo),
+      buscarPedidosDoCliente(vendedorCodigo, clienteCodigo),
+    ]).then(([listaNotas, listaPedidos]) => {
+      setNotas(listaNotas)
+      setPedidos(listaPedidos)
       setCarregandoNotas(false)
     })
   }, [vendedorCodigo, clienteCodigo])
@@ -92,9 +100,10 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
   const kpis = useMemo(() => calcularKpis(notas, ANO), [notas])
   const serieMensal = useMemo(() => calcularSerieMensal(notas), [notas])
   const serieAnual = useMemo(() => calcularSerieAnual(notas), [notas])
-  const topProdutos = useMemo(() => calcularTopProdutos(notas, ANO), [notas])
+  const topProdutos = useMemo(() => calcularTopProdutos(notas, ANO, 6, produtosChave), [notas, produtosChave])
   const sazonalidade = useMemo(() => calcularSazonalidade(notas), [notas])
   const insights = useMemo(() => calcularInsights(notas, ANO), [notas])
+  const resumoPedidos = useMemo(() => calcularResumoPedidos(pedidos), [pedidos])
 
   const clienteAtual = clientes.find((c) => c.codigo === clienteCodigo) ?? null
 
@@ -201,9 +210,18 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
               )}
             </div>
             <div className="glass flex flex-col gap-1 rounded-2xl p-4">
-              <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Pedidos a faturar {ANO}</div>
-              <div className="font-display text-lg font-extrabold text-white/25">—</div>
-              <span className="text-[10px] font-semibold text-white/35">Aguardando fonte de dados</span>
+              <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Pedidos a faturar</div>
+              {resumoPedidos.itens.length > 0 ? (
+                <>
+                  <ContadorAnimado valor={resumoPedidos.totalValorSaldo} formatar={fmtBRL} className="tabular font-display text-lg font-extrabold text-white" />
+                  <span className="text-[10px] font-semibold text-white/35">{fmtT(resumoPedidos.totalSaldoT)} restantes</span>
+                </>
+              ) : (
+                <>
+                  <div className="font-display text-lg font-extrabold text-white/25">—</div>
+                  <span className="text-[10px] font-semibold text-white/35">Nenhum pedido em aberto</span>
+                </>
+              )}
             </div>
             <div className="glass flex flex-col gap-1 rounded-2xl p-4">
               <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Ticket médio/nota</div>
@@ -235,7 +253,10 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
                 </div>
               </div>
               <GraficoBarras
-                itens={serieMensal.map((p) => ({ label: NOMES_MES_CURTO[Number(p.mes.slice(5, 7)) - 1], valor: serieChave === 'toneladas' ? p.toneladas : p.reais }))}
+                itens={serieMensal
+                  .slice()
+                  .reverse()
+                  .map((p) => ({ label: NOMES_MES_CURTO[Number(p.mes.slice(5, 7)) - 1], valor: serieChave === 'toneladas' ? p.toneladas : p.reais }))}
                 formatarValor={serieChave === 'toneladas' ? fmtT : fmtBRLCompleto}
               />
             </div>
@@ -252,11 +273,37 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
 
             {topProdutos.length > 0 && (
               <div className="glass flex flex-col gap-3 rounded-2xl p-4">
-                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/50">
-                  <Package className="h-3.5 w-3.5 text-brand-300" />
-                  Top produtos em {ANO}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/50">
+                    <Package className="h-3.5 w-3.5 text-brand-300" />
+                    Top produtos em {ANO}
+                  </div>
+                  <div className="flex gap-1 rounded-lg bg-white/8 p-0.5">
+                    <button onClick={() => setProdutosChave('toneladas')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${produtosChave === 'toneladas' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>t</button>
+                    <button onClick={() => setProdutosChave('reais')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${produtosChave === 'reais' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>R$</button>
+                  </div>
                 </div>
-                <GraficoBarras itens={topProdutos.map((p) => ({ label: p.produto, valor: p.reais }))} formatarValor={fmtBRL} cor="#a9835f" />
+                <GraficoBarras
+                  itens={topProdutos.map((p) => ({ label: p.produto, valor: produtosChave === 'toneladas' ? p.toneladas : p.reais }))}
+                  formatarValor={produtosChave === 'toneladas' ? fmtT : fmtBRL}
+                  cor="#a9835f"
+                />
+              </div>
+            )}
+
+            {resumoPedidos.itens.length > 0 && (
+              <div className="glass flex flex-col gap-3 rounded-2xl p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/50">
+                    <ShoppingCart className="h-3.5 w-3.5 text-brand-300" />
+                    Pedidos em aberto
+                  </div>
+                  <div className="flex gap-1 rounded-lg bg-white/8 p-0.5">
+                    <button onClick={() => setPedidosChave('toneladas')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${pedidosChave === 'toneladas' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>t</button>
+                    <button onClick={() => setPedidosChave('reais')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${pedidosChave === 'reais' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>R$</button>
+                  </div>
+                </div>
+                <PedidoProgresso itens={resumoPedidos.itens} chave={pedidosChave} formatarValor={pedidosChave === 'toneladas' ? fmtT : fmtBRL} />
               </div>
             )}
 

@@ -25,6 +25,7 @@ function fmtPct(v: number) {
 export function VisaoGeralVendedor({ vendedorCodigo, onSelecionarCliente }: { vendedorCodigo: number; onSelecionarCliente: (codigo: number) => void }) {
   const [notas, setNotas] = useState<NotaFiscalRow[]>([])
   const [carregando, setCarregando] = useState(true)
+  const [clientesChave, setClientesChave] = useState<'toneladas' | 'reais'>('reais')
 
   useEffect(() => {
     setCarregando(true)
@@ -38,6 +39,10 @@ export function VisaoGeralVendedor({ vendedorCodigo, onSelecionarCliente }: { ve
   const variacaoToneladas = variacaoPct(resumo.totalToneladas, resumo.totalToneladasAnoAnterior)
   const variacaoReais = variacaoPct(resumo.totalReais, resumo.totalReaisAnoAnterior)
   const lider = resumo.clientesRanqueados[0]
+  const clientesOrdenados = useMemo(
+    () => resumo.clientesRanqueados.slice().sort((a, b) => b[clientesChave] - a[clientesChave]),
+    [resumo.clientesRanqueados, clientesChave]
+  )
 
   if (carregando) return <SkeletonListaCards />
 
@@ -96,12 +101,18 @@ export function VisaoGeralVendedor({ vendedorCodigo, onSelecionarCliente }: { ve
         </div>
 
         <div className="glass flex flex-col gap-3 rounded-2xl p-4">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/50">
-            <Trophy className="h-3.5 w-3.5 text-brand-300" />
-            Top clientes em {ANO}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/50">
+              <Trophy className="h-3.5 w-3.5 text-brand-300" />
+              Top clientes em {ANO}
+            </div>
+            <div className="flex gap-1 rounded-lg bg-white/8 p-0.5">
+              <button onClick={() => setClientesChave('toneladas')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${clientesChave === 'toneladas' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>t</button>
+              <button onClick={() => setClientesChave('reais')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${clientesChave === 'reais' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>R$</button>
+            </div>
           </div>
           <div className="flex flex-col gap-2">
-            {resumo.clientesRanqueados.slice(0, 8).map((c, i) => (
+            {clientesOrdenados.slice(0, 8).map((c, i) => (
               <button
                 key={c.codigo}
                 onClick={() => onSelecionarCliente(c.codigo)}
@@ -109,7 +120,7 @@ export function VisaoGeralVendedor({ vendedorCodigo, onSelecionarCliente }: { ve
               >
                 <span className="tabular flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/8 text-[10px] font-extrabold text-white/60">{i + 1}</span>
                 <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-white/80">{c.nome}</span>
-                <span className="tabular shrink-0 text-[11px] font-bold text-white">{fmtBRL(c.reais)}</span>
+                <span className="tabular shrink-0 text-[11px] font-bold text-white">{clientesChave === 'toneladas' ? fmtT(c.toneladas) : fmtBRL(c.reais)}</span>
               </button>
             ))}
           </div>

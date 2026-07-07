@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client'
-import type { NotaFiscalLinha } from '@/lib/ranking/importar-erp'
-import { notaFiscalFromRow, type ClienteResumo, type NotaFiscalRow, type VendedorComNotas } from './types'
+import type { NotaFiscalLinha, PedidoErpLinha } from '@/lib/ranking/importar-erp'
+import { notaFiscalFromRow, pedidoErpFromRow, type ClienteResumo, type NotaFiscalRow, type PedidoErpRow, type VendedorComNotas } from './types'
 
 const TAMANHO_PAGINA = 1000
 
@@ -36,15 +36,24 @@ export async function listarVendedoresComNotas(): Promise<VendedorComNotas[]> {
   return [...porCodigo.entries()].map(([codigo, nome]) => ({ codigo, nome })).sort((a, b) => a.nome.localeCompare(b.nome))
 }
 
-/** Clientes de um vendedor (pelo código do ERP) — a lista que alimenta o seletor da tela de BI. */
+/**
+ * Clientes de um vendedor (pelo código do ERP) — a lista que alimenta o seletor da tela de BI.
+ * Une notas fiscais e pedidos em aberto: um cliente com pedido em aberto mas ainda sem nenhuma
+ * nota emitida (primeira compra) também precisa aparecer na lista.
+ */
 export async function listarClientesDoVendedor(vendedorCodigo: number): Promise<ClienteResumo[]> {
   const supabase = createClient()
-  const linhas = await buscarTodasAsPaginas<{ cliente_codigo: number; cliente_nome: string }>((from, to) =>
-    supabase.from('notas_fiscais_importadas').select('cliente_codigo, cliente_nome').eq('vendedor_codigo', vendedorCodigo).range(from, to)
-  )
+  const [notas, pedidos] = await Promise.all([
+    buscarTodasAsPaginas<{ cliente_codigo: number; cliente_nome: string }>((from, to) =>
+      supabase.from('notas_fiscais_importadas').select('cliente_codigo, cliente_nome').eq('vendedor_codigo', vendedorCodigo).range(from, to)
+    ),
+    buscarTodasAsPaginas<{ cliente_codigo: number; cliente_nome: string }>((from, to) =>
+      supabase.from('pedidos_erp_importados').select('cliente_codigo, cliente_nome').eq('vendedor_codigo', vendedorCodigo).range(from, to)
+    ),
+  ])
 
   const porCodigo = new Map<number, string>()
-  for (const row of linhas) porCodigo.set(row.cliente_codigo, row.cliente_nome)
+  for (const row of [...notas, ...pedidos]) porCodigo.set(row.cliente_codigo, row.cliente_nome)
   return [...porCodigo.entries()].map(([codigo, nome]) => ({ codigo, nome })).sort((a, b) => a.nome.localeCompare(b.nome))
 }
 
@@ -70,6 +79,21 @@ export async function buscarNotasDoCliente(vendedorCodigo: number, clienteCodigo
       .range(from, to)
   )
   return linhas.map(notaFiscalFromRow)
+}
+
+/** Pedidos em aberto de um cliente (ainda com saldo a carregar) — base do card "Pedidos em aberto". */
+export async function buscarPedidosDoCliente(vendedorCodigo: number, clienteCodigo: number): Promise<PedidoErpRow[]> {
+  const supabase = createClient()
+  const linhas = await buscarTodasAsPaginas<Record<string, unknown>>((from, to) =>
+    supabase
+      .from('pedidos_erp_importados')
+      .select('*')
+      .eq('vendedor_codigo', vendedorCodigo)
+      .eq('cliente_codigo', clienteCodigo)
+      .order('emissao', { ascending: false })
+      .range(from, to)
+  )
+  return linhas.map(pedidoErpFromRow)
 }
 
 function linhaToRow(l: NotaFiscalLinha) {
@@ -105,5 +129,46 @@ export async function substituirNotasFiscais(linhas: NotaFiscalLinha[]): Promise
     const lote = linhas.slice(i, i + TAMANHO_LOTE).map(linhaToRow)
     const { error } = await supabase.from('notas_fiscais_importadas').insert(lote)
     if (error) throw new Error(`Falha ao importar notas (lote ${i / TAMANHO_LOTE + 1}): ${error.message}`)
+  }
+}
+
+function pedidoLinhaToRow(l: PedidoErpLinha) {
+  return {
+    vendedor_codigo: l.vendedorCodigo,
+    vendedor_nome: l.vendedorNome,
+    cliente_codigo: l.clienteCodigo,
+    cliente_nome: l.clienteNome,
+    numero_pedido: l.numeroPedido,
+    emissao: l.emissao,
+    entrega: l.entrega,
+    produto: l.produto,
+    status: l.status || null,
+    un: l.un,
+    quantidade_pedida: l.quantidadePedida,
+    quantidade_saldo: l.quantidadeSaldo,
+    peso_pedido_kg: l.pesoPedidoKg,
+    peso_saldo_kg: l.pesoSaldoKg,
+    valor_total: l.valorTotal,
+    valor_saldo: l.valorSaldo,
+  }
+}
+
+/**
+ * Substitui todo o conteúdo de `pedidos_erp_importados` — o CSV do ERP traz o
+ * snapshot completo dos pedidos em aberto no momento da exportação, então
+ * cada importação é uma reconciliação total (pedidos já totalmente
+ * carregados saem do relatório e devem sair da tabela também).
+ */
+export async function substituirPedidosErp(linhas: PedidoErpLinha[]): Promise<void> {
+  const supabase = createClient()
+
+  const { error: errDelete } = await supabase.from('pedidos_erp_importados').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+  if (errDelete) throw new Error(`Falha ao limpar pedidos anteriores: ${errDelete.message}`)
+
+  const TAMANHO_LOTE = 500
+  for (let i = 0; i < linhas.length; i += TAMANHO_LOTE) {
+    const lote = linhas.slice(i, i + TAMANHO_LOTE).map(pedidoLinhaToRow)
+    const { error } = await supabase.from('pedidos_erp_importados').insert(lote)
+    if (error) throw new Error(`Falha ao importar pedidos (lote ${i / TAMANHO_LOTE + 1}): ${error.message}`)
   }
 }

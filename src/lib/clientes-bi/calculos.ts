@@ -1,4 +1,4 @@
-import type { ClienteRanqueado, Insight, KpiCliente, NotaFiscalRow, PontoAnual, PontoMensal, PontoSazonalidade, ResumoVendedor, TopProduto } from './types'
+import type { ClienteRanqueado, ItemPedidoAberto, Insight, KpiCliente, NotaFiscalRow, PedidoErpRow, PontoAnual, PontoMensal, PontoSazonalidade, ResumoPedidosCliente, ResumoVendedor, TopProduto } from './types'
 
 function anoDe(emissao: string): number {
   return Number(emissao.slice(0, 4))
@@ -82,7 +82,7 @@ export function calcularSerieAnual(notas: NotaFiscalRow[]): PontoAnual[] {
   return [...porAno.values()].sort((a, b) => a.ano - b.ano)
 }
 
-export function calcularTopProdutos(notas: NotaFiscalRow[], ano: number, limite = 6): TopProduto[] {
+export function calcularTopProdutos(notas: NotaFiscalRow[], ano: number, limite = 6, criterio: 'reais' | 'toneladas' = 'reais'): TopProduto[] {
   const doAno = notas.filter((n) => anoDe(n.emissao) === ano)
   const porProduto = new Map<string, TopProduto>()
   for (const n of doAno) {
@@ -91,11 +91,15 @@ export function calcularTopProdutos(notas: NotaFiscalRow[], ano: number, limite 
     atual.reais += n.valorLiquido
     porProduto.set(n.produto, atual)
   }
-  return [...porProduto.values()].sort((a, b) => b.reais - a.reais).slice(0, limite)
+  return [...porProduto.values()].sort((a, b) => b[criterio] - a[criterio]).slice(0, limite)
 }
 
-/** Sazonalidade: soma histórica por mês-do-ano (ignora o ano), normalizada pelo pico. */
-export function calcularSazonalidade(notas: NotaFiscalRow[]): PontoSazonalidade[] {
+/**
+ * Sazonalidade: soma histórica por mês-do-ano (ignora o ano), normalizada pelo pico.
+ * Ordenado do mês atual pra trás (janela rolante de 12 meses), não jan→dez fixo —
+ * assim o mês mais recente sempre cai na primeira posição do heatmap.
+ */
+export function calcularSazonalidade(notas: NotaFiscalRow[], hoje: Date = new Date()): PontoSazonalidade[] {
   const porMes = new Map<number, number>()
   for (let m = 1; m <= 12; m++) porMes.set(m, 0)
   for (const n of notas) {
@@ -104,7 +108,12 @@ export function calcularSazonalidade(notas: NotaFiscalRow[]): PontoSazonalidade[
     porMes.set(mes, (porMes.get(mes) ?? 0) + n.pesoLiquidoKg / 1000)
   }
   const pico = Math.max(1, ...porMes.values())
-  return [...porMes.entries()].map(([mes, toneladas]) => ({ mes, toneladas, intensidade: toneladas / pico }))
+  const mesAtual = hoje.getMonth() + 1
+  const ordemMeses = Array.from({ length: 12 }, (_, i) => ((mesAtual - 1 - i + 12) % 12) + 1)
+  return ordemMeses.map((mes) => {
+    const toneladas = porMes.get(mes) ?? 0
+    return { mes, toneladas, intensidade: toneladas / pico }
+  })
 }
 
 export function calcularInsights(notas: NotaFiscalRow[], ano: number, hoje: Date = new Date()): Insight[] {
@@ -172,5 +181,31 @@ export function calcularResumoVendedor(notas: NotaFiscalRow[], ano: number): Res
     clientesTotal,
     ticketMedioTonelada: notasUnicas.size > 0 ? totalToneladas / notasUnicas.size : 0,
     clientesRanqueados,
+  }
+}
+
+/**
+ * Pedidos em aberto de um cliente — "carregado" (pedido - saldo) é derivado,
+ * não vem do ERP. Ordenado do mais recente pro mais antigo.
+ */
+export function calcularResumoPedidos(pedidos: PedidoErpRow[]): ResumoPedidosCliente {
+  const itens: ItemPedidoAberto[] = pedidos
+    .map((p) => ({
+      numeroPedido: p.numeroPedido,
+      emissao: p.emissao,
+      produto: p.produto,
+      pesoPedidoT: p.pesoPedidoKg / 1000,
+      pesoSaldoT: p.pesoSaldoKg / 1000,
+      valorTotal: p.valorTotal,
+      valorSaldo: p.valorSaldo,
+    }))
+    .sort((a, b) => (a.emissao < b.emissao ? 1 : a.emissao > b.emissao ? -1 : 0))
+
+  return {
+    totalPedidoT: itens.reduce((s, i) => s + i.pesoPedidoT, 0),
+    totalSaldoT: itens.reduce((s, i) => s + i.pesoSaldoT, 0),
+    totalValorTotal: itens.reduce((s, i) => s + i.valorTotal, 0),
+    totalValorSaldo: itens.reduce((s, i) => s + i.valorSaldo, 0),
+    itens,
   }
 }

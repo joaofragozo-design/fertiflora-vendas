@@ -3,9 +3,9 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { AlertTriangle, FileUp, Loader2, Upload, X } from 'lucide-react'
-import { lerArquivoErp, parseNotasFiscais, parseRelatorioErp, type LinhaImportada, type NotaFiscalLinha } from '@/lib/ranking/importar-erp'
+import { lerArquivoErp, parseNotasFiscais, parsePedidosErp, parseRelatorioErp, type LinhaImportada, type NotaFiscalLinha, type PedidoErpLinha } from '@/lib/ranking/importar-erp'
 import { atualizarFaturadoImportado } from '@/lib/ranking/queries'
-import { substituirNotasFiscais } from '@/lib/clientes-bi/queries'
+import { substituirNotasFiscais, substituirPedidosErp } from '@/lib/clientes-bi/queries'
 import type { VendedorComercial } from '@/lib/ranking/types'
 import { Button } from '@/components/ui/button'
 import { fmtT } from '@/components/ranking/formatadores'
@@ -36,6 +36,11 @@ export function ImportarErpModal({ linhasAtuais, ano, onFechar, onImportado }: I
   const [naoEncontrados, setNaoEncontrados] = useState<LinhaImportada[]>([])
   const [notasFiscais, setNotasFiscais] = useState<NotaFiscalLinha[] | null>(null)
   const [erro, setErro] = useState<string | null>(null)
+
+  const [pedidosLendo, setPedidosLendo] = useState(false)
+  const [pedidosAplicando, setPedidosAplicando] = useState(false)
+  const [pedidosErp, setPedidosErp] = useState<PedidoErpLinha[] | null>(null)
+  const [pedidosErro, setPedidosErro] = useState<string | null>(null)
 
   async function handleArquivo(file: File) {
     setLendo(true)
@@ -84,6 +89,36 @@ export function ImportarErpModal({ linhasAtuais, ano, onFechar, onImportado }: I
   }
 
   const clientesUnicos = notasFiscais ? new Set(notasFiscais.map((n) => `${n.vendedorCodigo}-${n.clienteCodigo}`)).size : 0
+
+  async function handleArquivoPedidos(file: File) {
+    setPedidosLendo(true)
+    setPedidosErro(null)
+    try {
+      const texto = await lerArquivoErp(file)
+      setPedidosErp(parsePedidosErp(texto))
+    } catch (e) {
+      setPedidosErro(e instanceof Error ? e.message : 'Falha ao ler o arquivo')
+    } finally {
+      setPedidosLendo(false)
+    }
+  }
+
+  async function handleConfirmarPedidos() {
+    if (!pedidosErp) return
+    setPedidosAplicando(true)
+    try {
+      await substituirPedidosErp(pedidosErp)
+      toast.success('Pedidos em aberto atualizados no BI de clientes')
+      onImportado()
+      setPedidosErp(null)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Falha ao aplicar importação')
+    } finally {
+      setPedidosAplicando(false)
+    }
+  }
+
+  const clientesPedidosUnicos = pedidosErp ? new Set(pedidosErp.map((p) => `${p.vendedorCodigo}-${p.clienteCodigo}`)).size : 0
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onClick={onFechar}>
@@ -162,6 +197,48 @@ export function ImportarErpModal({ linhasAtuais, ano, onFechar, onImportado }: I
             </Button>
           </>
         )}
+
+        <div className="my-1 h-px bg-white/10" />
+
+        <div className="flex flex-col gap-3">
+          <p className="text-xs text-white/50">
+            Selecione o CSV do relatório de Pedidos de Vendas (VPE — pedidos em aberto) exportado do ERP. Atualizo o que cada cliente ainda tem pra carregar no BI de clientes.
+          </p>
+
+          {!pedidosErp && (
+            <>
+              <label className="glass flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed border-white/20 p-6 text-center transition-colors hover:bg-white/10">
+                {pedidosLendo ? <Loader2 className="h-6 w-6 animate-spin text-brand-300" /> : <FileUp className="h-6 w-6 text-brand-300" />}
+                <span className="text-xs font-bold text-white/70">{pedidosLendo ? 'Lendo arquivo…' : 'Toque para escolher o arquivo .CSV'}</span>
+                <input
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  disabled={pedidosLendo}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleArquivoPedidos(f) }}
+                />
+              </label>
+              {pedidosErro && <p className="text-xs font-semibold text-danger-400">{pedidosErro}</p>}
+            </>
+          )}
+
+          {pedidosErp && (
+            <>
+              <p className="text-center text-[10.5px] text-white/40">
+                {pedidosErp.length.toLocaleString('pt-BR')} pedidos em aberto · {clientesPedidosUnicos.toLocaleString('pt-BR')} clientes serão atualizados no BI
+              </p>
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={() => setPedidosErp(null)} className="w-auto flex-1" disabled={pedidosAplicando}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleConfirmarPedidos} disabled={pedidosAplicando} className="w-auto flex-1">
+                  {pedidosAplicando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  Aplicar
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

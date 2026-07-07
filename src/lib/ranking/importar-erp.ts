@@ -45,17 +45,17 @@ interface CabecalhoErp {
   idx: (nomeColuna: string) => number
 }
 
-function lerCabecalho(texto: string): CabecalhoErp {
+function lerCabecalho(texto: string, prefixoCabecalho: string): CabecalhoErp {
   const linhas = texto.split(/\r?\n/)
-  const indiceCabecalho = linhas.findIndex((l) => l.startsWith('Empresa;Vendedor;'))
-  if (indiceCabecalho === -1) throw new Error('Arquivo não parece ser um relatório RFT6 válido — cabeçalho não encontrado.')
+  const indiceCabecalho = linhas.findIndex((l) => l.startsWith(prefixoCabecalho))
+  if (indiceCabecalho === -1) throw new Error('Arquivo não parece ser um relatório do ERP válido — cabeçalho não encontrado.')
   const colunas = linhas[indiceCabecalho].split(';').map((c) => c.trim())
   return { linhas, indiceCabecalho, idx: (nome) => colunas.indexOf(nome) }
 }
 
 /** Retorna o total de toneladas faturadas no `ano` informado, por código de vendedor. */
 export function parseRelatorioErp(texto: string, ano: number): LinhaImportada[] {
-  const { linhas, indiceCabecalho, idx } = lerCabecalho(texto)
+  const { linhas, indiceCabecalho, idx } = lerCabecalho(texto, 'Empresa;Vendedor;')
   const idxVendedor = idx('Vendedor')
   const idxEmissao = idx('Emissao')
   const idxPsLiq = idx('Ps.Liq')
@@ -109,7 +109,7 @@ export interface NotaFiscalLinha {
  * depois, em cima do dado bruto já salvo no banco.
  */
 export function parseNotasFiscais(texto: string): NotaFiscalLinha[] {
-  const { linhas, indiceCabecalho, idx } = lerCabecalho(texto)
+  const { linhas, indiceCabecalho, idx } = lerCabecalho(texto, 'Empresa;Vendedor;')
   const idxVendedor = idx('Vendedor')
   const idxClifor = idx('Clifor')
   const idxEmissao = idx('Emissao')
@@ -154,6 +154,95 @@ export function parseNotasFiscais(texto: string): NotaFiscalLinha[] {
       quantidade: parseNumeroBr(campos[idxQtde]),
       pesoLiquidoKg: parseNumeroBr(campos[idxPsLiq]),
       valorLiquido: parseNumeroBr(campos[idxVlLiq]),
+    })
+  }
+
+  return resultado
+}
+
+export interface PedidoErpLinha {
+  vendedorCodigo: number
+  vendedorNome: string
+  clienteCodigo: number
+  clienteNome: string
+  numeroPedido: string
+  emissao: string
+  entrega: string | null
+  produto: string
+  status: string
+  un: string
+  quantidadePedida: number
+  quantidadeSaldo: number
+  pesoPedidoKg: number
+  pesoSaldoKg: number
+  valorTotal: number
+  valorSaldo: number
+}
+
+/**
+ * Extrai o detalhe linha-a-linha do relatório "VPE — Pedidos de Vendas"
+ * (pedidos ainda em aberto, um item por linha). Diferente do RFT6, os
+ * códigos de vendedor/cliente vêm em colunas separadas do nome (não no
+ * formato "codigo - nome"). PS PEDIDO/PS SALDO já vêm em KG independente
+ * da unidade de venda (saco/bag/kg direto).
+ */
+export function parsePedidosErp(texto: string): PedidoErpLinha[] {
+  const { linhas, indiceCabecalho, idx } = lerCabecalho(texto, 'EMPRESA;VENDEDOR;NOME VENDEDOR;')
+  const idxVendedor = idx('VENDEDOR')
+  const idxNomeVendedor = idx('NOME VENDEDOR')
+  const idxPedido = idx('PEDIDO')
+  const idxClifor = idx('CLIFOR')
+  const idxRazaoSocial = idx('RAZÃO SOCIAL')
+  const idxEmissao = idx('DATA DE EMISSÃO')
+  const idxEntrega = idx('DATA DE ENTREGA')
+  const idxDescricao = idx('DESCRIÇÃO')
+  const idxQtPedida = idx('QT PEDIDA')
+  const idxQtSaldo = idx('QT SALDO')
+  const idxPsPedido = idx('PS PEDIDO')
+  const idxPsSaldo = idx('PS SALDO')
+  const idxVlTotal = idx('VL TOTAL')
+  const idxVlSaldo = idx('VL SALDO')
+  const idxStPedido = idx('ST PEDIDO')
+  const idxUn = idx('UNIDADE DE MEDIDA')
+
+  const obrigatorias = { idxVendedor, idxNomeVendedor, idxPedido, idxClifor, idxRazaoSocial, idxEmissao, idxDescricao, idxPsPedido, idxPsSaldo, idxVlTotal, idxVlSaldo, idxUn }
+  if (Object.values(obrigatorias).some((i) => i === -1)) {
+    throw new Error('Arquivo não tem todas as colunas esperadas do relatório de Pedidos de Vendas (VPE).')
+  }
+
+  const resultado: PedidoErpLinha[] = []
+  for (let i = indiceCabecalho + 1; i < linhas.length; i++) {
+    if (!linhas[i].trim()) continue
+    const campos = linhas[i].split(';')
+    if (campos.length <= idxVlSaldo) continue
+
+    const emissaoIso = paraDataIso(campos[idxEmissao] ?? '')
+    if (!emissaoIso) continue
+
+    const vendedorCodigo = Number(campos[idxVendedor]?.trim())
+    const clienteCodigo = Number(campos[idxClifor]?.trim())
+    if (!Number.isFinite(vendedorCodigo) || !Number.isFinite(clienteCodigo)) continue
+
+    const produto = campos[idxDescricao]?.trim()
+    if (!produto) continue
+
+    resultado.push({
+      vendedorCodigo,
+      vendedorNome: campos[idxNomeVendedor]?.trim() ?? '',
+      clienteCodigo,
+      clienteNome: campos[idxRazaoSocial]?.trim() ?? '',
+      numeroPedido: campos[idxPedido]?.trim() ?? '',
+      emissao: emissaoIso,
+      entrega: paraDataIso(campos[idxEntrega] ?? ''),
+      produto,
+      status: campos[idxStPedido]?.trim() ?? '',
+      un: campos[idxUn]?.trim() ?? '',
+      quantidadePedida: parseNumeroBr(campos[idxQtPedida]),
+      quantidadeSaldo: parseNumeroBr(campos[idxQtSaldo]),
+      pesoPedidoKg: parseNumeroBr(campos[idxPsPedido]),
+      pesoSaldoKg: parseNumeroBr(campos[idxPsSaldo]),
+      valorTotal: parseNumeroBr(campos[idxVlTotal]),
+      valorSaldo: parseNumeroBr(campos[idxVlSaldo]),
     })
   }
 
