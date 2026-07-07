@@ -49,11 +49,31 @@ function fmtDataISO(iso: string | null) {
 const MARGEM = 15
 const LARGURA_UTIL = 210 - MARGEM * 2
 
-export function gerarContratoPdf(pedido: Pedido): jsPDF {
+/** Busca o logo e converte pra data URL — jsPDF precisa disso pra addImage no navegador. */
+async function carregarLogoBase64(): Promise<{ dataUrl: string; largura: number; altura: number } | null> {
+  try {
+    const resposta = await fetch('/logo-fertiflora.png')
+    if (!resposta.ok) return null
+    const blob = await resposta.blob()
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const leitor = new FileReader()
+      leitor.onload = () => resolve(leitor.result as string)
+      leitor.onerror = reject
+      leitor.readAsDataURL(blob)
+    })
+    const bitmap = await createImageBitmap(blob)
+    return { dataUrl, largura: bitmap.width, altura: bitmap.height }
+  } catch {
+    return null
+  }
+}
+
+export async function gerarContratoPdf(pedido: Pedido): Promise<jsPDF> {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   const { dados } = pedido
   const calculo = calcularPedido(pedido.quantidadeToneladas, pedido.embalagem, dados.precoVendidoTon, dados.freteTon)
   const embalagem = infoEmbalagem(pedido.embalagem)
+  const logo = await carregarLogoBase64()
 
   let y = MARGEM
 
@@ -69,16 +89,22 @@ export function gerarContratoPdf(pedido: Pedido): jsPDF {
     }
   }
 
-  // Cabeçalho
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(15)
-  doc.text('CONTRATO DE VENDA', MARGEM, y)
+  // Cabeçalho — logo à esquerda, número/emissão à direita, título centralizado abaixo
+  if (logo) {
+    const larguraLogo = 26
+    const alturaLogo = (larguraLogo * logo.altura) / logo.largura
+    doc.addImage(logo.dataUrl, 'PNG', MARGEM, y - 2, larguraLogo, alturaLogo)
+  }
+  doc.setFont('helvetica', 'normal')
   doc.setFontSize(11)
   doc.text(pedido.numeroContrato ?? '', MARGEM + LARGURA_UTIL, y, { align: 'right' })
   y += 5
-  doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   doc.text(`Emissão: ${fmtDataHoje()}`, MARGEM + LARGURA_UTIL, y, { align: 'right' })
+  y += 8
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(15)
+  doc.text('CONTRATO DE VENDA', MARGEM + LARGURA_UTIL / 2, y, { align: 'center' })
   y += 6
   linha(y)
   y += 6
@@ -269,8 +295,11 @@ export function gerarContratoPdf(pedido: Pedido): jsPDF {
   doc.text(`${dados.clienteNome} (comprador)`, MARGEM + 100, y)
   y += 10
 
-  // Condições de venda
-  quebrarPagina(10)
+  // Condições de venda -- sempre começa numa página nova (página 1 = só o
+  // pedido/assinaturas, página 2 em diante = cláusulas), independente de
+  // quanto conteúdo coube acima.
+  doc.addPage()
+  y = MARGEM
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(10)
   doc.text('Condições de Venda', MARGEM, y)
@@ -295,7 +324,7 @@ export function gerarContratoPdf(pedido: Pedido): jsPDF {
   return doc
 }
 
-export function baixarContratoPdf(pedido: Pedido) {
-  const doc = gerarContratoPdf(pedido)
+export async function baixarContratoPdf(pedido: Pedido) {
+  const doc = await gerarContratoPdf(pedido)
   doc.save(`contrato-venda-${pedido.dados.clienteNome.replace(/\s+/g, '-').toLowerCase()}.pdf`)
 }

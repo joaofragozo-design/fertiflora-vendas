@@ -2,19 +2,21 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Plus, CheckCircle2, Clock3, Download, FileText, XCircle } from 'lucide-react'
+import { AlertTriangle, Plus, CheckCircle2, Clock3, Download, FileText, XCircle } from 'lucide-react'
 import { listarMeusPedidos } from '@/lib/pedidos/queries'
 import { baixarContratoPdf } from '@/lib/pedidos/contrato-pdf'
-import type { Pedido, StatusPedido } from '@/lib/pedidos/types'
+import { precisaAvisoMinimo, type Pedido, type StatusPedido } from '@/lib/pedidos/types'
 import { cn } from '@/lib/utils/cn'
 import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
 import { SkeletonListaCards } from '@/components/ui/skeleton'
 
 const STATUS_INFO: Record<StatusPedido, { rotulo: string; cor: string; icone: typeof CheckCircle2 }> = {
   rascunho: { rotulo: 'Rascunho', cor: 'text-white/50 bg-white/10', icone: FileText },
-  aguardando_aprovacao: { rotulo: 'Aguardando aprovação', cor: 'text-warning-400 bg-warning-500/15', icone: Clock3 },
-  aprovado: { rotulo: 'Aprovado', cor: 'text-brand-300 bg-brand-500/15', icone: CheckCircle2 },
-  rejeitado: { rotulo: 'Rejeitado', cor: 'text-danger-400 bg-danger-500/15', icone: XCircle },
+  aguardando_conferencia: { rotulo: 'Em conferência', cor: 'text-warning-400 bg-warning-500/15', icone: Clock3 },
+  reprovado_conferencia: { rotulo: 'Reprovado na conferência', cor: 'text-danger-400 bg-danger-500/15', icone: XCircle },
+  aguardando_analise_credito: { rotulo: 'Em análise de crédito', cor: 'text-warning-400 bg-warning-500/15', icone: Clock3 },
+  aprovado_credito: { rotulo: 'Aprovado', cor: 'text-brand-300 bg-brand-500/15', icone: CheckCircle2 },
+  reprovado_credito: { rotulo: 'Reprovado', cor: 'text-danger-400 bg-danger-500/15', icone: XCircle },
 }
 
 export function PedidosScreen() {
@@ -60,17 +62,23 @@ export function PedidosScreen() {
                     <Icone className="h-4.5 w-4.5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-bold text-white">{p.dados.clienteNome}</div>
+                    <div className="flex items-center gap-1.5">
+                      {precisaAvisoMinimo(p) && <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-warning-400" aria-label="Preço abaixo do mínimo" />}
+                      <div className="truncate text-sm font-bold text-white">{p.dados.clienteNome}</div>
+                    </div>
                     <div className="truncate text-xs text-white/45">{p.dados.produto} · {new Date(p.createdAt).toLocaleDateString('pt-BR')}</div>
                   </div>
                   <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold', info.cor)}>{info.rotulo}</span>
                 </div>
-                {p.status === 'rejeitado' && p.motivoRejeicao && (
+                {p.status === 'reprovado_conferencia' && p.motivoReprovacaoConferencia && (
+                  <p className="rounded-xl border border-danger-500/30 bg-danger-500/10 p-2.5 text-[11px] text-danger-300">{p.motivoReprovacaoConferencia}</p>
+                )}
+                {p.status === 'reprovado_credito' && p.motivoRejeicao && (
                   <p className="rounded-xl border border-danger-500/30 bg-danger-500/10 p-2.5 text-[11px] text-danger-300">{p.motivoRejeicao}</p>
                 )}
                 <div className="flex items-center justify-between border-t border-white/10 pt-2.5">
                   <span className="text-[10.5px] font-semibold text-white/50">{p.numeroContrato ? `Contrato ${p.numeroContrato}` : 'Sem número ainda'}</span>
-                  <button onClick={() => baixarContratoPdf(p)} className="flex items-center gap-1 text-[11px] font-bold text-brand-300">
+                  <button onClick={() => { void baixarContratoPdf(p) }} className="flex items-center gap-1 text-[11px] font-bold text-brand-300">
                     <Download className="h-3.5 w-3.5" />
                     Baixar PDF
                   </button>

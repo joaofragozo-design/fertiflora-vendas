@@ -15,6 +15,9 @@ export interface CotacaoDados {
   /** Congelados no momento do salvamento — o dólar pode mudar depois, o comprovante não. */
   comissaoPorTonelada: number
   agenciadorPorTonelada: number
+  /** Percentuais (0-1) travados no fechamento — mesma base usada pra calcular os R$ acima. */
+  comissaoPct: number
+  agenciadorPct: number
 }
 
 export interface CotacaoSalva {

@@ -48,6 +48,15 @@ export async function listarClientesDoVendedor(vendedorCodigo: number): Promise<
   return [...porCodigo.entries()].map(([codigo, nome]) => ({ codigo, nome })).sort((a, b) => a.nome.localeCompare(b.nome))
 }
 
+/** Todo o histórico de notas do vendedor (todos os clientes) — base da Visão Geral. */
+export async function buscarNotasDoVendedor(vendedorCodigo: number): Promise<NotaFiscalRow[]> {
+  const supabase = createClient()
+  const linhas = await buscarTodasAsPaginas<Record<string, unknown>>((from, to) =>
+    supabase.from('notas_fiscais_importadas').select('*').eq('vendedor_codigo', vendedorCodigo).order('emissao', { ascending: true }).range(from, to)
+  )
+  return linhas.map(notaFiscalFromRow)
+}
+
 /** Todo o histórico de notas de um cliente — base para KPIs, séries, produtos e sazonalidade. */
 export async function buscarNotasDoCliente(vendedorCodigo: number, clienteCodigo: number): Promise<NotaFiscalRow[]> {
   const supabase = createClient()

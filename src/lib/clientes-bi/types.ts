@@ -48,7 +48,8 @@ export interface KpiCliente {
   variacaoToneladasPct: number | null
   variacaoReaisPct: number | null
   numNotasAno: number
-  ticketMedioNota: number
+  /** Toneladas médias por nota — não R$, pra medir tamanho médio da compra. */
+  ticketMedioTonelada: number
   primeiraCompra: string | null
   ultimaCompra: string | null
   anosAtivo: number
@@ -81,4 +82,23 @@ export interface PontoSazonalidade {
 export interface Insight {
   emoji: string
   texto: string
+}
+
+export interface ClienteRanqueado {
+  codigo: number
+  nome: string
+  toneladas: number
+  reais: number
+  participacaoPct: number // fatia do total do vendedor, 0-100
+}
+
+export interface ResumoVendedor {
+  totalToneladas: number
+  totalReais: number
+  totalToneladasAnoAnterior: number
+  totalReaisAnoAnterior: number
+  clientesAtivos: number
+  clientesTotal: number
+  ticketMedioTonelada: number
+  clientesRanqueados: ClienteRanqueado[]
 }

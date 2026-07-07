@@ -1,15 +1,15 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { BarChart3, Calendar, ChevronDown, List, Package, Search, TrendingUp, User, X } from 'lucide-react'
+import { Calendar, ChevronDown, List, Package, Search, TrendingUp, User, X } from 'lucide-react'
 import { buscarVendedorComercialDoUsuario } from '@/lib/ranking/queries'
 import type { VendedorComercial } from '@/lib/ranking/types'
 import { buscarNotasDoCliente, listarClientesDoVendedor, listarVendedoresComNotas } from '@/lib/clientes-bi/queries'
 import { calcularInsights, calcularKpis, calcularSazonalidade, calcularSerieAnual, calcularSerieMensal, calcularTopProdutos } from '@/lib/clientes-bi/calculos'
 import type { ClienteResumo, NotaFiscalRow, VendedorComNotas } from '@/lib/clientes-bi/types'
 import { SkeletonListaCards } from '@/components/ui/skeleton'
-import { GraficoLinha } from './grafico-linha'
 import { GraficoBarras } from './grafico-barras'
+import { VisaoGeralVendedor } from './visao-geral-vendedor'
 import { HeatmapSazonalidade } from './heatmap-sazonalidade'
 import { ContadorAnimado } from './contador-animado'
 
@@ -163,12 +163,11 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
         )}
       </div>
 
-      {!clienteCodigo && !busca && !listaAberta && (
-        <div className="glass flex flex-col items-center gap-2 rounded-3xl p-8 text-center">
-          <BarChart3 className="h-8 w-8 text-white/25" />
-          <p className="text-sm font-semibold text-white/60">Busque ou selecione um cliente na lista pra ver o histórico completo</p>
-          <p className="text-xs text-white/40">{clientes.length} clientes disponíveis</p>
-        </div>
+      {!clienteCodigo && !busca && !listaAberta && vendedorCodigo !== null && (
+        <>
+          <h2 className="font-display px-1 text-base font-bold">Visão geral</h2>
+          <VisaoGeralVendedor vendedorCodigo={vendedorCodigo} onSelecionarCliente={setClienteCodigo} />
+        </>
       )}
 
       {clienteCodigo && carregandoNotas && <SkeletonListaCards />}
@@ -202,12 +201,13 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
               )}
             </div>
             <div className="glass flex flex-col gap-1 rounded-2xl p-4">
-              <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Notas emitidas {ANO}</div>
-              <div className="tabular font-display text-lg font-extrabold text-white">{kpis.numNotasAno}</div>
+              <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Pedidos a faturar {ANO}</div>
+              <div className="font-display text-lg font-extrabold text-white/25">—</div>
+              <span className="text-[10px] font-semibold text-white/35">Aguardando fonte de dados</span>
             </div>
             <div className="glass flex flex-col gap-1 rounded-2xl p-4">
               <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Ticket médio/nota</div>
-              <div className="tabular font-display text-lg font-extrabold text-white">{fmtBRL(kpis.ticketMedioNota)}</div>
+              <div className="tabular font-display text-lg font-extrabold text-white">{fmtT(kpis.ticketMedioTonelada)}</div>
             </div>
           </div>
 
@@ -234,8 +234,8 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
                   <button onClick={() => setSerieChave('reais')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${serieChave === 'reais' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>R$</button>
                 </div>
               </div>
-              <GraficoLinha
-                pontos={serieMensal.map((p) => ({ label: NOMES_MES_CURTO[Number(p.mes.slice(5, 7)) - 1], valor: serieChave === 'toneladas' ? p.toneladas : p.reais }))}
+              <GraficoBarras
+                itens={serieMensal.map((p) => ({ label: NOMES_MES_CURTO[Number(p.mes.slice(5, 7)) - 1], valor: serieChave === 'toneladas' ? p.toneladas : p.reais }))}
                 formatarValor={serieChave === 'toneladas' ? fmtT : fmtBRLCompleto}
               />
             </div>

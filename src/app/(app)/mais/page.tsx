@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Wallet, UserPlus, ShieldCheck, Trophy, ChevronRight } from 'lucide-react'
+import { Wallet, UserPlus, ShieldCheck, ClipboardCheck, Trophy, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { ROUTES } from '@/constants/routes'
 import { Logo } from '@/components/brand/logo'
@@ -14,6 +14,7 @@ export default async function MaisPage() {
 
   const { data: perfil } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
   const ehAdmin = perfil?.role === 'admin'
+  const ehConferencia = perfil?.role === 'conferencia'
 
   return (
     <main className="relative z-10 min-h-screen pb-28">
@@ -29,9 +30,12 @@ export default async function MaisPage() {
         <div className="flex flex-col gap-2">
           <ItemMenu href="/comissoes" icone={Wallet} titulo="Minhas Comissões" descricao="Recebidas e a receber, mês a mês" />
           <ItemMenu href="/clientes/novo" icone={UserPlus} titulo="Cadastro de Clientes" descricao="Dados para nota fiscal" />
+          {(ehConferencia || ehAdmin) && (
+            <ItemMenu href="/conferencia" icone={ClipboardCheck} titulo="Conferência" descricao="Pedidos aguardando conferência" destaque />
+          )}
           {ehAdmin && (
             <>
-              <ItemMenu href="/admin/pedidos" icone={ShieldCheck} titulo="Aprovações" descricao="Pedidos aguardando decisão" destaque />
+              <ItemMenu href="/admin/pedidos" icone={ShieldCheck} titulo="Análise de Crédito" descricao="Decisão final dos pedidos" destaque />
               <ItemMenu href="/admin/vendedores" icone={Trophy} titulo="Vendedores Comerciais" descricao="Gerenciar ranking, metas e faturamento" destaque />
             </>
           )}

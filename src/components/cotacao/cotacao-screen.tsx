@@ -248,6 +248,8 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
           dataComissao: toDateInput(pagamentoEfetivo),
           comissaoPorTonelada: resultado.projecaoComissao,
           agenciadorPorTonelada: resultado.agenciadorRS,
+          comissaoPct: resultado.comissaoCalculada,
+          agenciadorPct: (parseFloat(agenciador) || 0) / 100,
         },
       })
       setSalva(true)
@@ -460,12 +462,12 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
                   </div>
                   {resultado && temPrecoNegociado && (
                     <div className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-brand-300">
-                      🌱 Você ganha {fmtBRL(resultado.projecaoComissao)}<span className="font-medium text-white/45">/t de comissão</span>
+                      🌱 Você ganha {fmtPct(resultado.comissaoCalculada)}<span className="font-medium text-white/45"> de comissão</span>
                     </div>
                   )}
                   {resultado && temPrecoNegociado && resultado.agenciadorRS > 0 && (
                     <div className="mt-1 flex items-center gap-1.5 text-xs font-bold text-earth-tan">
-                      🤝 Agenciador ganha {fmtBRL(resultado.agenciadorRS)}<span className="font-medium text-white/45">/t</span>
+                      🤝 Agenciador ganha {fmtPct(parseFloat(agenciador) / 100 || 0)}
                     </div>
                   )}
                 </div>

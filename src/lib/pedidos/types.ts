@@ -16,7 +16,17 @@ export function infoEmbalagem(valor: Embalagem): EmbalagemInfo {
   return EMBALAGENS.find((e) => e.valor === valor) ?? EMBALAGENS[1]
 }
 
-export type StatusPedido = 'rascunho' | 'aguardando_aprovacao' | 'aprovado' | 'rejeitado'
+/**
+ * rascunho -> aguardando_conferencia -> [reprovado_conferencia]
+ *                                     -> aguardando_analise_credito -> [aprovado_credito | reprovado_credito]
+ */
+export type StatusPedido =
+  | 'rascunho'
+  | 'aguardando_conferencia'
+  | 'reprovado_conferencia'
+  | 'aguardando_analise_credito'
+  | 'aprovado_credito'
+  | 'reprovado_credito'
 
 /** Tudo que o PDF do contrato precisa — congelado no momento da geração, igual ao comprovante de cotação. */
 export interface PedidoDados {
@@ -36,6 +46,11 @@ export interface PedidoDados {
   freteTon: number
   vencimento: string | null
   dolar: number | null
+  /** Percentuais (0-1) travados na cotação de origem — pra admin ver a comissão sem recalcular. */
+  comissaoPct: number | null
+  agenciadorPct: number | null
+  /** Preço da cotação de origem ficou abaixo do mínimo — mostra aviso até a decisão final da análise de crédito. */
+  abaixoDoMinimo: boolean
 }
 
 export interface Pedido {
@@ -50,9 +65,17 @@ export interface Pedido {
   dados: PedidoDados
   createdAt: string
   solicitadoEm: string | null
+  conferidoEm: string | null
+  conferidoPor: string | null
+  motivoReprovacaoConferencia: string | null
   decididoEm: string | null
   decididoPor: string | null
   motivoRejeicao: string | null
+}
+
+/** Mostra o aviso enquanto o pedido não passou pela decisão final da análise de crédito. */
+export function precisaAvisoMinimo(p: Pedido): boolean {
+  return p.dados.abaixoDoMinimo && p.status !== 'aprovado_credito' && p.status !== 'reprovado_credito'
 }
 
 export function pedidoFromRow(row: Record<string, unknown>): Pedido {
@@ -68,6 +91,9 @@ export function pedidoFromRow(row: Record<string, unknown>): Pedido {
     dados: row.dados as PedidoDados,
     createdAt: row.created_at as string,
     solicitadoEm: (row.solicitado_em as string) ?? null,
+    conferidoEm: (row.conferido_em as string) ?? null,
+    conferidoPor: (row.conferido_por as string) ?? null,
+    motivoReprovacaoConferencia: (row.motivo_reprovacao_conferencia as string) ?? null,
     decididoEm: (row.decidido_em as string) ?? null,
     decididoPor: (row.decidido_por as string) ?? null,
     motivoRejeicao: (row.motivo_rejeicao as string) ?? null,

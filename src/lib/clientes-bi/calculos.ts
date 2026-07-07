@@ -1,4 +1,4 @@
-import type { Insight, KpiCliente, NotaFiscalRow, PontoAnual, PontoMensal, PontoSazonalidade, TopProduto } from './types'
+import type { ClienteRanqueado, Insight, KpiCliente, NotaFiscalRow, PontoAnual, PontoMensal, PontoSazonalidade, ResumoVendedor, TopProduto } from './types'
 
 function anoDe(emissao: string): number {
   return Number(emissao.slice(0, 4))
@@ -16,7 +16,7 @@ function somaReais(notas: NotaFiscalRow[]): number {
   return notas.reduce((s, n) => s + n.valorLiquido, 0)
 }
 
-function variacaoPct(atual: number, anterior: number): number | null {
+export function variacaoPct(atual: number, anterior: number): number | null {
   if (anterior <= 0) return atual > 0 ? 100 : null
   return ((atual - anterior) / anterior) * 100
 }
@@ -42,7 +42,7 @@ export function calcularKpis(notas: NotaFiscalRow[], ano: number): KpiCliente {
     variacaoToneladasPct: variacaoPct(toneladasAno, toneladasAnoAnterior),
     variacaoReaisPct: variacaoPct(reaisAno, reaisAnoAnterior),
     numNotasAno: notasUnicas.size,
-    ticketMedioNota: notasUnicas.size > 0 ? reaisAno / notasUnicas.size : 0,
+    ticketMedioTonelada: notasUnicas.size > 0 ? toneladasAno / notasUnicas.size : 0,
     primeiraCompra: datas[0] ?? null,
     ultimaCompra: datas[datas.length - 1] ?? null,
     anosAtivo: anosUnicos.size,
@@ -134,8 +134,43 @@ export function calcularInsights(notas: NotaFiscalRow[], ano: number, hoje: Date
   }
 
   if (kpis.numNotasAno > 0) {
-    insights.push({ emoji: '💰', texto: `Ticket médio de R$ ${kpis.ticketMedioNota.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} por nota` })
+    insights.push({ emoji: '💰', texto: `Ticket médio de ${kpis.ticketMedioTonelada.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}t por nota` })
   }
 
   return insights
+}
+
+/** Visão geral de todos os clientes de um vendedor — base da tela "Visão Geral" e do gráfico de pizza. */
+export function calcularResumoVendedor(notas: NotaFiscalRow[], ano: number): ResumoVendedor {
+  const doAno = notas.filter((n) => anoDe(n.emissao) === ano)
+  const doAnoAnterior = notas.filter((n) => anoDe(n.emissao) === ano - 1)
+
+  const totalToneladas = somaToneladas(doAno)
+  const totalReais = somaReais(doAno)
+
+  const porCliente = new Map<number, { nome: string; toneladas: number; reais: number }>()
+  for (const n of doAno) {
+    const atual = porCliente.get(n.clienteCodigo) ?? { nome: n.clienteNome, toneladas: 0, reais: 0 }
+    if (n.un === 'KG') atual.toneladas += n.pesoLiquidoKg / 1000
+    atual.reais += n.valorLiquido
+    porCliente.set(n.clienteCodigo, atual)
+  }
+
+  const notasUnicas = new Set(doAno.map((n) => n.nota).filter(Boolean))
+  const clientesTotal = new Set(notas.map((n) => n.clienteCodigo)).size
+
+  const clientesRanqueados: ClienteRanqueado[] = [...porCliente.entries()]
+    .map(([codigo, c]) => ({ codigo, nome: c.nome, toneladas: c.toneladas, reais: c.reais, participacaoPct: totalReais > 0 ? (c.reais / totalReais) * 100 : 0 }))
+    .sort((a, b) => b.reais - a.reais)
+
+  return {
+    totalToneladas,
+    totalReais,
+    totalToneladasAnoAnterior: somaToneladas(doAnoAnterior),
+    totalReaisAnoAnterior: somaReais(doAnoAnterior),
+    clientesAtivos: porCliente.size,
+    clientesTotal,
+    ticketMedioTonelada: notasUnicas.size > 0 ? totalToneladas / notasUnicas.size : 0,
+    clientesRanqueados,
+  }
 }

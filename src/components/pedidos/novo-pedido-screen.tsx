@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { ArrowLeft, CheckCircle2, Download, FileText, Loader2, Package, Search, Send, UserCircle2 } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, CheckCircle2, Download, FileText, Loader2, Package, Search, Send, UserCircle2 } from 'lucide-react'
 import { listarCotacoes } from '@/lib/cotacoes/queries'
 import { statusCotacao, type CotacaoSalva } from '@/lib/cotacoes/types'
 import { listarClientes } from '@/lib/clientes/queries'
@@ -47,7 +47,9 @@ export function NovoPedidoScreen({ userId }: { userId: string }) {
 
   useEffect(() => {
     Promise.all([listarCotacoes(), listarClientes()]).then(([cots, clis]) => {
-      setCotacoes(cots.filter((c) => c.aprovado && statusCotacao(c.createdAt) === 'valida'))
+      // Cotações abaixo do mínimo continuam selecionáveis — o aviso aparece
+      // na lista, no formulário e no pedido até a análise de crédito decidir.
+      setCotacoes(cots.filter((c) => statusCotacao(c.createdAt) === 'valida'))
       setClientesPorId(Object.fromEntries(clis.map((c) => [c.id, c])))
       setCarregando(false)
     })
@@ -95,6 +97,9 @@ export function NovoPedidoScreen({ userId }: { userId: string }) {
         freteTon: parseFloat(cotacaoSelecionada.dados.frete) || 0,
         vencimento: cotacaoSelecionada.dados.dataComissao,
         dolar: cotacaoSelecionada.dados.dolar,
+        comissaoPct: cotacaoSelecionada.dados.comissaoPct ?? null,
+        agenciadorPct: cotacaoSelecionada.dados.agenciadorPct ?? null,
+        abaixoDoMinimo: !cotacaoSelecionada.aprovado,
       }
 
       const pedido = await criarPedido({
@@ -106,7 +111,7 @@ export function NovoPedidoScreen({ userId }: { userId: string }) {
       })
 
       setPedidoGerado(pedido)
-      baixarContratoPdf(pedido)
+      await baixarContratoPdf(pedido)
       toast.success('Contrato gerado e baixado')
       setVisao('gerado')
     } catch (e) {
@@ -205,8 +210,8 @@ export function NovoPedidoScreen({ userId }: { userId: string }) {
                   onClick={() => selecionarCotacao(c)}
                   className="glass flex items-center gap-3 rounded-2xl p-4 text-left transition-colors hover:bg-white/10"
                 >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 text-brand-300">
-                    <CheckCircle2 className="h-4.5 w-4.5" />
+                  <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl', c.aprovado ? 'bg-brand-500/15 text-brand-300' : 'bg-warning-500/15 text-warning-400')}>
+                    {c.aprovado ? <CheckCircle2 className="h-4.5 w-4.5" /> : <AlertTriangle className="h-4.5 w-4.5" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-bold text-white">{c.produto}</div>
@@ -241,7 +246,7 @@ export function NovoPedidoScreen({ userId }: { userId: string }) {
             <p className="text-sm text-white/55">O PDF já foi baixado. Confira os dados antes de solicitar aprovação.</p>
           </div>
 
-          <Button variant="ghost" onClick={() => baixarContratoPdf(pedidoGerado)}><Download className="h-4 w-4" />Baixar novamente</Button>
+          <Button variant="ghost" onClick={() => { void baixarContratoPdf(pedidoGerado) }}><Download className="h-4 w-4" />Baixar novamente</Button>
           <Button disabled={solicitando || solicitado} onClick={handleSolicitarAprovacao}>
             {solicitando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             {solicitado ? 'Aprovação solicitada' : 'Solicitar aprovação'}
@@ -268,6 +273,13 @@ export function NovoPedidoScreen({ userId }: { userId: string }) {
             <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Cotação selecionada</div>
             <div className="text-sm font-bold text-white">{cotacaoSelecionada.produto}</div>
             <div className="tabular text-xs text-white/50">{fmtBRL(cotacaoSelecionada.precoVendido)}/t</div>
+          </div>
+        )}
+
+        {cotacaoSelecionada && !cotacaoSelecionada.aprovado && (
+          <div className="flex items-start gap-2 rounded-xl border border-warning-500/35 bg-warning-500/15 p-3 text-xs leading-snug text-warning-300">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            Preço abaixo do mínimo — o pedido pode ser gerado normalmente, mas vai levar um aviso até a análise de crédito decidir.
           </div>
         )}
 

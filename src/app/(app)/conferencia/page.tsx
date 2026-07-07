@@ -1,15 +1,15 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ROUTES } from '@/constants/routes'
-import { AnaliseCreditoScreen } from '@/components/pedidos/analise-credito-screen'
+import { ConferenciaScreen } from '@/components/pedidos/conferencia-screen'
 
-export default async function AdminPedidosPage() {
+export default async function ConferenciaPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(ROUTES.LOGIN)
 
   const { data: perfil } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
-  if (perfil?.role !== 'admin') redirect(ROUTES.DASHBOARD)
+  if (perfil?.role !== 'conferencia' && perfil?.role !== 'admin') redirect(ROUTES.DASHBOARD)
 
-  return <AnaliseCreditoScreen />
+  return <ConferenciaScreen />
 }

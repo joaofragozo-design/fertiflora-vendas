@@ -36,16 +36,17 @@ export async function listarMeusPedidos(): Promise<Pedido[]> {
   return (data ?? []).map(pedidoFromRow)
 }
 
+/** Vendedor manda o pedido pra fila de conferência (etapa 1). */
 export async function solicitarAprovacao(pedidoId: string): Promise<void> {
   const supabase = createClient()
   const { error } = await supabase
     .from('pedidos')
-    .update({ status: 'aguardando_aprovacao', solicitado_em: new Date().toISOString() })
+    .update({ status: 'aguardando_conferencia', solicitado_em: new Date().toISOString() })
     .eq('id', pedidoId)
   if (error) throw new Error(`Falha ao solicitar aprovação: ${error.message}`)
 }
 
-/** Somente admins conseguem ler todos os pedidos — a RLS filtra o resto. */
+/** Conferência e análise de crédito enxergam tudo — a RLS filtra o resto (vendedor só vê os próprios). */
 export async function listarTodosPedidos(): Promise<Pedido[]> {
   const supabase = createClient()
   const { data, error } = await supabase.from('pedidos').select('*').order('created_at', { ascending: false })
@@ -53,26 +54,59 @@ export async function listarTodosPedidos(): Promise<Pedido[]> {
   return (data ?? []).map(pedidoFromRow)
 }
 
-export async function aprovarPedido(pedidoId: string, numeroContrato: string | null): Promise<void> {
+// ─── Etapa 1: Conferência (Françoa) ───────────────────────────────────────
+
+export async function enviarParaAnaliseCredito(pedidoId: string): Promise<void> {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Sessão expirada — faça login novamente.')
 
   const { error } = await supabase
     .from('pedidos')
-    .update({ status: 'aprovado', decidido_em: new Date().toISOString(), decidido_por: user.id, numero_contrato: numeroContrato })
+    .update({ status: 'aguardando_analise_credito', conferido_em: new Date().toISOString(), conferido_por: user.id })
     .eq('id', pedidoId)
-  if (error) throw new Error(`Falha ao aprovar pedido: ${error.message}`)
+  if (error) throw new Error(`Falha ao encaminhar pra análise de crédito: ${error.message}`)
 }
 
-export async function rejeitarPedido(pedidoId: string, motivo: string): Promise<void> {
+export async function reprovarNaConferencia(pedidoId: string, motivo: string): Promise<void> {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Sessão expirada — faça login novamente.')
 
   const { error } = await supabase
     .from('pedidos')
-    .update({ status: 'rejeitado', decidido_em: new Date().toISOString(), decidido_por: user.id, motivo_rejeicao: motivo.trim() || null })
+    .update({
+      status: 'reprovado_conferencia',
+      conferido_em: new Date().toISOString(),
+      conferido_por: user.id,
+      motivo_reprovacao_conferencia: motivo.trim() || null,
+    })
     .eq('id', pedidoId)
-  if (error) throw new Error(`Falha ao rejeitar pedido: ${error.message}`)
+  if (error) throw new Error(`Falha ao reprovar na conferência: ${error.message}`)
+}
+
+// ─── Etapa 2: Análise de Crédito (admin/Djeisson) — decisão final ─────────
+
+export async function aprovarCredito(pedidoId: string, numeroContrato: string | null): Promise<void> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Sessão expirada — faça login novamente.')
+
+  const { error } = await supabase
+    .from('pedidos')
+    .update({ status: 'aprovado_credito', decidido_em: new Date().toISOString(), decidido_por: user.id, numero_contrato: numeroContrato })
+    .eq('id', pedidoId)
+  if (error) throw new Error(`Falha ao aprovar na análise de crédito: ${error.message}`)
+}
+
+export async function reprovarCredito(pedidoId: string, motivo: string): Promise<void> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Sessão expirada — faça login novamente.')
+
+  const { error } = await supabase
+    .from('pedidos')
+    .update({ status: 'reprovado_credito', decidido_em: new Date().toISOString(), decidido_por: user.id, motivo_rejeicao: motivo.trim() || null })
+    .eq('id', pedidoId)
+  if (error) throw new Error(`Falha ao reprovar na análise de crédito: ${error.message}`)
 }
