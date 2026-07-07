@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Pencil } from 'lucide-react'
+import { MapPin, Pencil } from 'lucide-react'
 import type { Badge } from '@/lib/ranking/badges'
 import type { RankingEntry } from '@/lib/ranking/types'
 import { AvatarVendedor } from './avatar-vendedor'
@@ -30,7 +30,7 @@ export function CardRanking({ entrada, badges, ehAdmin, onAjustar }: CardRanking
       className="glass relative flex items-center gap-3 rounded-2xl p-3.5"
     >
       <div className="tabular flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/8 text-xs font-extrabold text-white/60">
-        {entrada.colocacao}º
+        {entrada.colocacao !== null ? `${entrada.colocacao}º` : '—'}
       </div>
       <AvatarVendedor nome={entrada.nome} avatarUrl={entrada.avatarUrl} size={36} />
 
@@ -41,6 +41,13 @@ export function CardRanking({ entrada, badges, ehAdmin, onAjustar }: CardRanking
           <ChipsBadges badges={badges} compacto />
           <span className="tabular shrink-0 text-xs font-extrabold text-brand-300">{fmtPct(entrada.percentual)}</span>
         </div>
+
+        {entrada.localizacao && (
+          <div className="mt-0.5 flex items-center gap-1 text-[10px] font-semibold leading-tight text-earth-tan">
+            <MapPin className="h-2.5 w-2.5 shrink-0" />
+            <span className="truncate">{entrada.localizacao}</span>
+          </div>
+        )}
 
         <div className="mt-1.5"><TrioFaturamento faturado={entrada.faturado} pedido={entrada.pedido} total={entrada.total} tamanho="compacto" /></div>
 

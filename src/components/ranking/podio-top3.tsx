@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Pencil } from 'lucide-react'
+import { MapPin, Pencil } from 'lucide-react'
 import type { Badge } from '@/lib/ranking/badges'
 import type { RankingEntry } from '@/lib/ranking/types'
 import { AvatarVendedor } from './avatar-vendedor'
@@ -61,6 +61,12 @@ export function PodioTop3({ entradas, badgesPorVendedor, ehAdmin, onAjustar }: P
               <InsigniaVendedor faturado={lider.faturado} size={20} />
               <h2 className="font-display truncate text-lg font-extrabold text-white">{lider.nome}</h2>
             </div>
+            {lider.localizacao && (
+              <div className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold leading-tight text-earth-tan">
+                <MapPin className="h-3 w-3 shrink-0" />
+                <span className="truncate">{lider.localizacao}</span>
+              </div>
+            )}
             <div className="mt-1"><ChipsBadges badges={badgesPorVendedor.get(lider.id) ?? []} /></div>
           </div>
         </div>
@@ -108,6 +114,12 @@ export function PodioTop3({ entradas, badgesPorVendedor, ehAdmin, onAjustar }: P
                     <InsigniaVendedor faturado={entrada.faturado} size={14} />
                     <span className="truncate text-xs font-bold text-white">{entrada.nome}</span>
                   </div>
+                  {entrada.localizacao && (
+                    <div className="flex items-center gap-1 text-[9.5px] font-semibold leading-tight text-earth-tan">
+                      <MapPin className="h-2.5 w-2.5 shrink-0" />
+                      <span className="truncate">{entrada.localizacao}</span>
+                    </div>
+                  )}
                 </div>
               </div>
               <TrioFaturamento faturado={entrada.faturado} pedido={entrada.pedido} total={entrada.total} tamanho="compacto" tone={tone} />

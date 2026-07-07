@@ -39,3 +39,4 @@ export function calcularPercentual(faturado: number, meta: number): number {
 export function calcularFalta(faturado: number, meta: number): number {
   return Math.max(0, meta - faturado)
 }
+

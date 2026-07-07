@@ -23,10 +23,14 @@ export async function listarRanking(ano: number): Promise<RankingEntry[]> {
 
   const profileIds = (vendedores ?? []).map((v) => v.profile_id).filter((id): id is string => !!id)
   const avatarPorProfile = new Map<string, string | null>()
+  const localizacaoPorProfile = new Map<string, string | null>()
   if (profileIds.length > 0) {
-    const { data: perfis, error: errPerfis } = await supabase.from('profiles').select('id, avatar_url').in('id', profileIds)
-    if (errPerfis) throw new Error(`Falha ao carregar avatares: ${errPerfis.message}`)
-    for (const p of perfis ?? []) avatarPorProfile.set(p.id as string, (p.avatar_url as string) ?? null)
+    const { data: perfis, error: errPerfis } = await supabase.from('profiles').select('id, avatar_url, praca_atuacao').in('id', profileIds)
+    if (errPerfis) throw new Error(`Falha ao carregar perfis: ${errPerfis.message}`)
+    for (const p of perfis ?? []) {
+      avatarPorProfile.set(p.id as string, (p.avatar_url as string) ?? null)
+      localizacaoPorProfile.set(p.id as string, (p.praca_atuacao as string) ?? null)
+    }
   }
 
   const diasRestantes = diasUteisRestantes(ano)
@@ -42,6 +46,8 @@ export async function listarRanking(ano: number): Promise<RankingEntry[]> {
       nome: v.nome,
       profileId: v.profileId,
       avatarUrl: v.profileId ? (avatarPorProfile.get(v.profileId) ?? null) : null,
+      localizacao: v.profileId ? (localizacaoPorProfile.get(v.profileId) ?? null) : null,
+      agregado: v.agregado,
       faturado,
       pedido,
       total,
@@ -53,9 +59,55 @@ export async function listarRanking(ano: number): Promise<RankingEntry[]> {
   })
 
   // Colocação segue o Faturado (já entregue) — igual à planilha original,
-  // não o Total (que inclui Pedido ainda não faturado).
-  entradas.sort((a, b) => b.faturado - a.faturado)
-  return entradas.map((e, i) => ({ ...e, colocacao: i + 1 }))
+  // não o Total (que inclui Pedido ainda não faturado). Agregados (Fertiflora,
+  // Outros) não disputam colocação: ficam no fim, sem número.
+  const normais = entradas.filter((e) => !e.agregado).sort((a, b) => b.faturado - a.faturado)
+  const agregados = entradas.filter((e) => e.agregado).sort((a, b) => b.faturado - a.faturado)
+  return [
+    ...normais.map((e, i) => ({ ...e, colocacao: i + 1 })),
+    ...agregados.map((e) => ({ ...e, colocacao: null })),
+  ]
+}
+
+export interface VendaSemanalPorCodigo {
+  codigo: number
+  toneladas: number
+}
+
+/**
+ * Vendas faturadas (notas emitidas) na semana atual (seg-dom), por código de vendedor.
+ * A semana é calculada dentro da função no Postgres (fuso de Brasil) -- sem parâmetro de
+ * data do client, pra não depender de conversão de fuso no browser e pra não dar pra
+ * manipular o intervalo pedindo uma janela maior/menor que uma semana.
+ */
+export async function listarVendasSemana(): Promise<VendaSemanalPorCodigo[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('ranking_vendas_semana')
+  if (error) throw new Error(`Falha ao carregar vendas da semana: ${error.message}`)
+  return (data ?? []).map((r: { vendedor_codigo: number; toneladas: number }) => ({
+    codigo: Number(r.vendedor_codigo),
+    toneladas: Number(r.toneladas),
+  }))
+}
+
+export interface PedidoSemanalPorVendedor {
+  vendedorProfileId: string
+  toneladas: number
+}
+
+/**
+ * Pedidos aprovados na análise de crédito durante a semana atual (seg-dom), por vendedor
+ * (profile id). Mesma estratégia de listarVendasSemana: semana calculada no Postgres, sem
+ * parâmetro de data do client.
+ */
+export async function listarPedidosSemana(): Promise<PedidoSemanalPorVendedor[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc('ranking_pedidos_semana')
+  if (error) throw new Error(`Falha ao carregar pedidos da semana: ${error.message}`)
+  return (data ?? []).map((r: { vendedor_id: string; toneladas: number }) => ({
+    vendedorProfileId: r.vendedor_id,
+    toneladas: Number(r.toneladas),
+  }))
 }
 
 export interface HistoricoPonto {
@@ -108,7 +160,7 @@ export async function criarVendedorComercial(params: { codigo: number; nome: str
 
 export async function atualizarVendedorComercial(
   id: string,
-  params: { codigo?: number; nome?: string; profileId?: string | null; ativo?: boolean }
+  params: { codigo?: number; nome?: string; profileId?: string | null; ativo?: boolean; agregado?: boolean }
 ): Promise<void> {
   const supabase = createClient()
   const payload: Record<string, unknown> = {}
@@ -116,6 +168,7 @@ export async function atualizarVendedorComercial(
   if (params.nome !== undefined) payload.nome = params.nome
   if (params.profileId !== undefined) payload.profile_id = params.profileId
   if (params.ativo !== undefined) payload.ativo = params.ativo
+  if (params.agregado !== undefined) payload.agregado = params.agregado
 
   const { error } = await supabase.from('vendedores_comerciais').update(payload).eq('id', id)
   if (error) throw new Error(`Falha ao atualizar vendedor: ${error.message}`)

@@ -96,7 +96,7 @@ export function EditarPerfilModal({ perfil, onFechar, onAtualizado }: EditarPerf
         <Input tone="dark" label="Apelido" placeholder="Como quer ser chamado" value={apelido} onChange={(e) => setApelido(e.target.value)} maxLength={24} />
         <Input tone="dark" label="Nome completo" placeholder="Como aparece nos contratos" value={nomeCompleto} onChange={(e) => setNomeCompleto(e.target.value)} maxLength={80} />
         <Input tone="dark" label="Telefone" placeholder="(45) 99999-9999" value={telefone} onChange={(e) => setTelefone(e.target.value)} maxLength={20} />
-        <Input tone="dark" label="Praça de atuação" placeholder="Ex: MS, região de Dourados" value={pracaAtuacao} onChange={(e) => setPracaAtuacao(e.target.value)} maxLength={40} />
+        <Input tone="dark" label="Localização" placeholder="Ex: MS, região de Dourados" value={pracaAtuacao} onChange={(e) => setPracaAtuacao(e.target.value)} maxLength={40} />
 
         <Button onClick={handleSalvar} disabled={salvando}>
           {salvando && <Loader2 className="h-4 w-4 animate-spin" />}

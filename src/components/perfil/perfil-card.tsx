@@ -62,7 +62,7 @@ export function PerfilCard({ userId, usernameFallback }: PerfilCardProps) {
             {perfil?.pracaAtuacao && (
               <div className="mt-1 flex items-start gap-1 text-[10.5px] font-bold leading-snug text-earth-tan">
                 <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
-                <span className="truncate">Praça de atuação: {perfil.pracaAtuacao}</span>
+                <span className="truncate">Localização: {perfil.pracaAtuacao}</span>
               </div>
             )}
           </div>

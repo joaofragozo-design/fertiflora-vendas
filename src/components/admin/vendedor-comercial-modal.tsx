@@ -17,6 +17,7 @@ interface VendedorComercialModalProps {
 export function VendedorComercialModal({ vendedor, onFechar, onSalvo }: VendedorComercialModalProps) {
   const [codigo, setCodigo] = useState(vendedor ? String(vendedor.codigo) : '')
   const [nome, setNome] = useState(vendedor?.nome ?? '')
+  const [agregado, setAgregado] = useState(vendedor?.agregado ?? false)
   const [salvando, setSalvando] = useState(false)
 
   async function handleSalvar() {
@@ -28,7 +29,7 @@ export function VendedorComercialModal({ vendedor, onFechar, onSalvo }: Vendedor
     setSalvando(true)
     try {
       if (vendedor) {
-        await atualizarVendedorComercial(vendedor.id, { codigo: codigoNum, nome: nome.trim() })
+        await atualizarVendedorComercial(vendedor.id, { codigo: codigoNum, nome: nome.trim(), agregado })
       } else {
         await criarVendedorComercial({ codigo: codigoNum, nome: nome.trim() })
       }
@@ -53,6 +54,12 @@ export function VendedorComercialModal({ vendedor, onFechar, onSalvo }: Vendedor
         </div>
         <Input tone="dark" label="Código" inputMode="numeric" value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="240" />
         <Input tone="dark" label="Nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do vendedor" />
+        {vendedor && (
+          <label className="flex items-center gap-2.5 rounded-xl bg-white/5 px-3 py-2.5 text-xs font-semibold text-white/70">
+            <input type="checkbox" checked={agregado} onChange={(e) => setAgregado(e.target.checked)} className="h-4 w-4 accent-brand-500" />
+            Não disputa colocação (ex: Fertiflora, Outros)
+          </label>
+        )}
         <Button onClick={handleSalvar} disabled={salvando}>
           {salvando && <Loader2 className="h-4 w-4 animate-spin" />}
           Salvar

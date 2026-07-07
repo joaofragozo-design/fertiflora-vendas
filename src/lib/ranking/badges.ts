@@ -42,6 +42,8 @@ function agruparPorVendedor(historico: HistoricoPonto[]): Map<string, SerieVende
 /**
  * Badges automáticos calculados só a partir de dado real (histórico diário e
  * ranking atual) — nenhum é inventado quando não há sinal suficiente.
+ * Agregados (Fertiflora, Outros) não disputam colocação, então não entram
+ * em nenhuma conquista — são totais/catch-all, não vendedores de verdade.
  */
 export function calcularBadges(entradas: RankingEntry[], historico: HistoricoPonto[]): Map<string, Badge[]> {
   const resultado = new Map<string, Badge[]>()
@@ -51,14 +53,17 @@ export function calcularBadges(entradas: RankingEntry[], historico: HistoricoPon
     resultado.set(vendedorId, lista)
   }
 
-  const lider = entradas.find((e) => e.colocacao === 1)
+  const disputantes = entradas.filter((e) => !e.agregado)
+  const idsDisputantes = new Set(disputantes.map((e) => e.id))
+
+  const lider = disputantes.find((e) => e.colocacao === 1)
   if (lider && lider.faturado > 0) adicionar(lider.id, { emoji: '👑', label: 'Líder do ranking' })
 
-  for (const e of entradas) {
+  for (const e of disputantes) {
     if (e.percentual >= 100) adicionar(e.id, { emoji: '🎯', label: 'Meta batida' })
   }
 
-  const series = agruparPorVendedor(historico)
+  const series = agruparPorVendedor(historico.filter((p) => idsDisputantes.has(p.vendedorId)))
 
   let maiorCrescimentoId: string | null = null
   let maiorCrescimentoValor = 0
@@ -91,6 +96,32 @@ export function calcularBadges(entradas: RankingEntry[], historico: HistoricoPon
     adicionar(melhorEvolucaoId, { emoji: '🔥', label: 'Melhor evolução' })
   }
   if (vendaDoDiaId && vendaDoDiaValor > 0) adicionar(vendaDoDiaId, { emoji: '⚡', label: 'Venda do dia' })
+
+  return resultado
+}
+
+interface ItemRankingSemanal {
+  entrada: RankingEntry
+  toneladas: number
+}
+
+/** Badges dos líderes dos mini-rankings semanais — só quem está em 1º lugar em cada um. */
+export function calcularBadgesSemanais(
+  topVendasSemana: ItemRankingSemanal[],
+  topPedidosSemana: ItemRankingSemanal[]
+): Map<string, Badge[]> {
+  const resultado = new Map<string, Badge[]>()
+  const adicionar = (vendedorId: string, badge: Badge) => {
+    const lista = resultado.get(vendedorId) ?? []
+    lista.push(badge)
+    resultado.set(vendedorId, lista)
+  }
+
+  const liderVendas = topVendasSemana[0]
+  if (liderVendas && liderVendas.toneladas > 0) adicionar(liderVendas.entrada.id, { emoji: '🏆', label: 'Líder da semana em vendas' })
+
+  const liderPedidos = topPedidosSemana[0]
+  if (liderPedidos && liderPedidos.toneladas > 0) adicionar(liderPedidos.entrada.id, { emoji: '📦', label: 'Líder da semana em pedidos' })
 
   return resultado
 }

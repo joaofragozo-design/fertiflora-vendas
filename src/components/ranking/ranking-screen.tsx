@@ -2,9 +2,18 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { Trophy } from 'lucide-react'
-import { listarRanking, listarHistoricoRecente, inscreverRankingEmTempoReal, type HistoricoPonto } from '@/lib/ranking/queries'
-import { calcularBadges } from '@/lib/ranking/badges'
+import { PackageCheck, Trophy } from 'lucide-react'
+import {
+  listarRanking,
+  listarHistoricoRecente,
+  listarVendasSemana,
+  listarPedidosSemana,
+  inscreverRankingEmTempoReal,
+  type HistoricoPonto,
+  type VendaSemanalPorCodigo,
+  type PedidoSemanalPorVendedor,
+} from '@/lib/ranking/queries'
+import { calcularBadges, calcularBadgesSemanais, type Badge } from '@/lib/ranking/badges'
 import type { RankingEntry } from '@/lib/ranking/types'
 import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
 import { SkeletonListaCards } from '@/components/ui/skeleton'
@@ -12,6 +21,7 @@ import { PodioTop3 } from './podio-top3'
 import { CardRanking } from './card-ranking'
 import { PainelLateral } from './painel-lateral'
 import { AjustarModal } from './ajustar-modal'
+import { MiniRankingSemanal, type ItemMiniRankingSemanal } from './mini-ranking-semanal'
 
 const ANO = new Date().getFullYear()
 
@@ -19,27 +29,60 @@ export function RankingScreen({ ehAdmin }: { ehAdmin: boolean }) {
   usePageIntensity(0.25)
   const [entradas, setEntradas] = useState<RankingEntry[]>([])
   const [historico, setHistorico] = useState<HistoricoPonto[]>([])
+  const [vendasSemana, setVendasSemana] = useState<VendaSemanalPorCodigo[]>([])
+  const [pedidosSemana, setPedidosSemana] = useState<PedidoSemanalPorVendedor[]>([])
   const [carregando, setCarregando] = useState(true)
   const [ajustando, setAjustando] = useState<RankingEntry | null>(null)
 
   useEffect(() => {
     let ativo = true
     function carregar() {
-      Promise.all([listarRanking(ANO), listarHistoricoRecente()]).then(([r, h]) => {
-        if (!ativo) return
-        setEntradas(r)
-        setHistorico(h)
-        setCarregando(false)
-      })
+      Promise.all([listarRanking(ANO), listarHistoricoRecente(), listarVendasSemana(), listarPedidosSemana()]).then(
+        ([r, h, vs, ps]) => {
+          if (!ativo) return
+          setEntradas(r)
+          setHistorico(h)
+          setVendasSemana(vs)
+          setPedidosSemana(ps)
+          setCarregando(false)
+        }
+      )
     }
     carregar()
     const parar = inscreverRankingEmTempoReal(carregar)
     return () => { ativo = false; parar() }
   }, [])
 
-  const badgesPorVendedor = useMemo(() => calcularBadges(entradas, historico), [entradas, historico])
-  const top3 = entradas.slice(0, 3)
-  const resto = entradas.slice(3)
+  const disputantes = useMemo(() => entradas.filter((e) => !e.agregado), [entradas])
+  const agregados = useMemo(() => entradas.filter((e) => e.agregado), [entradas])
+  const top3 = disputantes.slice(0, 3)
+  const resto = [...disputantes.slice(3), ...agregados]
+
+  const topVendasSemana = useMemo<ItemMiniRankingSemanal[]>(() => {
+    const porCodigo = new Map(vendasSemana.map((v) => [v.codigo, v.toneladas]))
+    return disputantes
+      .map((entrada) => ({ entrada, toneladas: porCodigo.get(entrada.codigo) ?? 0 }))
+      .filter((x) => x.toneladas > 0)
+      .sort((a, b) => b.toneladas - a.toneladas)
+      .slice(0, 3)
+  }, [disputantes, vendasSemana])
+
+  const topPedidosSemana = useMemo<ItemMiniRankingSemanal[]>(() => {
+    const porProfileId = new Map(pedidosSemana.map((p) => [p.vendedorProfileId, p.toneladas]))
+    return disputantes
+      .map((entrada) => ({ entrada, toneladas: entrada.profileId ? porProfileId.get(entrada.profileId) ?? 0 : 0 }))
+      .filter((x) => x.toneladas > 0)
+      .sort((a, b) => b.toneladas - a.toneladas)
+      .slice(0, 3)
+  }, [disputantes, pedidosSemana])
+
+  const badgesPorVendedor = useMemo(() => {
+    const base = calcularBadges(entradas, historico)
+    const semanais = calcularBadgesSemanais(topVendasSemana, topPedidosSemana)
+    const combinado = new Map<string, Badge[]>(base)
+    for (const [id, badges] of semanais) combinado.set(id, [...(combinado.get(id) ?? []), ...badges])
+    return combinado
+  }, [entradas, historico, topVendasSemana, topPedidosSemana])
 
   function recarregar() {
     listarRanking(ANO).then(setEntradas)
@@ -83,6 +126,23 @@ export function RankingScreen({ ehAdmin }: { ehAdmin: boolean }) {
                   />
                 ))}
               </AnimatePresence>
+            </div>
+          )}
+
+          {!carregando && entradas.length > 0 && (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <MiniRankingSemanal
+                titulo="Top vendas da semana"
+                icone={Trophy}
+                itens={topVendasSemana}
+                vazio="Sem nota emitida nesta semana ainda."
+              />
+              <MiniRankingSemanal
+                titulo="Top pedidos da semana"
+                icone={PackageCheck}
+                itens={topPedidosSemana}
+                vazio="Sem pedido aprovado nesta semana ainda."
+              />
             </div>
           )}
         </div>
