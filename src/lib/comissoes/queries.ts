@@ -3,13 +3,24 @@ import { buscarTodasAsPaginas } from '@/lib/supabase/paginacao'
 import type { ComissaoErpLinha } from '@/lib/ranking/importar-erp'
 import { comissaoErpFromRow, type ComissaoErpRow } from './types'
 
-/** Todo o histórico de comissões de um vendedor (pelo código do ERP) -- base de todos os cálculos da tela. */
-export async function buscarComissoesDoVendedor(vendedorCodigo: number): Promise<ComissaoErpRow[]> {
+type TabelaComissoes = 'comissoes_erp_importadas' | 'comissoes_liquidadas_importadas'
+
+async function buscarComissoesDe(tabela: TabelaComissoes, vendedorCodigo: number): Promise<ComissaoErpRow[]> {
   const supabase = createClient()
   const linhas = await buscarTodasAsPaginas<Record<string, unknown>>((from, to) =>
-    supabase.from('comissoes_erp_importadas').select('*').eq('vendedor_codigo', vendedorCodigo).range(from, to)
+    supabase.from(tabela).select('*').eq('vendedor_codigo', vendedorCodigo).range(from, to)
   )
   return linhas.map(comissaoErpFromRow)
+}
+
+/** Histórico "geral" (vencimento/emissão, quase nunca tem Dt Pagto) -- base de aPagar/projeção. */
+export async function buscarComissoesDoVendedor(vendedorCodigo: number): Promise<ComissaoErpRow[]> {
+  return buscarComissoesDe('comissoes_erp_importadas', vendedorCodigo)
+}
+
+/** Histórico "liquidadas" (100% das linhas com Dt Pagto) -- única fonte confiável de jaLiquidada. */
+export async function buscarComissoesLiquidadasDoVendedor(vendedorCodigo: number): Promise<ComissaoErpRow[]> {
+  return buscarComissoesDe('comissoes_liquidadas_importadas', vendedorCodigo)
 }
 
 function linhaToRow(l: ComissaoErpLinha) {
@@ -35,20 +46,28 @@ function linhaToRow(l: ComissaoErpLinha) {
 }
 
 /**
- * Substitui todo o conteúdo de `comissoes_erp_importadas` -- o CSV do ERP
- * traz o histórico completo, então cada importação é uma reconciliação
- * total, não um incremento.
+ * Substitui todo o conteúdo da tabela -- o CSV do ERP traz o histórico
+ * completo daquele universo (geral ou liquidadas), então cada importação é
+ * uma reconciliação total, não um incremento.
  */
-export async function substituirComissoesErp(linhas: ComissaoErpLinha[]): Promise<void> {
+async function substituirComissoesDe(tabela: TabelaComissoes, linhas: ComissaoErpLinha[]): Promise<void> {
   const supabase = createClient()
 
-  const { error: errDelete } = await supabase.from('comissoes_erp_importadas').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+  const { error: errDelete } = await supabase.from(tabela).delete().neq('id', '00000000-0000-0000-0000-000000000000')
   if (errDelete) throw new Error(`Falha ao limpar comissões anteriores: ${errDelete.message}`)
 
   const TAMANHO_LOTE = 500
   for (let i = 0; i < linhas.length; i += TAMANHO_LOTE) {
     const lote = linhas.slice(i, i + TAMANHO_LOTE).map(linhaToRow)
-    const { error } = await supabase.from('comissoes_erp_importadas').insert(lote)
+    const { error } = await supabase.from(tabela).insert(lote)
     if (error) throw new Error(`Falha ao importar comissões (lote ${i / TAMANHO_LOTE + 1}): ${error.message}`)
   }
+}
+
+export async function substituirComissoesErp(linhas: ComissaoErpLinha[]): Promise<void> {
+  return substituirComissoesDe('comissoes_erp_importadas', linhas)
+}
+
+export async function substituirComissoesLiquidadasErp(linhas: ComissaoErpLinha[]): Promise<void> {
+  return substituirComissoesDe('comissoes_liquidadas_importadas', linhas)
 }

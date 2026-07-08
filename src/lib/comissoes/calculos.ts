@@ -33,6 +33,16 @@ function dentroDoCiclo(data: string | null, ciclo: Ciclo): boolean {
   return !!data && data >= ciclo.inicio && data <= ciclo.fim
 }
 
+/**
+ * Chave natural de uma linha de comissão (vendedor+nota+parcela) -- usada só
+ * pra checar se uma linha do relatório "geral" já apareceu como liquidada,
+ * nunca pra deduplicar exibição (o mesmo par pode legitimamente repetir
+ * numa mesma nota com produtos diferentes; ~0,2% dos casos no CSV real).
+ */
+function chaveLinha(l: ComissaoErpRow): string {
+  return `${l.vendedorCodigo}|${l.nota}|${l.parcela}`
+}
+
 export interface ResumoCicloMes {
   ano: number
   mes: number // 1-12
@@ -48,19 +58,37 @@ export interface ResumoCicloMes {
   total: number
 }
 
-/** Resumo do ciclo de pagamento de um mês específico, a partir do histórico completo de comissões do vendedor. */
-export function calcularResumoCicloMes(linhas: ComissaoErpRow[], ano: number, mes: number, hoje: Date = new Date()): ResumoCicloMes {
+/**
+ * Resumo do ciclo de pagamento de um mês específico. Duas fontes distintas do ERP (mesmo layout
+ * de colunas, universos diferentes): `geral` (histórico de vencimento/emissão, quase nunca tem
+ * Dt Pagto) alimenta aPagar/projeção; `liquidadas` (100% das linhas com Dt Pagto) é a única fonte
+ * confiável de jaLiquidada. Como as duas se sobrepõem parcialmente, aPagar exclui qualquer linha
+ * de `geral` cuja chave já apareça em `liquidadas` -- senão a mesma nota/parcela contaria duas
+ * vezes (uma como "a pagar", outra como "já liquidada") quando os dois ciclos coincidem.
+ */
+export function calcularResumoCicloMes(
+  geral: ComissaoErpRow[],
+  liquidadas: ComissaoErpRow[],
+  ano: number,
+  mes: number,
+  hoje: Date = new Date()
+): ResumoCicloMes {
   const ciclo = cicloDoMes(ano, mes)
   const atual = mesDoCiclo(hoje)
   const cicloAtual = cicloDoMes(atual.ano, atual.mes)
   const ehFuturo = ciclo.inicio > cicloAtual.fim
 
+  const chavesLiquidadas = new Set(liquidadas.map(chaveLinha))
+
   let jaLiquidada = 0
+  for (const l of liquidadas) {
+    if (dentroDoCiclo(l.pagamento, ciclo)) jaLiquidada += l.valorComissao
+  }
+
   let aPagar = 0
   let projecao = 0
-  for (const l of linhas) {
-    if (dentroDoCiclo(l.pagamento, ciclo)) jaLiquidada += l.valorComissao
-    else if (!l.pagamento && dentroDoCiclo(l.vencimento, ciclo)) aPagar += l.valorComissao
+  for (const l of geral) {
+    if (dentroDoCiclo(l.vencimento, ciclo) && !chavesLiquidadas.has(chaveLinha(l))) aPagar += l.valorComissao
     if (dentroDoCiclo(l.emissao, ciclo)) projecao += l.valorComissao
   }
 
@@ -75,7 +103,8 @@ export function calcularResumoCicloMes(linhas: ComissaoErpRow[], ano: number, me
  * ehFuturo/jaLiquidada/aPagar de cada mês da série.
  */
 export function calcularSerieCiclos(
-  linhas: ComissaoErpRow[],
+  geral: ComissaoErpRow[],
+  liquidadas: ComissaoErpRow[],
   mesesAtras: number,
   mesesAdiante: number,
   hoje: Date = new Date(),
@@ -84,7 +113,7 @@ export function calcularSerieCiclos(
   const serie: ResumoCicloMes[] = []
   for (let i = -mesesAtras; i <= mesesAdiante; i++) {
     const d = new Date(centro.getFullYear(), centro.getMonth() + i, 1)
-    serie.push(calcularResumoCicloMes(linhas, d.getFullYear(), d.getMonth() + 1, hoje))
+    serie.push(calcularResumoCicloMes(geral, liquidadas, d.getFullYear(), d.getMonth() + 1, hoje))
   }
   return serie
 }
@@ -92,19 +121,26 @@ export function calcularSerieCiclos(
 export type ModoItensComissao = 'liquidada' | 'aPagar' | 'projecao'
 
 /** Itens do ciclo de um mês, no modo escolhido -- base da lista de "notas" da tela. Esconde comissão zerada. */
-export function montarItensDoCiclo(linhas: ComissaoErpRow[], ano: number, mes: number, modo: ModoItensComissao): ComissaoErpRow[] {
+export function montarItensDoCiclo(
+  geral: ComissaoErpRow[],
+  liquidadas: ComissaoErpRow[],
+  ano: number,
+  mes: number,
+  modo: ModoItensComissao
+): ComissaoErpRow[] {
   const ciclo = cicloDoMes(ano, mes)
   let filtrados: ComissaoErpRow[]
   let chaveOrdenacao: 'pagamento' | 'vencimento' | 'emissao'
 
   if (modo === 'liquidada') {
-    filtrados = linhas.filter((l) => dentroDoCiclo(l.pagamento, ciclo))
+    filtrados = liquidadas.filter((l) => dentroDoCiclo(l.pagamento, ciclo))
     chaveOrdenacao = 'pagamento'
   } else if (modo === 'aPagar') {
-    filtrados = linhas.filter((l) => !l.pagamento && dentroDoCiclo(l.vencimento, ciclo))
+    const chavesLiquidadas = new Set(liquidadas.map(chaveLinha))
+    filtrados = geral.filter((l) => dentroDoCiclo(l.vencimento, ciclo) && !chavesLiquidadas.has(chaveLinha(l)))
     chaveOrdenacao = 'vencimento'
   } else {
-    filtrados = linhas.filter((l) => dentroDoCiclo(l.emissao, ciclo))
+    filtrados = geral.filter((l) => dentroDoCiclo(l.emissao, ciclo))
     chaveOrdenacao = 'emissao'
   }
 

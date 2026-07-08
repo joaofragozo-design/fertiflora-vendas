@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { ArrowLeft, CheckCircle2, ChevronDown, Clock3, TrendingUp, User, Wallet } from 'lucide-react'
 import { listarVendedoresComerciais, buscarVendedorComercialDoUsuario } from '@/lib/ranking/queries'
 import type { VendedorComercial } from '@/lib/ranking/types'
-import { buscarComissoesDoVendedor } from '@/lib/comissoes/queries'
+import { buscarComissoesDoVendedor, buscarComissoesLiquidadasDoVendedor } from '@/lib/comissoes/queries'
 import { calcularResumoCicloMes, calcularSerieCiclos, mesDoCiclo, montarItensDoCiclo, type ModoItensComissao } from '@/lib/comissoes/calculos'
 import type { ComissaoErpRow } from '@/lib/comissoes/types'
 import { cn } from '@/lib/utils/cn'
@@ -38,7 +38,8 @@ export function ComissoesScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
   const [carregandoVendedor, setCarregandoVendedor] = useState(true)
   const [semVinculo, setSemVinculo] = useState(false)
 
-  const [linhas, setLinhas] = useState<ComissaoErpRow[]>([])
+  const [linhasGeral, setLinhasGeral] = useState<ComissaoErpRow[]>([])
+  const [linhasLiquidadas, setLinhasLiquidadas] = useState<ComissaoErpRow[]>([])
   const [carregandoLinhas, setCarregandoLinhas] = useState(false)
 
   const [anoSelecionado, setAnoSelecionado] = useState(CICLO_INICIAL.ano)
@@ -74,23 +75,31 @@ export function ComissoesScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
     if (vendedorCodigo === null) return
     let ativo = true
     setCarregandoLinhas(true)
-    buscarComissoesDoVendedor(vendedorCodigo)
-      .then((lista) => {
+    Promise.all([buscarComissoesDoVendedor(vendedorCodigo), buscarComissoesLiquidadasDoVendedor(vendedorCodigo)])
+      .then(([geral, liquidadas]) => {
         if (!ativo) return
-        setLinhas(lista)
+        setLinhasGeral(geral)
+        setLinhasLiquidadas(liquidadas)
         setCarregandoLinhas(false)
       })
       .catch(() => { if (ativo) { toast.error('Falha ao carregar comissões'); setCarregandoLinhas(false) } })
     return () => { ativo = false }
   }, [vendedorCodigo])
 
-  const resumo = useMemo(() => calcularResumoCicloMes(linhas, anoSelecionado, mesSelecionado, HOJE), [linhas, anoSelecionado, mesSelecionado])
+  const resumo = useMemo(
+    () => calcularResumoCicloMes(linhasGeral, linhasLiquidadas, anoSelecionado, mesSelecionado, HOJE),
+    [linhasGeral, linhasLiquidadas, anoSelecionado, mesSelecionado]
+  )
   const serie = useMemo(
-    () => calcularSerieCiclos(linhas, 4, 3, HOJE, new Date(anoSelecionado, mesSelecionado - 1, 1)),
-    [linhas, anoSelecionado, mesSelecionado]
+    () => calcularSerieCiclos(linhasGeral, linhasLiquidadas, 4, 3, HOJE, new Date(anoSelecionado, mesSelecionado - 1, 1)),
+    [linhasGeral, linhasLiquidadas, anoSelecionado, mesSelecionado]
   )
   const modoItens: ModoItensComissao = resumo.ehFuturo ? 'projecao' : aba
-  const itens = useMemo(() => montarItensDoCiclo(linhas, anoSelecionado, mesSelecionado, modoItens), [linhas, anoSelecionado, mesSelecionado, modoItens])
+  const itens = useMemo(
+    () => montarItensDoCiclo(linhasGeral, linhasLiquidadas, anoSelecionado, mesSelecionado, modoItens),
+    [linhasGeral, linhasLiquidadas, anoSelecionado, mesSelecionado, modoItens]
+  )
+  const temDados = linhasGeral.length > 0 || linhasLiquidadas.length > 0
 
   if (carregandoVendedor) return <SkeletonListaCards />
 
@@ -132,14 +141,14 @@ export function ComissoesScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
 
         {carregandoLinhas && <SkeletonListaCards />}
 
-        {!carregandoLinhas && linhas.length === 0 && (
+        {!carregandoLinhas && !temDados && (
           <div className="glass flex flex-col items-center gap-2 rounded-3xl p-8 text-center">
             <Wallet className="h-8 w-8 text-white/25" />
             <p className="text-sm font-semibold text-white/60">Nenhuma comissão importada ainda</p>
           </div>
         )}
 
-        {!carregandoLinhas && linhas.length > 0 && (
+        {!carregandoLinhas && temDados && (
           <>
             <SeletorMes ano={anoSelecionado} mes={mesSelecionado} onMudar={(a, m) => { setAnoSelecionado(a); setMesSelecionado(m) }} />
 
