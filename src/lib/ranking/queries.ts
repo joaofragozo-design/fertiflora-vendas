@@ -90,22 +90,18 @@ export async function listarVendasSemana(): Promise<VendaSemanalPorCodigo[]> {
   }))
 }
 
-export interface PedidoSemanalPorVendedor {
-  vendedorProfileId: string
-  toneladas: number
-}
-
 /**
- * Pedidos aprovados na análise de crédito durante a semana atual (seg-dom), por vendedor
- * (profile id). Mesma estratégia de listarVendasSemana: semana calculada no Postgres, sem
- * parâmetro de data do client.
+ * Pedidos novos contratados na semana atual (seg-dom), por código de vendedor -- vem do
+ * relatório de Pedidos de Vendas do ERP (pedidos_erp_importados, mesma base do BI de
+ * cliente), não do fluxo interno de aprovação de crédito do app. Mesma estratégia de
+ * listarVendasSemana: semana calculada no Postgres, sem parâmetro de data do client.
  */
-export async function listarPedidosSemana(): Promise<PedidoSemanalPorVendedor[]> {
+export async function listarPedidosSemana(): Promise<VendaSemanalPorCodigo[]> {
   const supabase = createClient()
   const { data, error } = await supabase.rpc('ranking_pedidos_semana')
   if (error) throw new Error(`Falha ao carregar pedidos da semana: ${error.message}`)
-  return (data ?? []).map((r: { vendedor_id: string; toneladas: number }) => ({
-    vendedorProfileId: r.vendedor_id,
+  return (data ?? []).map((r: { vendedor_codigo: number; toneladas: number }) => ({
+    codigo: Number(r.vendedor_codigo),
     toneladas: Number(r.toneladas),
   }))
 }

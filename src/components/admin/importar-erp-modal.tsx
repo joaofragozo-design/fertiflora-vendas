@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { AlertTriangle, FileUp, Loader2, Upload, X } from 'lucide-react'
-import { lerArquivoErp, parseNotasFiscais, parsePedidosErp, parseRelatorioErp, type LinhaImportada, type NotaFiscalLinha, type PedidoErpLinha } from '@/lib/ranking/importar-erp'
+import { lerArquivoErp, parseComissoesErp, parseNotasFiscais, parsePedidosErp, parseRelatorioErp, type ComissaoErpLinha, type LinhaImportada, type NotaFiscalLinha, type PedidoErpLinha } from '@/lib/ranking/importar-erp'
 import { atualizarFaturadoImportado } from '@/lib/ranking/queries'
 import { substituirNotasFiscais, substituirPedidosErp } from '@/lib/clientes-bi/queries'
+import { substituirComissoesErp } from '@/lib/comissoes/queries'
 import type { VendedorComercial } from '@/lib/ranking/types'
 import { Button } from '@/components/ui/button'
 import { fmtT } from '@/components/ranking/formatadores'
@@ -41,6 +42,11 @@ export function ImportarErpModal({ linhasAtuais, ano, onFechar, onImportado }: I
   const [pedidosAplicando, setPedidosAplicando] = useState(false)
   const [pedidosErp, setPedidosErp] = useState<PedidoErpLinha[] | null>(null)
   const [pedidosErro, setPedidosErro] = useState<string | null>(null)
+
+  const [comissoesLendo, setComissoesLendo] = useState(false)
+  const [comissoesAplicando, setComissoesAplicando] = useState(false)
+  const [comissoesErp, setComissoesErp] = useState<ComissaoErpLinha[] | null>(null)
+  const [comissoesErro, setComissoesErro] = useState<string | null>(null)
 
   async function handleArquivo(file: File) {
     setLendo(true)
@@ -119,6 +125,36 @@ export function ImportarErpModal({ linhasAtuais, ano, onFechar, onImportado }: I
   }
 
   const clientesPedidosUnicos = pedidosErp ? new Set(pedidosErp.map((p) => `${p.vendedorCodigo}-${p.clienteCodigo}`)).size : 0
+
+  async function handleArquivoComissoes(file: File) {
+    setComissoesLendo(true)
+    setComissoesErro(null)
+    try {
+      const texto = await lerArquivoErp(file)
+      setComissoesErp(parseComissoesErp(texto))
+    } catch (e) {
+      setComissoesErro(e instanceof Error ? e.message : 'Falha ao ler o arquivo')
+    } finally {
+      setComissoesLendo(false)
+    }
+  }
+
+  async function handleConfirmarComissoes() {
+    if (!comissoesErp) return
+    setComissoesAplicando(true)
+    try {
+      await substituirComissoesErp(comissoesErp)
+      toast.success('Comissões atualizadas')
+      onImportado()
+      setComissoesErp(null)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Falha ao aplicar importação')
+    } finally {
+      setComissoesAplicando(false)
+    }
+  }
+
+  const vendedoresComissoesUnicos = comissoesErp ? new Set(comissoesErp.map((c) => c.vendedorCodigo)).size : 0
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onClick={onFechar}>
@@ -233,6 +269,48 @@ export function ImportarErpModal({ linhasAtuais, ano, onFechar, onImportado }: I
                 </Button>
                 <Button onClick={handleConfirmarPedidos} disabled={pedidosAplicando} className="w-auto flex-1">
                   {pedidosAplicando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  Aplicar
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="my-1 h-px bg-white/10" />
+
+        <div className="flex flex-col gap-3">
+          <p className="text-xs text-white/50">
+            Selecione o CSV do Relatório de Comissionados (RFT159) exportado do ERP. Atualizo a tela &quot;Minhas Comissões&quot; de cada vendedor.
+          </p>
+
+          {!comissoesErp && (
+            <>
+              <label className="glass flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed border-white/20 p-6 text-center transition-colors hover:bg-white/10">
+                {comissoesLendo ? <Loader2 className="h-6 w-6 animate-spin text-brand-300" /> : <FileUp className="h-6 w-6 text-brand-300" />}
+                <span className="text-xs font-bold text-white/70">{comissoesLendo ? 'Lendo arquivo…' : 'Toque para escolher o arquivo .CSV'}</span>
+                <input
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  disabled={comissoesLendo}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleArquivoComissoes(f) }}
+                />
+              </label>
+              {comissoesErro && <p className="text-xs font-semibold text-danger-400">{comissoesErro}</p>}
+            </>
+          )}
+
+          {comissoesErp && (
+            <>
+              <p className="text-center text-[10.5px] text-white/40">
+                {comissoesErp.length.toLocaleString('pt-BR')} linhas de comissão · {vendedoresComissoesUnicos.toLocaleString('pt-BR')} vendedores serão atualizados
+              </p>
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={() => setComissoesErp(null)} className="w-auto flex-1" disabled={comissoesAplicando}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleConfirmarComissoes} disabled={comissoesAplicando} className="w-auto flex-1">
+                  {comissoesAplicando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                   Aplicar
                 </Button>
               </div>

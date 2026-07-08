@@ -248,3 +248,95 @@ export function parsePedidosErp(texto: string): PedidoErpLinha[] {
 
   return resultado
 }
+
+export interface ComissaoErpLinha {
+  vendedorCodigo: number
+  vendedorNome: string
+  nota: string
+  pedido: string
+  clienteCodigo: number | null
+  clienteNome: string
+  emissao: string
+  vencimento: string | null
+  /** Data que o CLIENTE pagou o título -- não é quando o vendedor recebeu a comissão em mãos, mas é o que a libera. */
+  pagamento: string | null
+  parcela: number
+  valorPago: number
+  valorFrete: number
+  despesaAdicional: number
+  valorDesconto: number
+  liquido: number
+  percentualComissao: number
+  valorComissao: number
+}
+
+/**
+ * Extrai o detalhe linha-a-linha do relatório RFT159 (Relatório de
+ * Comissionados) -- base da tela "Minhas Comissões". A última linha do
+ * relatório é um totalizador ("TOTAL GERAL--------------->") sem código de
+ * vendedor válido -- cai fora naturalmente no `if (!vendedor) continue`.
+ */
+export function parseComissoesErp(texto: string): ComissaoErpLinha[] {
+  const { linhas, indiceCabecalho, idx } = lerCabecalho(texto, 'Vend/Comiss;Nr. Nota;')
+  const idxVendedor = idx('Vend/Comiss')
+  const idxNota = idx('Nr. Nota')
+  const idxPedido = idx('Ped/OS')
+  const idxClienteCodigo = idx('Cod.')
+  const idxClienteNome = idx('Nome Clifor')
+  const idxEmissao = idx('Dt Emissao')
+  const idxVencimento = idx('Dt Vencto')
+  const idxPagamento = idx('Dt Pagto')
+  const idxParcela = idx('Parc.')
+  const idxValorPago = idx('Vl Pagto')
+  const idxValorFrete = idx('Vl Frete')
+  const idxDespesaAdicional = idx('Desp. Adic')
+  const idxValorDesconto = idx('Vl Desc.')
+  const idxLiquido = idx('Liquido')
+  const idxPercentualComissao = idx('%Comis.')
+  const idxValorComissao = idx('Vl Comissao')
+
+  const obrigatorias = { idxVendedor, idxNota, idxClienteNome, idxEmissao, idxValorComissao }
+  if (Object.values(obrigatorias).some((i) => i === -1)) {
+    throw new Error('Arquivo não tem todas as colunas esperadas do Relatório de Comissionados (RFT159).')
+  }
+
+  const resultado: ComissaoErpLinha[] = []
+  for (let i = indiceCabecalho + 1; i < linhas.length; i++) {
+    if (!linhas[i].trim()) continue
+    const campos = linhas[i].split(';')
+    if (campos.length <= idxValorComissao) continue
+
+    const vendedor = extrairCodigoNome(campos[idxVendedor] ?? '')
+    if (!vendedor) continue
+
+    const emissaoIso = paraDataIso(campos[idxEmissao] ?? '')
+    if (!emissaoIso) continue
+
+    const clienteNome = campos[idxClienteNome]?.trim()
+    if (!clienteNome) continue
+
+    const clienteCodigoNum = Number(campos[idxClienteCodigo]?.trim())
+
+    resultado.push({
+      vendedorCodigo: vendedor.codigo,
+      vendedorNome: vendedor.nome,
+      nota: campos[idxNota]?.trim() ?? '',
+      pedido: campos[idxPedido]?.trim() ?? '',
+      clienteCodigo: Number.isFinite(clienteCodigoNum) ? clienteCodigoNum : null,
+      clienteNome,
+      emissao: emissaoIso,
+      vencimento: paraDataIso(campos[idxVencimento] ?? ''),
+      pagamento: paraDataIso(campos[idxPagamento] ?? ''),
+      parcela: Number(campos[idxParcela]?.trim()) || 0,
+      valorPago: parseNumeroBr(campos[idxValorPago]),
+      valorFrete: parseNumeroBr(campos[idxValorFrete]),
+      despesaAdicional: parseNumeroBr(campos[idxDespesaAdicional]),
+      valorDesconto: parseNumeroBr(campos[idxValorDesconto]),
+      liquido: parseNumeroBr(campos[idxLiquido]),
+      percentualComissao: parseNumeroBr(campos[idxPercentualComissao]),
+      valorComissao: parseNumeroBr(campos[idxValorComissao]),
+    })
+  }
+
+  return resultado
+}

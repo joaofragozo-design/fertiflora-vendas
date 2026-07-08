@@ -8,5 +8,7 @@ export default async function ComissoesPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(ROUTES.LOGIN)
 
-  return <ComissoesScreen userId={user.id} />
+  const { data: perfil } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+
+  return <ComissoesScreen userId={user.id} ehAdmin={perfil?.role === 'admin'} />
 }

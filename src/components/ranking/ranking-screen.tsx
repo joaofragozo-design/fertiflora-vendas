@@ -11,7 +11,6 @@ import {
   inscreverRankingEmTempoReal,
   type HistoricoPonto,
   type VendaSemanalPorCodigo,
-  type PedidoSemanalPorVendedor,
 } from '@/lib/ranking/queries'
 import { calcularBadges, calcularBadgesSemanais, type Badge } from '@/lib/ranking/badges'
 import type { RankingEntry } from '@/lib/ranking/types'
@@ -30,7 +29,7 @@ export function RankingScreen({ ehAdmin }: { ehAdmin: boolean }) {
   const [entradas, setEntradas] = useState<RankingEntry[]>([])
   const [historico, setHistorico] = useState<HistoricoPonto[]>([])
   const [vendasSemana, setVendasSemana] = useState<VendaSemanalPorCodigo[]>([])
-  const [pedidosSemana, setPedidosSemana] = useState<PedidoSemanalPorVendedor[]>([])
+  const [pedidosSemana, setPedidosSemana] = useState<VendaSemanalPorCodigo[]>([])
   const [carregando, setCarregando] = useState(true)
   const [ajustando, setAjustando] = useState<RankingEntry | null>(null)
 
@@ -68,9 +67,9 @@ export function RankingScreen({ ehAdmin }: { ehAdmin: boolean }) {
   }, [disputantes, vendasSemana])
 
   const topPedidosSemana = useMemo<ItemMiniRankingSemanal[]>(() => {
-    const porProfileId = new Map(pedidosSemana.map((p) => [p.vendedorProfileId, p.toneladas]))
+    const porCodigo = new Map(pedidosSemana.map((p) => [p.codigo, p.toneladas]))
     return disputantes
-      .map((entrada) => ({ entrada, toneladas: entrada.profileId ? porProfileId.get(entrada.profileId) ?? 0 : 0 }))
+      .map((entrada) => ({ entrada, toneladas: porCodigo.get(entrada.codigo) ?? 0 }))
       .filter((x) => x.toneladas > 0)
       .sort((a, b) => b.toneladas - a.toneladas)
       .slice(0, 3)
@@ -132,7 +131,7 @@ export function RankingScreen({ ehAdmin }: { ehAdmin: boolean }) {
           {!carregando && entradas.length > 0 && (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <MiniRankingSemanal
-                titulo="Top vendas da semana"
+                titulo="Top faturamento da semana"
                 icone={Trophy}
                 itens={topVendasSemana}
                 vazio="Sem nota emitida nesta semana ainda."
@@ -141,7 +140,7 @@ export function RankingScreen({ ehAdmin }: { ehAdmin: boolean }) {
                 titulo="Top pedidos da semana"
                 icone={PackageCheck}
                 itens={topPedidosSemana}
-                vazio="Sem pedido aprovado nesta semana ainda."
+                vazio="Sem pedido registrado nesta semana ainda."
               />
             </div>
           )}

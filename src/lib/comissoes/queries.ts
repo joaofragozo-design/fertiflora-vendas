@@ -1,53 +1,54 @@
 import { createClient } from '@/lib/supabase/client'
-import { listarClientes } from '@/lib/clientes/queries'
+import { buscarTodasAsPaginas } from '@/lib/supabase/paginacao'
+import type { ComissaoErpLinha } from '@/lib/ranking/importar-erp'
+import { comissaoErpFromRow, type ComissaoErpRow } from './types'
 
-export interface ComissaoItem {
-  id: string
-  produto: string
-  clienteNome: string | null
-  valor: number
-  data: string // ISO yyyy-mm-dd — data em que a comissão cai (vista ou média das parcelas)
-  recebida: boolean
-}
-
-export async function listarComissoes(vendedorId: string): Promise<ComissaoItem[]> {
+/** Todo o histórico de comissões de um vendedor (pelo código do ERP) -- base de todos os cálculos da tela. */
+export async function buscarComissoesDoVendedor(vendedorCodigo: number): Promise<ComissaoErpRow[]> {
   const supabase = createClient()
-  const [{ data, error }, clientes] = await Promise.all([
-    supabase.from('cotacoes').select('id, produto, cliente_id, comissao_total, dados, created_at').eq('vendedor_id', vendedorId).eq('aprovado', true),
-    listarClientes().catch(() => []),
-  ])
-  if (error) throw new Error(`Falha ao carregar comissões: ${error.message}`)
-
-  const clientesPorId = new Map(clientes.map((c) => [c.id, c.nome]))
-  const hojeISO = new Date().toISOString().slice(0, 10)
-
-  return (data ?? []).map((row) => {
-    const dados = row.dados as { dataComissao?: string } | null
-    const dataComissao = dados?.dataComissao ?? (row.created_at as string).slice(0, 10)
-    return {
-      id: row.id as string,
-      produto: row.produto as string,
-      clienteNome: row.cliente_id ? clientesPorId.get(row.cliente_id as string) ?? null : null,
-      valor: Number(row.comissao_total ?? 0),
-      data: dataComissao,
-      recebida: dataComissao <= hojeISO,
-    }
-  })
+  const linhas = await buscarTodasAsPaginas<Record<string, unknown>>((from, to) =>
+    supabase.from('comissoes_erp_importadas').select('*').eq('vendedor_codigo', vendedorCodigo).range(from, to)
+  )
+  return linhas.map(comissaoErpFromRow)
 }
 
-export function agruparPorMes(itens: ComissaoItem[]): Map<string, ComissaoItem[]> {
-  const grupos = new Map<string, ComissaoItem[]>()
-  for (const item of itens) {
-    const chave = item.data.slice(0, 7) // YYYY-MM
-    if (!grupos.has(chave)) grupos.set(chave, [])
-    grupos.get(chave)!.push(item)
+function linhaToRow(l: ComissaoErpLinha) {
+  return {
+    vendedor_codigo: l.vendedorCodigo,
+    vendedor_nome: l.vendedorNome,
+    nota: l.nota || null,
+    pedido: l.pedido || null,
+    cliente_codigo: l.clienteCodigo,
+    cliente_nome: l.clienteNome,
+    emissao: l.emissao,
+    vencimento: l.vencimento,
+    pagamento: l.pagamento,
+    parcela: l.parcela,
+    valor_pago: l.valorPago,
+    valor_frete: l.valorFrete,
+    despesa_adicional: l.despesaAdicional,
+    valor_desconto: l.valorDesconto,
+    liquido: l.liquido,
+    percentual_comissao: l.percentualComissao,
+    valor_comissao: l.valorComissao,
   }
-  return grupos
 }
 
-const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+/**
+ * Substitui todo o conteúdo de `comissoes_erp_importadas` -- o CSV do ERP
+ * traz o histórico completo, então cada importação é uma reconciliação
+ * total, não um incremento.
+ */
+export async function substituirComissoesErp(linhas: ComissaoErpLinha[]): Promise<void> {
+  const supabase = createClient()
 
-export function nomeMes(chave: string): string {
-  const [ano, mes] = chave.split('-').map(Number)
-  return `${MESES[mes - 1]} de ${ano}`
+  const { error: errDelete } = await supabase.from('comissoes_erp_importadas').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+  if (errDelete) throw new Error(`Falha ao limpar comissões anteriores: ${errDelete.message}`)
+
+  const TAMANHO_LOTE = 500
+  for (let i = 0; i < linhas.length; i += TAMANHO_LOTE) {
+    const lote = linhas.slice(i, i + TAMANHO_LOTE).map(linhaToRow)
+    const { error } = await supabase.from('comissoes_erp_importadas').insert(lote)
+    if (error) throw new Error(`Falha ao importar comissões (lote ${i / TAMANHO_LOTE + 1}): ${error.message}`)
+  }
 }

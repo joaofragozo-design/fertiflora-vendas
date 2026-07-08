@@ -118,7 +118,7 @@ export function calcularBadgesSemanais(
   }
 
   const liderVendas = topVendasSemana[0]
-  if (liderVendas && liderVendas.toneladas > 0) adicionar(liderVendas.entrada.id, { emoji: '🏆', label: 'Líder da semana em vendas' })
+  if (liderVendas && liderVendas.toneladas > 0) adicionar(liderVendas.entrada.id, { emoji: '🏆', label: 'Líder da semana em faturamento' })
 
   const liderPedidos = topPedidosSemana[0]
   if (liderPedidos && liderPedidos.toneladas > 0) adicionar(liderPedidos.entrada.id, { emoji: '📦', label: 'Líder da semana em pedidos' })
