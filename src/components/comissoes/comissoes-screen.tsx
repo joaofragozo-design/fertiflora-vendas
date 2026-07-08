@@ -44,7 +44,7 @@ export function ComissoesScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
 
   const [anoSelecionado, setAnoSelecionado] = useState(CICLO_INICIAL.ano)
   const [mesSelecionado, setMesSelecionado] = useState(CICLO_INICIAL.mes)
-  const [aba, setAba] = useState<'liquidada' | 'aPagar'>('liquidada')
+  const [aba, setAba] = useState<ModoItensComissao>('liquidada')
 
   useEffect(() => {
     let ativo = true
@@ -94,9 +94,14 @@ export function ComissoesScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
     () => calcularSerieCiclos(linhasGeral, linhasLiquidadas, 4, 3, HOJE, new Date(anoSelecionado, mesSelecionado - 1, 1)),
     [linhasGeral, linhasLiquidadas, anoSelecionado, mesSelecionado]
   )
-  const modoItens: ModoItensComissao = resumo.ehFuturo ? 'projecao' : aba
+  const modoItens: ModoItensComissao =
+    resumo.estado === 'passado'
+      ? 'liquidada'
+      : resumo.estado === 'futuro'
+        ? (aba === 'liquidada' ? 'projecao' : aba) // futuro não tem aba "já liquidada"
+        : (aba === 'projecao' ? 'liquidada' : aba) // atual não tem aba "projeção"
   const itens = useMemo(
-    () => montarItensDoCiclo(linhasGeral, linhasLiquidadas, anoSelecionado, mesSelecionado, modoItens),
+    () => montarItensDoCiclo(linhasGeral, linhasLiquidadas, anoSelecionado, mesSelecionado, modoItens, HOJE),
     [linhasGeral, linhasLiquidadas, anoSelecionado, mesSelecionado, modoItens]
   )
   const temDados = linhasGeral.length > 0 || linhasLiquidadas.length > 0
@@ -153,13 +158,32 @@ export function ComissoesScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
             <SeletorMes ano={anoSelecionado} mes={mesSelecionado} onMudar={(a, m) => { setAnoSelecionado(a); setMesSelecionado(m) }} />
 
             <div className="glass flex flex-col gap-3 rounded-3xl p-5">
-              {resumo.ehFuturo ? (
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Projeção</div>
-                  <ContadorAnimado valor={resumo.projecao} formatar={fmtBRL} className="tabular font-display text-2xl font-extrabold text-white" />
-                  <p className="mt-1 text-[10.5px] text-white/40">Baseado nas notas já lançadas pra esse ciclo — pode mudar até o fechamento.</p>
+              {resumo.estado === 'futuro' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Projeção</div>
+                    <ContadorAnimado valor={resumo.projecao} formatar={fmtBRL} className="tabular font-display text-lg font-extrabold text-white" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/50">
+                      <Clock3 className="h-3 w-3 text-warning-400" />
+                      A pagar
+                    </div>
+                    <ContadorAnimado valor={resumo.aPagar} formatar={fmtBRL} className="tabular font-display text-lg font-extrabold text-warning-400" />
+                  </div>
                 </div>
-              ) : (
+              )}
+              {resumo.estado === 'passado' && (
+                <div>
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/50">
+                    <CheckCircle2 className="h-3 w-3 text-brand-300" />
+                    Já liquidada
+                  </div>
+                  <ContadorAnimado valor={resumo.jaLiquidada} formatar={fmtBRL} className="tabular font-display text-2xl font-extrabold text-brand-300" />
+                  <p className="mt-1 text-[10.5px] text-white/40">Ciclo já fechado — só entra aqui o que o cliente realmente pagou.</p>
+                </div>
+              )}
+              {resumo.estado === 'atual' && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/50">
@@ -177,6 +201,11 @@ export function ComissoesScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
                   </div>
                 </div>
               )}
+              {resumo.estado !== 'passado' && (
+                <p className="text-[10.5px] text-white/40">
+                  O que for pago pelo cliente até o fechamento desse ciclo cai na sua conta em {fmtDataCurta(resumo.dataRecebimento)}.
+                </p>
+              )}
               <div className="h-px bg-white/8" />
               <p className="text-[10.5px] font-semibold text-white/40">
                 Ciclo de pagamento: {fmtDataCurta(resumo.ciclo.inicio)} a {fmtDataCurta(resumo.ciclo.fim)}
@@ -184,17 +213,34 @@ export function ComissoesScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
               <GraficoCiclos serie={serie} anoSelecionado={anoSelecionado} mesSelecionado={mesSelecionado} onSelecionar={(a, m) => { setAnoSelecionado(a); setMesSelecionado(m) }} />
             </div>
 
-            {!resumo.ehFuturo && (
+            {resumo.estado === 'atual' && (
               <div className="flex gap-1.5 rounded-2xl bg-white/[0.06] p-1">
                 <button
                   onClick={() => setAba('liquidada')}
-                  className={cn('flex-1 rounded-xl py-2 text-xs font-bold transition-colors', aba === 'liquidada' ? 'bg-brand-500 text-ink-950' : 'text-white/50')}
+                  className={cn('flex-1 rounded-xl py-2 text-xs font-bold transition-colors', modoItens === 'liquidada' ? 'bg-brand-500 text-ink-950' : 'text-white/50')}
                 >
                   Já liquidada
                 </button>
                 <button
                   onClick={() => setAba('aPagar')}
-                  className={cn('flex-1 rounded-xl py-2 text-xs font-bold transition-colors', aba === 'aPagar' ? 'bg-brand-500 text-ink-950' : 'text-white/50')}
+                  className={cn('flex-1 rounded-xl py-2 text-xs font-bold transition-colors', modoItens === 'aPagar' ? 'bg-brand-500 text-ink-950' : 'text-white/50')}
+                >
+                  A pagar
+                </button>
+              </div>
+            )}
+
+            {resumo.estado === 'futuro' && (
+              <div className="flex gap-1.5 rounded-2xl bg-white/[0.06] p-1">
+                <button
+                  onClick={() => setAba('projecao')}
+                  className={cn('flex-1 rounded-xl py-2 text-xs font-bold transition-colors', modoItens === 'projecao' ? 'bg-brand-500 text-ink-950' : 'text-white/50')}
+                >
+                  Projeção
+                </button>
+                <button
+                  onClick={() => setAba('aPagar')}
+                  className={cn('flex-1 rounded-xl py-2 text-xs font-bold transition-colors', modoItens === 'aPagar' ? 'bg-brand-500 text-ink-950' : 'text-white/50')}
                 >
                   A pagar
                 </button>

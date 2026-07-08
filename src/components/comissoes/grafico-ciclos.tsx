@@ -31,7 +31,7 @@ export function GraficoCiclos({ serie, anoSelecionado, mesSelecionado, onSelecio
               <motion.div
                 className={cn(
                   'w-full max-w-[22px] rounded-md',
-                  selecionado ? 'bg-brand-500' : s.ehFuturo ? 'bg-white/12 border border-dashed border-white/25' : 'bg-white/25'
+                  selecionado ? 'bg-brand-500' : s.estado === 'futuro' ? 'bg-white/12 border border-dashed border-white/25' : 'bg-white/25'
                 )}
                 initial={{ height: 0 }}
                 animate={{ height: altura }}
