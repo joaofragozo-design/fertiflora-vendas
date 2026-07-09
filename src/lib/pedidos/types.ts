@@ -108,11 +108,19 @@ export interface CalculoPedido {
   valorTotalPedido: number
 }
 
+/**
+ * `precoVendidoTon` já sai da cotação com o frete embutido (ver calculadora.ts: o preço de
+ * tabela soma o frete antes do gross-up de ICMS, e a margem líquida subtrai o frete de volta
+ * dele) -- por isso `valorTotalPedido` é só quantidade × preço, sem somar `freteTotal` de novo.
+ * `valorTotalProduto` aqui é o produto SEM o frete (frete subtraído de volta), só pra exibição
+ * em linhas separadas que ainda somam certo (produto + frete = total).
+ */
 export function calcularPedido(quantidadeToneladas: number, embalagem: Embalagem, precoVendidoTon: number, freteTon: number): CalculoPedido {
   const peso = infoEmbalagem(embalagem).pesoTon
   const quantidadeUnidades = peso > 0 ? quantidadeToneladas / peso : 0
   const precoUnitario = precoVendidoTon * peso
-  const valorTotalProduto = quantidadeToneladas * precoVendidoTon
+  const valorTotalPedido = quantidadeToneladas * precoVendidoTon
   const freteTotal = quantidadeToneladas * freteTon
-  return { quantidadeUnidades, precoUnitario, valorTotalProduto, freteTotal, valorTotalPedido: valorTotalProduto + freteTotal }
+  const valorTotalProduto = valorTotalPedido - freteTotal
+  return { quantidadeUnidades, precoUnitario, valorTotalProduto, freteTotal, valorTotalPedido }
 }
