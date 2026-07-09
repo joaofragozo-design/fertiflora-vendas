@@ -47,7 +47,10 @@ function fmtDataISO(iso: string | null) {
 }
 
 const MARGEM = 15
-const LARGURA_UTIL = 210 - MARGEM * 2
+const ALTURA_PAGINA = 210
+const LARGURA_UTIL = 297 - MARGEM * 2
+/** Ponto de corte pra quebra de página -- mesma folga de ~17mm usada antes (297 - 280), agora sobre a altura menor do modo paisagem. */
+const LIMITE_Y = ALTURA_PAGINA - 17
 
 /** Busca o logo e converte pra data URL — jsPDF precisa disso pra addImage no navegador. */
 async function carregarLogoBase64(): Promise<{ dataUrl: string; largura: number; altura: number } | null> {
@@ -69,7 +72,7 @@ async function carregarLogoBase64(): Promise<{ dataUrl: string; largura: number;
 }
 
 export async function gerarContratoPdf(pedido: Pedido): Promise<jsPDF> {
-  const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' })
   const { dados } = pedido
   const calculo = calcularPedido(pedido.quantidadeToneladas, pedido.embalagem, dados.precoVendidoTon, dados.freteTon)
   const embalagem = infoEmbalagem(pedido.embalagem)
@@ -83,7 +86,7 @@ export async function gerarContratoPdf(pedido: Pedido): Promise<jsPDF> {
   }
 
   function quebrarPagina(alturaNecessaria: number) {
-    if (y + alturaNecessaria > 280) {
+    if (y + alturaNecessaria > LIMITE_Y) {
       doc.addPage()
       y = MARGEM
     }
@@ -115,9 +118,9 @@ export async function gerarContratoPdf(pedido: Pedido): Promise<jsPDF> {
   doc.setFont('helvetica', 'normal')
   doc.text(EMPRESA.nome, MARGEM + 18, y)
   doc.setFont('helvetica', 'bold')
-  doc.text('CNPJ:', MARGEM + 120, y)
+  doc.text('CNPJ:', MARGEM + 178, y)
   doc.setFont('helvetica', 'normal')
-  doc.text(EMPRESA.cnpj, MARGEM + 132, y)
+  doc.text(EMPRESA.cnpj, MARGEM + 190, y)
   y += 5
 
   doc.setFont('helvetica', 'bold')
@@ -131,9 +134,9 @@ export async function gerarContratoPdf(pedido: Pedido): Promise<jsPDF> {
   doc.setFont('helvetica', 'normal')
   doc.text(dados.vendedorNome, MARGEM + 22, y)
   doc.setFont('helvetica', 'bold')
-  doc.text('Fone:', MARGEM + 120, y)
+  doc.text('Fone:', MARGEM + 178, y)
   doc.setFont('helvetica', 'normal')
-  doc.text(dados.vendedorTelefone ?? '—', MARGEM + 132, y)
+  doc.text(dados.vendedorTelefone ?? '—', MARGEM + 190, y)
   y += 8
 
   // Dados do cliente
@@ -157,9 +160,9 @@ export async function gerarContratoPdf(pedido: Pedido): Promise<jsPDF> {
   doc.setFont('helvetica', 'normal')
   doc.text(dados.clienteCpfCnpj, MARGEM + 20, y)
   doc.setFont('helvetica', 'bold')
-  doc.text('I.E:', MARGEM + 120, y)
+  doc.text('I.E:', MARGEM + 178, y)
   doc.setFont('helvetica', 'normal')
-  doc.text(dados.clienteInscricaoEstadual ?? '—', MARGEM + 128, y)
+  doc.text(dados.clienteInscricaoEstadual ?? '—', MARGEM + 186, y)
   y += 5
 
   doc.setFont('helvetica', 'bold')
@@ -173,9 +176,9 @@ export async function gerarContratoPdf(pedido: Pedido): Promise<jsPDF> {
   doc.setFont('helvetica', 'normal')
   doc.text(`${dados.clienteCidade ?? '—'}/${dados.clienteEstado ?? '—'}`, MARGEM + 26, y)
   doc.setFont('helvetica', 'bold')
-  doc.text('CEP:', MARGEM + 120, y)
+  doc.text('CEP:', MARGEM + 178, y)
   doc.setFont('helvetica', 'normal')
-  doc.text(dados.clienteCep ?? '—', MARGEM + 128, y)
+  doc.text(dados.clienteCep ?? '—', MARGEM + 186, y)
   y += 5
 
   doc.setFont('helvetica', 'bold')
@@ -183,9 +186,9 @@ export async function gerarContratoPdf(pedido: Pedido): Promise<jsPDF> {
   doc.setFont('helvetica', 'normal')
   doc.text(dados.clienteEmail ?? '—', MARGEM + 14, y)
   doc.setFont('helvetica', 'bold')
-  doc.text('Fone:', MARGEM + 120, y)
+  doc.text('Fone:', MARGEM + 178, y)
   doc.setFont('helvetica', 'normal')
-  doc.text(dados.clienteTelefone ?? '—', MARGEM + 128, y)
+  doc.text(dados.clienteTelefone ?? '—', MARGEM + 186, y)
   y += 8
 
   doc.setFontSize(7.5)
@@ -198,19 +201,19 @@ export async function gerarContratoPdf(pedido: Pedido): Promise<jsPDF> {
 
   // Tabela de produto
   const colunas = [
-    { titulo: 'Qtd (un)', largura: 16 },
-    { titulo: 'Embalagem', largura: 22 },
-    { titulo: 'Qtd (Ton)', largura: 18 },
-    { titulo: 'Produto', largura: 44 },
-    { titulo: 'Preço Unit.', largura: 24 },
-    { titulo: 'Valor Total', largura: 26 },
-    { titulo: 'Vencimento', largura: 30 },
+    { titulo: 'Qtd (un)', largura: 24 },
+    { titulo: 'Embalagem', largura: 32 },
+    { titulo: 'Qtd (Ton)', largura: 26 },
+    { titulo: 'Produto', largura: 68 },
+    { titulo: 'Preço Unit.', largura: 36 },
+    { titulo: 'Valor Total', largura: 39 },
+    { titulo: 'Vencimento', largura: 42 },
   ]
   let x = MARGEM
   doc.setFillColor(24, 165, 88)
   doc.rect(MARGEM, y - 4, LARGURA_UTIL, 6, 'F')
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(7.5)
+  doc.setFontSize(8.5)
   doc.setTextColor(255, 255, 255)
   for (const col of colunas) {
     doc.text(col.titulo, x + 1, y)
@@ -230,7 +233,7 @@ export async function gerarContratoPdf(pedido: Pedido): Promise<jsPDF> {
   ]
   x = MARGEM
   doc.setFont('helvetica', 'normal')
-  doc.setFontSize(7.5)
+  doc.setFontSize(8.5)
   linhaProduto.forEach((valor, i) => {
     const linhas = doc.splitTextToSize(valor, colunas[i].largura - 2)
     doc.text(linhas, x + 1, y)
@@ -245,9 +248,9 @@ export async function gerarContratoPdf(pedido: Pedido): Promise<jsPDF> {
   doc.setFont('helvetica', 'normal')
   doc.text(fmtBRL(dados.freteTon), MARGEM + 30, y)
   doc.setFont('helvetica', 'bold')
-  doc.text('Valor do frete:', MARGEM + 80, y)
+  doc.text('Valor do frete:', MARGEM + 119, y)
   doc.setFont('helvetica', 'normal')
-  doc.text(fmtBRL(calculo.freteTotal), MARGEM + 108, y)
+  doc.text(fmtBRL(calculo.freteTotal), MARGEM + 147, y)
   y += 5
 
   doc.setFont('helvetica', 'bold')
@@ -278,9 +281,9 @@ export async function gerarContratoPdf(pedido: Pedido): Promise<jsPDF> {
   doc.setFont('helvetica', 'normal')
   doc.text('A combinar', MARGEM + 30, y)
   doc.setFont('helvetica', 'bold')
-  doc.text('Data de entrega:', MARGEM + 100, y)
+  doc.text('Data de entrega:', MARGEM + 148, y)
   doc.setFont('helvetica', 'normal')
-  doc.text('A combinar', MARGEM + 130, y)
+  doc.text('A combinar', MARGEM + 178, y)
   y += 10
 
   // Assinaturas
@@ -288,11 +291,11 @@ export async function gerarContratoPdf(pedido: Pedido): Promise<jsPDF> {
   linha(y)
   y += 10
   doc.text('_______________________________________', MARGEM, y)
-  doc.text('_______________________________________', MARGEM + 100, y)
+  doc.text('_______________________________________', MARGEM + 148, y)
   y += 5
   doc.setFontSize(8)
   doc.text(EMPRESA.nome, MARGEM, y)
-  doc.text(`${dados.clienteNome} (comprador)`, MARGEM + 100, y)
+  doc.text(`${dados.clienteNome} (comprador)`, MARGEM + 148, y)
   y += 10
 
   // Condições de venda -- sempre começa numa página nova (página 1 = só o

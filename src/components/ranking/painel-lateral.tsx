@@ -6,6 +6,7 @@ import type { HistoricoPonto } from '@/lib/ranking/queries'
 import type { RankingEntry } from '@/lib/ranking/types'
 import { diasUteisRestantes } from '@/lib/ranking/calculos'
 import { AvatarVendedor } from './avatar-vendedor'
+import { TrioFaturamento } from './trio-faturamento'
 import { fmtPct, fmtT } from './formatadores'
 
 interface PainelLateralProps {
@@ -26,6 +27,8 @@ function calcularCrescimentoPorVendedor(historico: HistoricoPonto[]): Map<string
 }
 
 export function PainelLateral({ entradas, historico, ano }: PainelLateralProps) {
+  const somaFaturado = useMemo(() => entradas.reduce((s, e) => s + e.faturado, 0), [entradas])
+  const somaPedido = useMemo(() => entradas.reduce((s, e) => s + e.pedido, 0), [entradas])
   const somaTotal = useMemo(() => entradas.reduce((s, e) => s + e.total, 0), [entradas])
   const somaMeta = useMemo(() => entradas.reduce((s, e) => s + e.meta, 0), [entradas])
   const percentualGeral = somaMeta > 0 ? (somaTotal / somaMeta) * 100 : 0
@@ -47,10 +50,8 @@ export function PainelLateral({ entradas, historico, ano }: PainelLateralProps) 
           <BarChart3 className="h-4 w-4 text-brand-300" />
           Resumo geral
         </div>
-        <div>
-          <div className="tabular font-display text-2xl font-extrabold text-white">{fmtT(somaTotal)}</div>
-          <div className="text-xs text-white/45">de {fmtT(somaMeta)} de meta anual</div>
-        </div>
+        <TrioFaturamento faturado={somaFaturado} pedido={somaPedido} total={somaTotal} />
+        <div className="text-xs text-white/45">de {fmtT(somaMeta)} de meta anual</div>
         <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
           <div className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-300" style={{ width: `${Math.min(100, percentualGeral)}%` }} />
         </div>

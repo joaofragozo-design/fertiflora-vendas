@@ -224,8 +224,8 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
               )}
             </div>
             <div className="glass flex flex-col gap-1 rounded-2xl p-4">
-              <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Ticket médio/nota</div>
-              <div className="tabular font-display text-lg font-extrabold text-white">{fmtT(kpis.ticketMedioTonelada)}</div>
+              <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Ticket médio/t</div>
+              <div className="tabular font-display text-lg font-extrabold text-white">{fmtBRL(kpis.ticketMedioReaisPorTonelada)}</div>
             </div>
           </div>
 

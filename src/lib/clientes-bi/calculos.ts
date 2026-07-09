@@ -42,7 +42,7 @@ export function calcularKpis(notas: NotaFiscalRow[], ano: number): KpiCliente {
     variacaoToneladasPct: variacaoPct(toneladasAno, toneladasAnoAnterior),
     variacaoReaisPct: variacaoPct(reaisAno, reaisAnoAnterior),
     numNotasAno: notasUnicas.size,
-    ticketMedioTonelada: notasUnicas.size > 0 ? toneladasAno / notasUnicas.size : 0,
+    ticketMedioReaisPorTonelada: toneladasAno > 0 ? reaisAno / toneladasAno : 0,
     primeiraCompra: datas[0] ?? null,
     ultimaCompra: datas[datas.length - 1] ?? null,
     anosAtivo: anosUnicos.size,
@@ -143,7 +143,7 @@ export function calcularInsights(notas: NotaFiscalRow[], ano: number, hoje: Date
   }
 
   if (kpis.numNotasAno > 0) {
-    insights.push({ emoji: '💰', texto: `Ticket médio de ${kpis.ticketMedioTonelada.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}t por nota` })
+    insights.push({ emoji: '💰', texto: `Ticket médio de R$ ${kpis.ticketMedioReaisPorTonelada.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}/t` })
   }
 
   return insights
@@ -165,7 +165,6 @@ export function calcularResumoVendedor(notas: NotaFiscalRow[], ano: number): Res
     porCliente.set(n.clienteCodigo, atual)
   }
 
-  const notasUnicas = new Set(doAno.map((n) => n.nota).filter(Boolean))
   const clientesTotal = new Set(notas.map((n) => n.clienteCodigo)).size
 
   const clientesRanqueados: ClienteRanqueado[] = [...porCliente.entries()]
@@ -179,7 +178,7 @@ export function calcularResumoVendedor(notas: NotaFiscalRow[], ano: number): Res
     totalReaisAnoAnterior: somaReais(doAnoAnterior),
     clientesAtivos: porCliente.size,
     clientesTotal,
-    ticketMedioTonelada: notasUnicas.size > 0 ? totalToneladas / notasUnicas.size : 0,
+    ticketMedioReaisPorTonelada: totalToneladas > 0 ? totalReais / totalToneladas : 0,
     clientesRanqueados,
   }
 }

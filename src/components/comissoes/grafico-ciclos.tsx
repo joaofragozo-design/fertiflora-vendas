@@ -31,14 +31,14 @@ export function GraficoCiclos({ serie, anoSelecionado, mesSelecionado, onSelecio
               <motion.div
                 className={cn(
                   'w-full max-w-[22px] rounded-md',
-                  selecionado ? 'bg-brand-500' : s.estado === 'futuro' ? 'bg-white/12 border border-dashed border-white/25' : 'bg-white/25'
+                  selecionado ? 'bg-brand-500' : s.estado === 'futuro' ? 'bg-warning-400/60 border border-dashed border-warning-400' : 'bg-white/25'
                 )}
                 initial={{ height: 0 }}
                 animate={{ height: altura }}
                 transition={{ duration: 0.5, delay: i * 0.03, ease: [0.16, 1, 0.3, 1] }}
               />
             </div>
-            <span className={cn('text-[9.5px] font-bold uppercase', selecionado ? 'text-brand-300' : 'text-white/40')}>
+            <span className={cn('text-[9.5px] font-bold uppercase', selecionado ? 'text-brand-300' : s.estado === 'futuro' ? 'text-warning-400/70' : 'text-white/40')}>
               {nomeMesCurto(s.mes)}
             </span>
           </button>

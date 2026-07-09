@@ -88,8 +88,8 @@ export interface KpiCliente {
   variacaoToneladasPct: number | null
   variacaoReaisPct: number | null
   numNotasAno: number
-  /** Toneladas médias por nota — não R$, pra medir tamanho médio da compra. */
-  ticketMedioTonelada: number
+  /** R$ por tonelada -- reaisAno / toneladasAno. */
+  ticketMedioReaisPorTonelada: number
   primeiraCompra: string | null
   ultimaCompra: string | null
   anosAtivo: number
@@ -157,6 +157,7 @@ export interface ResumoVendedor {
   totalReaisAnoAnterior: number
   clientesAtivos: number
   clientesTotal: number
-  ticketMedioTonelada: number
+  /** R$ por tonelada -- totalReais / totalToneladas. */
+  ticketMedioReaisPorTonelada: number
   clientesRanqueados: ClienteRanqueado[]
 }

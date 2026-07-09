@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { ArrowLeft, CheckCircle2, ChevronDown, Clock3, TrendingUp, User, Wallet } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, ChevronDown, Clock3, HandCoins, TrendingUp, User, Wallet } from 'lucide-react'
 import { listarVendedoresComerciais, buscarVendedorComercialDoUsuario } from '@/lib/ranking/queries'
 import type { VendedorComercial } from '@/lib/ranking/types'
 import { buscarComissoesDoVendedor, buscarComissoesLiquidadasDoVendedor } from '@/lib/comissoes/queries'
@@ -285,6 +285,9 @@ function Cabecalho() {
       <Link href="/mais" className="flex h-11 w-11 items-center justify-center rounded-full bg-white/8 text-white transition-colors hover:bg-white/12 active:scale-90" aria-label="Voltar">
         <ArrowLeft className="h-4.5 w-4.5" />
       </Link>
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500/20 text-brand-300">
+        <HandCoins className="h-4.5 w-4.5" />
+      </div>
       <h1 className="font-display text-lg font-bold">Minhas Comissões</h1>
     </div>
   )

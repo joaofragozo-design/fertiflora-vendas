@@ -1,0 +1,24 @@
+{
+  "name": "FertiFlora Vendas",
+  "short_name": "FertiFlora",
+  "description": "Sistema de gestão de vendas da FertiFlora Organomineral",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#070b09",
+  "background_color": "#070b09",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

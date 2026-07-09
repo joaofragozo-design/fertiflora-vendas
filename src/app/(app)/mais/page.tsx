@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Wallet, UserPlus, ShieldCheck, ClipboardCheck, Trophy, ChevronRight } from 'lucide-react'
+import { HandCoins, UserPlus, ShieldCheck, ClipboardCheck, Trophy, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { ROUTES } from '@/constants/routes'
 import { Logo } from '@/components/brand/logo'
@@ -28,7 +28,7 @@ export default async function MaisPage() {
         <h1 className="font-display px-1 text-lg font-bold">Mais</h1>
 
         <div className="flex flex-col gap-2">
-          <ItemMenu href="/comissoes" icone={Wallet} titulo="Minhas Comissões" descricao="Recebidas e a receber, mês a mês" />
+          <ItemMenu href="/comissoes" icone={HandCoins} titulo="Minhas Comissões" descricao="Recebidas e a receber, mês a mês" />
           <ItemMenu href="/clientes/novo" icone={UserPlus} titulo="Cadastro de Clientes" descricao="Dados para nota fiscal" />
           {(ehConferencia || ehAdmin) && (
             <ItemMenu href="/conferencia" icone={ClipboardCheck} titulo="Conferência" descricao="Pedidos aguardando conferência" destaque />
@@ -53,7 +53,7 @@ function ItemMenu({
   destaque,
 }: {
   href: string
-  icone: typeof Wallet
+  icone: typeof HandCoins
   titulo: string
   descricao: string
   destaque?: boolean
