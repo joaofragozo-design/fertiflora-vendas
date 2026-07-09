@@ -149,9 +149,9 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
     return gerarImagemResumo(montarSecoes(), `Válida somente hoje, ${validadeHoje}`, `vendedor ${vendedor}`)
   }
 
-  function baixarResumo() {
+  async function baixarResumo() {
     const a = document.createElement('a')
-    a.href = gerarImagem()
+    a.href = await gerarImagem()
     a.download = 'cotacao-fertiflora.png'
     document.body.appendChild(a)
     a.click()
@@ -159,7 +159,7 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
   }
 
   async function compartilharWhatsApp() {
-    const dataUrl = gerarImagem()
+    const dataUrl = await gerarImagem()
     const blob = await (await fetch(dataUrl)).blob()
     const file = new File([blob], 'cotacao-fertiflora.png', { type: 'image/png' })
 

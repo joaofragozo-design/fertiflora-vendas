@@ -14,8 +14,18 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath()
 }
 
+/** Carrega o logo real da empresa como HTMLImageElement, pra desenhar no canvas. */
+function carregarLogo(): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = () => resolve(null)
+    img.src = '/logo-fertiflora.png'
+  })
+}
+
 /** Desenha o resumo em canvas e devolve a imagem como data URL PNG — usado por "Baixar", "Imprimir" e "Compartilhar". */
-export function gerarImagemResumo(secoes: ResumoSecao[], validade: string, rodape: string): string {
+export async function gerarImagemResumo(secoes: ResumoSecao[], validade: string, rodape: string): Promise<string> {
   const totalRows = secoes.reduce((n, s) => n + s.rows.length, 0)
   const W = 900
   const H = 260 + secoes.length * 70 + totalRows * 58 + 90
@@ -31,10 +41,18 @@ export function gerarImagemResumo(secoes: ResumoSecao[], validade: string, rodap
   ctx.fillStyle = bg
   ctx.fillRect(0, 0, W, H)
 
+  const logo = await carregarLogo()
+  if (logo) {
+    const alturaLogo = 64
+    const larguraLogo = (alturaLogo * logo.width) / logo.height
+    ctx.drawImage(logo, (W - larguraLogo) / 2, 20, larguraLogo, alturaLogo)
+  } else {
+    ctx.textAlign = 'center'
+    ctx.fillStyle = '#5fd196'
+    ctx.font = '700 34px Sora, -apple-system, Segoe UI, Arial'
+    ctx.fillText('🌱 FertiFlora', W / 2, 78)
+  }
   ctx.textAlign = 'center'
-  ctx.fillStyle = '#5fd196'
-  ctx.font = '700 34px Sora, -apple-system, Segoe UI, Arial'
-  ctx.fillText('🌱 FertiFlora', W / 2, 78)
   ctx.fillStyle = 'rgba(246,248,244,0.55)'
   ctx.font = '600 20px Manrope, -apple-system, Segoe UI, Arial'
   ctx.fillText('Resumo da cotação', W / 2, 110)

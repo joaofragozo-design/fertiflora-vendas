@@ -41,9 +41,9 @@ export function ComprovanteCotacao({ cotacao, clienteNome, onFechar }: Comprovan
     return gerarImagemResumo(secoesSemCampanha, `Congelada em ${fmtDataHora(cotacao.createdAt)}`, 'comprovante interno')
   }
 
-  function baixar() {
+  async function baixar() {
     const a = document.createElement('a')
-    a.href = gerarImagem()
+    a.href = await gerarImagem()
     a.download = 'comprovante-cotacao-fertiflora.png'
     document.body.appendChild(a)
     a.click()
@@ -51,7 +51,7 @@ export function ComprovanteCotacao({ cotacao, clienteNome, onFechar }: Comprovan
   }
 
   async function compartilhar() {
-    const dataUrl = gerarImagem()
+    const dataUrl = await gerarImagem()
     const blob = await (await fetch(dataUrl)).blob()
     const file = new File([blob], 'comprovante-cotacao-fertiflora.png', { type: 'image/png' })
 
