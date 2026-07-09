@@ -5,12 +5,15 @@ import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const root = join(__dirname, '..')
-const src = join(root, 'public', 'logo-icon.png')
+// Ícone do PWA usa a logo completa (com o lettering), não só o símbolo da folha --
+// decisão explícita do cliente mesmo sabendo que o texto fica pequeno no ícone real
+// do celular (a logo é bem larga, ~3.3:1, não dá pra ampliar sem cortar letras).
+const src = join(root, 'public', 'logo-fertiflora-hd.png')
 const dir = join(root, 'public', 'icons')
 
 if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
 
-const FUNDO = { r: 7, g: 11, b: 9 }
+const FUNDO = { r: 255, g: 255, b: 255 }
 
 for (const size of [192, 512]) {
   await sharp(src)
