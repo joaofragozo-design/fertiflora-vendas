@@ -84,8 +84,9 @@ export function ComprovanteCotacao({ cotacao, clienteNome, onFechar }: Comprovan
         </div>
 
         <div className="glass-light flex flex-col gap-4 rounded-[28px] p-6">
-          <div className="flex flex-col items-center gap-1 border-b border-slate-800/10 pb-4 text-center">
-            <div className="font-display text-base font-bold text-brand-700">🌱 FertiFlora</div>
+          <div className="flex flex-col items-center gap-1.5 border-b border-slate-800/10 pb-4 text-center">
+            {/* eslint-disable-next-line @next/next/no-img-element -- precisa ser <img> pra ficar idêntico ao PNG exportado do comprovante */}
+            <img src="/logo-fertiflora.png" alt="FertiFlora" className="h-6 w-auto" />
             <div className="text-xs text-slate-800/55">Comprovante da cotação</div>
           </div>
 

@@ -28,7 +28,6 @@ export default async function MaisPage() {
         <h1 className="font-display px-1 text-lg font-bold">Mais</h1>
 
         <div className="flex flex-col gap-2">
-          <ItemMenu href="/comissoes" icone={HandCoins} titulo="Minhas Comissões" descricao="Recebidas e a receber, mês a mês" />
           <ItemMenu href="/clientes/novo" icone={UserPlus} titulo="Cadastro de Clientes" descricao="Dados para nota fiscal" />
           {(ehConferencia || ehAdmin) && (
             <ItemMenu href="/conferencia" icone={ClipboardCheck} titulo="Conferência" descricao="Pedidos aguardando conferência" destaque />

@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, FileText, ArrowRight } from 'lucide-react'
+import { Plus, FileText, HandCoins, ArrowRight } from 'lucide-react'
 import { AnunciarIntensidade } from '@/components/scene/living-background/anunciar-intensidade'
 import { Logo } from '@/components/brand/logo'
 import { SignOutButton } from '@/components/forms/sign-out-button'
@@ -47,6 +47,17 @@ export default async function DashboardPage() {
           <div className="min-w-0 flex-1">
             <div className="font-display text-sm font-bold">Novo Pedido</div>
             <div className="text-xs text-white/50">Gerar contrato de venda</div>
+          </div>
+          <ArrowRight className="h-4 w-4 shrink-0 text-white/30" />
+        </Link>
+
+        <Link href="/comissoes" className="glass flex items-center gap-3 rounded-2xl p-4 transition-colors hover:bg-white/10 active:scale-[0.98]">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-500/20 text-brand-300">
+            <HandCoins className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="font-display text-sm font-bold">Minhas Comissões</div>
+            <div className="text-xs text-white/50">Recebidas e a receber, mês a mês</div>
           </div>
           <ArrowRight className="h-4 w-4 shrink-0 text-white/30" />
         </Link>
