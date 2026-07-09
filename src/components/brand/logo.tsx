@@ -10,7 +10,7 @@ interface LogoProps {
 
 const INTRINSIC = {
   full: { width: 1528, height: 463, src: '/logo-fertiflora.png' },
-  icon: { width: 289, height: 366, src: '/logo-icon.png' },
+  icon: { width: 689, height: 900, src: '/logo-icon.png' },
 } as const
 
 /** Logo oficial da FertiFlora — usar `variant="icon"` só a marca da folha, `variant="full"` com o lettering. */
