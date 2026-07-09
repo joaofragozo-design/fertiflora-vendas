@@ -13,7 +13,7 @@ const dir = join(root, 'public', 'icons')
 
 if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
 
-const FUNDO = { r: 255, g: 255, b: 255 }
+const FUNDO = { r: 217, g: 217, b: 217 }
 
 for (const size of [192, 512]) {
   await sharp(src)
