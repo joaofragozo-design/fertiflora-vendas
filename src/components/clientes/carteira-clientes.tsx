@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Plus, Search, Users } from 'lucide-react'
+import { Plus, Search, UserPlus, Users } from 'lucide-react'
 import { listarClientes, inscreverClientesEmTempoReal } from '@/lib/clientes/queries'
 import type { Cliente } from '@/lib/clientes/types'
+import { buscarVendedorComercialDoUsuario } from '@/lib/ranking/queries'
+import { listarClientesDoVendedor } from '@/lib/clientes-bi/queries'
 import { ClienteHistorico } from '@/components/clientes/cliente-historico'
 import { BiClienteScreen } from '@/components/clientes-bi/bi-cliente-screen'
 import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
@@ -14,9 +16,16 @@ import { cn } from '@/lib/utils/cn'
 
 type Aba = 'lista' | 'bi'
 
+/** Cadastro completo (tabela `clientes`, dados de NF) ou só um nome+código vindo do ERP (já comprou, nunca foi cadastrado pra emitir nota). */
+type ItemLista = { tipo: 'cadastrado'; cliente: Cliente } | { tipo: 'erp'; codigo: number; nome: string }
+
+function nomeDe(item: ItemLista): string {
+  return item.tipo === 'cadastrado' ? item.cliente.nome : item.nome
+}
+
 export function CarteiraClientes({ userId, ehAdmin }: { userId: string; ehAdmin: boolean }) {
   usePageIntensity(0.2)
-  const [clientes, setClientes] = useState<Cliente[]>([])
+  const [itens, setItens] = useState<ItemLista[]>([])
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
   const [selecionado, setSelecionado] = useState<Cliente | null>(null)
@@ -24,19 +33,33 @@ export function CarteiraClientes({ userId, ehAdmin }: { userId: string; ehAdmin:
 
   useEffect(() => {
     let ativo = true
-    function carregar() {
-      listarClientes().then((c) => { if (ativo) { setClientes(c); setCarregando(false) } })
+    async function carregar() {
+      const [cadastrados, vendedor] = await Promise.all([
+        listarClientes(),
+        ehAdmin ? Promise.resolve(null) : buscarVendedorComercialDoUsuario(userId),
+      ])
+      const erp = vendedor ? await listarClientesDoVendedor(vendedor.codigo) : []
+
+      const nomesCadastrados = new Set(cadastrados.map((c) => c.nome.trim().toLowerCase()))
+      const combinados: ItemLista[] = cadastrados.map((c) => ({ tipo: 'cadastrado' as const, cliente: c }))
+      for (const e of erp) {
+        if (nomesCadastrados.has(e.nome.trim().toLowerCase())) continue
+        combinados.push({ tipo: 'erp' as const, codigo: e.codigo, nome: e.nome })
+      }
+      combinados.sort((a, b) => nomeDe(a).localeCompare(nomeDe(b), 'pt-BR'))
+
+      if (ativo) { setItens(combinados); setCarregando(false) }
     }
     carregar()
     const parar = inscreverClientesEmTempoReal(carregar)
     return () => { ativo = false; parar() }
-  }, [])
+  }, [userId, ehAdmin])
 
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase()
-    if (!termo) return clientes
-    return clientes.filter((c) => c.nome.toLowerCase().includes(termo) || c.cpfCnpj.includes(termo))
-  }, [clientes, busca])
+    if (!termo) return itens
+    return itens.filter((i) => nomeDe(i).toLowerCase().includes(termo) || (i.tipo === 'cadastrado' && i.cliente.cpfCnpj.includes(termo)))
+  }, [itens, busca])
 
   if (selecionado) {
     return <ClienteHistorico cliente={selecionado} onVoltar={() => setSelecionado(null)} />
@@ -96,24 +119,44 @@ export function CarteiraClientes({ userId, ehAdmin }: { userId: string; ehAdmin:
             )}
 
             <div className="flex flex-col gap-2">
-              {filtrados.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => setSelecionado(c)}
-                  className="glass flex items-center gap-3 rounded-2xl p-4 text-left transition-colors hover:bg-white/10"
-                >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 text-xs font-extrabold text-brand-300">
-                    {c.nome.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-bold text-white">{c.nome}</div>
-                    <div className="truncate text-xs text-white/45">{formatarCpfCnpj(c.cpfCnpj)} · {c.cidade ?? '—'}{c.estado ? `/${c.estado}` : ''}</div>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-white/8 px-2 py-1 text-[10px] font-bold uppercase text-white/50">
-                    {c.tipoPessoa}
-                  </span>
-                </button>
-              ))}
+              {filtrados.map((item) =>
+                item.tipo === 'cadastrado' ? (
+                  <button
+                    key={item.cliente.id}
+                    onClick={() => setSelecionado(item.cliente)}
+                    className="glass flex items-center gap-3 rounded-2xl p-4 text-left transition-colors hover:bg-white/10"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 text-xs font-extrabold text-brand-300">
+                      {item.cliente.nome.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-bold text-white">{item.cliente.nome}</div>
+                      <div className="truncate text-xs text-white/45">{formatarCpfCnpj(item.cliente.cpfCnpj)} · {item.cliente.cidade ?? '—'}{item.cliente.estado ? `/${item.cliente.estado}` : ''}</div>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-white/8 px-2 py-1 text-[10px] font-bold uppercase text-white/50">
+                      {item.cliente.tipoPessoa}
+                    </span>
+                  </button>
+                ) : (
+                  <Link
+                    key={`erp-${item.codigo}`}
+                    href={`/clientes/novo?nome=${encodeURIComponent(item.nome)}`}
+                    className="glass flex items-center gap-3 rounded-2xl p-4 text-left transition-colors hover:bg-white/10"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/8 text-xs font-extrabold text-white/40">
+                      {item.nome.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-bold text-white">{item.nome}</div>
+                      <div className="truncate text-xs text-white/45">Já comprou · sem cadastro pra nota fiscal ainda</div>
+                    </div>
+                    <span className="flex shrink-0 items-center gap-1 rounded-full bg-warning-500/15 px-2 py-1 text-[10px] font-bold uppercase text-warning-400">
+                      <UserPlus className="h-3 w-3" />
+                      Cadastrar
+                    </span>
+                  </Link>
+                )
+              )}
             </div>
           </>
         )}

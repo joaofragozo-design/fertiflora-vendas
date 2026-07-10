@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { PieChart, Trophy, Users } from 'lucide-react'
-import { buscarNotasDoVendedor } from '@/lib/clientes-bi/queries'
+import { buscarNotasDoVendedor, buscarTodasAsNotas } from '@/lib/clientes-bi/queries'
 import { calcularResumoVendedor, variacaoPct } from '@/lib/clientes-bi/calculos'
 import type { NotaFiscalRow } from '@/lib/clientes-bi/types'
 import { SkeletonListaCards } from '@/components/ui/skeleton'
@@ -10,6 +10,9 @@ import { ContadorAnimado } from './contador-animado'
 import { GraficoPizza } from './grafico-pizza'
 
 const ANO = new Date().getFullYear()
+
+/** Valor sentinela de `vendedorCodigo` pro admin ver o agregado de todos os vendedores combinados. */
+export const TODOS_VENDEDORES = -1
 
 function fmtT(v: number) {
   return v.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 1 }) + 't'
@@ -23,17 +26,19 @@ function fmtPct(v: number) {
 }
 
 export function VisaoGeralVendedor({ vendedorCodigo, onSelecionarCliente }: { vendedorCodigo: number; onSelecionarCliente: (codigo: number) => void }) {
+  const geral = vendedorCodigo === TODOS_VENDEDORES
   const [notas, setNotas] = useState<NotaFiscalRow[]>([])
   const [carregando, setCarregando] = useState(true)
   const [clientesChave, setClientesChave] = useState<'toneladas' | 'reais'>('reais')
 
   useEffect(() => {
     setCarregando(true)
-    buscarNotasDoVendedor(vendedorCodigo).then((lista) => {
+    const buscar = geral ? buscarTodasAsNotas() : buscarNotasDoVendedor(vendedorCodigo)
+    buscar.then((lista) => {
       setNotas(lista)
       setCarregando(false)
     })
-  }, [vendedorCodigo])
+  }, [vendedorCodigo, geral])
 
   const resumo = useMemo(() => calcularResumoVendedor(notas, ANO), [notas])
   const variacaoToneladas = variacaoPct(resumo.totalToneladas, resumo.totalToneladasAnoAnterior)
@@ -54,6 +59,10 @@ export function VisaoGeralVendedor({ vendedorCodigo, onSelecionarCliente }: { ve
       </div>
     )
   }
+
+  const topClientesTitulo = geral ? `Top clientes gerais em ${ANO}` : `Top clientes em ${ANO}`
+  const topClienteRotulo = geral ? 'Top cliente geral' : 'Top cliente'
+  const participacaoRotulo = geral ? 'Participação geral no faturado' : 'Participação no faturado'
 
   return (
     <div className="flex flex-col gap-3">
@@ -86,7 +95,7 @@ export function VisaoGeralVendedor({ vendedorCodigo, onSelecionarCliente }: { ve
         <div className="flex flex-wrap gap-1.5">
           <span className="flex items-center gap-1.5 rounded-full bg-white/8 px-2.5 py-1.5 text-[10.5px] font-bold text-white/80">
             <Trophy className="h-3 w-3 text-warning-400" />
-            Top cliente: {lider.nome} ({lider.participacaoPct.toFixed(0)}%)
+            {topClienteRotulo}: {lider.nome} ({lider.participacaoPct.toFixed(0)}%)
           </span>
         </div>
       )}
@@ -95,7 +104,7 @@ export function VisaoGeralVendedor({ vendedorCodigo, onSelecionarCliente }: { ve
         <div className="glass flex flex-col gap-3 rounded-2xl p-4">
           <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/50">
             <PieChart className="h-3.5 w-3.5 text-brand-300" />
-            Participação no faturado
+            {participacaoRotulo}
           </div>
           <GraficoPizza fatias={resumo.clientesRanqueados.map((c) => ({ id: c.codigo, label: c.nome, valor: c.reais }))} formatarValor={fmtBRL} />
         </div>
@@ -104,7 +113,7 @@ export function VisaoGeralVendedor({ vendedorCodigo, onSelecionarCliente }: { ve
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/50">
               <Trophy className="h-3.5 w-3.5 text-brand-300" />
-              Top clientes em {ANO}
+              {topClientesTitulo}
             </div>
             <div className="flex gap-1 rounded-lg bg-white/8 p-0.5">
               <button onClick={() => setClientesChave('toneladas')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${clientesChave === 'toneladas' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>t</button>
@@ -112,17 +121,24 @@ export function VisaoGeralVendedor({ vendedorCodigo, onSelecionarCliente }: { ve
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            {clientesOrdenados.slice(0, 8).map((c, i) => (
-              <button
-                key={c.codigo}
-                onClick={() => onSelecionarCliente(c.codigo)}
-                className="flex items-center gap-2.5 rounded-xl px-1 py-1 text-left transition-colors hover:bg-white/8"
-              >
-                <span className="tabular flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/8 text-[10px] font-extrabold text-white/60">{i + 1}</span>
-                <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-white/80">{c.nome}</span>
-                <span className="tabular shrink-0 text-[11px] font-bold text-white">{clientesChave === 'toneladas' ? fmtT(c.toneladas) : fmtBRL(c.reais)}</span>
-              </button>
-            ))}
+            {clientesOrdenados.slice(0, 8).map((c, i) => {
+              const conteudo = (
+                <>
+                  <span className="tabular flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/8 text-[10px] font-extrabold text-white/60">{i + 1}</span>
+                  <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-white/80">{c.nome}</span>
+                  <span className="tabular shrink-0 text-[11px] font-bold text-white">{clientesChave === 'toneladas' ? fmtT(c.toneladas) : fmtBRL(c.reais)}</span>
+                </>
+              )
+              // No agregado geral não dá pra saber de qual vendedor é o cliente sem ambiguidade
+              // (pode ter comprado por mais de um ao longo do tempo) -- lista só informativa aqui.
+              return geral ? (
+                <div key={c.codigo} className="flex items-center gap-2.5 rounded-xl px-1 py-1">{conteudo}</div>
+              ) : (
+                <button key={c.codigo} onClick={() => onSelecionarCliente(c.codigo)} className="flex items-center gap-2.5 rounded-xl px-1 py-1 text-left transition-colors hover:bg-white/8">
+                  {conteudo}
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>

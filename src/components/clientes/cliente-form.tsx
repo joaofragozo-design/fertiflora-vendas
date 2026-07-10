@@ -10,12 +10,13 @@ import { clienteEmBranco, type ClienteInput, type TipoPessoa } from '@/lib/clien
 import { buscarCnpj, somenteDigitos } from '@/lib/clientes/cnpj-lookup'
 
 interface ClienteFormProps {
+  nomeInicial?: string
   onSalvar: (input: ClienteInput) => Promise<void>
   onCancelar?: () => void
 }
 
-export function ClienteForm({ onSalvar, onCancelar }: ClienteFormProps) {
-  const [form, setForm] = useState<ClienteInput>(clienteEmBranco())
+export function ClienteForm({ nomeInicial, onSalvar, onCancelar }: ClienteFormProps) {
+  const [form, setForm] = useState<ClienteInput>(() => ({ ...clienteEmBranco(), nome: nomeInicial ?? '' }))
   const [salvando, setSalvando] = useState(false)
   const [buscandoCnpj, setBuscandoCnpj] = useState(false)
   const [erro, setErro] = useState<string | null>(null)

@@ -71,6 +71,15 @@ export async function buscarNotasDoVendedor(vendedorCodigo: number): Promise<Not
   return linhas.map(notaFiscalFromRow)
 }
 
+/** Todo o histórico de notas de TODOS os vendedores — base da Visão Geral quando o admin escolhe "Todos os vendedores". RLS só libera isso pra admin. */
+export async function buscarTodasAsNotas(): Promise<NotaFiscalRow[]> {
+  const supabase = createClient()
+  const linhas = await buscarTodasAsPaginas<Record<string, unknown>>((from, to) =>
+    supabase.from('notas_fiscais_importadas').select('*').order('emissao', { ascending: true }).range(from, to)
+  )
+  return linhas.map(notaFiscalFromRow)
+}
+
 /** Todo o histórico de notas de um cliente — base para KPIs, séries, produtos e sazonalidade. */
 export async function buscarNotasDoCliente(vendedorCodigo: number, clienteCodigo: number): Promise<NotaFiscalRow[]> {
   const supabase = createClient()

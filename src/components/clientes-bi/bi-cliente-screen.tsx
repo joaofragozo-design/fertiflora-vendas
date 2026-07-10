@@ -14,7 +14,7 @@ import type { LimiteCreditoRow } from '@/lib/creditos/types'
 import { calcularResumoCredito } from '@/lib/creditos/calculos'
 import { SkeletonListaCards } from '@/components/ui/skeleton'
 import { GraficoBarras } from './grafico-barras'
-import { VisaoGeralVendedor } from './visao-geral-vendedor'
+import { VisaoGeralVendedor, TODOS_VENDEDORES } from './visao-geral-vendedor'
 import { HeatmapSazonalidade } from './heatmap-sazonalidade'
 import { ContadorAnimado } from './contador-animado'
 import { PedidoProgresso } from './pedido-progresso'
@@ -59,12 +59,13 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
   const [produtosChave, setProdutosChave] = useState<'toneladas' | 'reais'>('reais')
   const [pedidosChave, setPedidosChave] = useState<'toneladas' | 'reais'>('toneladas')
 
-  // Descobre o código do vendedor: admin escolhe, vendedor comum usa o vínculo da própria conta.
+  // Descobre o código do vendedor: admin começa em "Todos os vendedores" (agregado geral),
+  // vendedor comum usa o vínculo da própria conta.
   useEffect(() => {
     if (ehAdmin) {
       listarVendedoresComNotas().then((lista) => {
         setVendedores(lista)
-        setVendedorCodigo(lista[0]?.codigo ?? null)
+        setVendedorCodigo(TODOS_VENDEDORES)
         setCarregandoVendedor(false)
       })
     } else {
@@ -77,7 +78,7 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
   }, [ehAdmin, userId])
 
   useEffect(() => {
-    if (vendedorCodigo === null) return
+    if (vendedorCodigo === null || vendedorCodigo === TODOS_VENDEDORES) return
     setCarregandoClientes(true)
     setClienteCodigo(null)
     setNotas([])
@@ -151,6 +152,7 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
             onChange={(e) => setVendedorCodigo(Number(e.target.value))}
             className="w-full flex-1 truncate bg-transparent text-xs font-bold text-white outline-none [&>option]:bg-ink-900"
           >
+            <option value={TODOS_VENDEDORES}>Todos os vendedores</option>
             {vendedores.map((v) => (
               <option key={v.codigo} value={v.codigo}>#{v.codigo} — {v.nome}</option>
             ))}
@@ -159,44 +161,46 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
         </div>
       )}
 
-      <div className="glass flex flex-col gap-2 rounded-2xl p-2.5">
-        <div className="flex items-center gap-2 px-1">
-          <Search className="h-4 w-4 shrink-0 text-white/40" />
-          <input
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            onFocus={() => setListaAberta(true)}
-            placeholder="Buscar cliente…"
-            className="w-full flex-1 bg-transparent text-xs font-bold text-white placeholder:text-white/35 outline-none"
-          />
-          <button
-            onClick={() => setListaAberta((v) => !v)}
-            aria-label={listaAberta ? 'Fechar lista de clientes' : 'Selecionar da lista de clientes'}
-            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${listaAberta ? 'bg-brand-500 text-ink-950' : 'bg-white/8 text-white/50'}`}
-          >
-            {listaAberta ? <X className="h-3.5 w-3.5" /> : <List className="h-3.5 w-3.5" />}
-          </button>
-        </div>
-        {(busca || listaAberta) && (
-          <div className="flex max-h-64 flex-col overflow-y-auto rounded-xl">
-            {carregandoClientes && <p className="p-2 text-center text-[11px] text-white/40">Carregando…</p>}
-            {!carregandoClientes && clientesFiltrados.length === 0 && <p className="p-2 text-center text-[11px] text-white/40">Nenhum cliente encontrado</p>}
-            {!carregandoClientes && clientesFiltrados.map((c) => (
-              <button
-                key={c.codigo}
-                onClick={() => { setClienteCodigo(c.codigo); setBusca(''); setListaAberta(false) }}
-                className={`truncate rounded-lg px-2 py-2.5 text-left text-xs font-semibold transition-colors hover:bg-white/10 ${c.codigo === clienteCodigo ? 'bg-brand-500/15 text-brand-300' : 'text-white/80'}`}
-              >
-                {c.nome}
-              </button>
-            ))}
+      {vendedorCodigo !== TODOS_VENDEDORES && (
+        <div className="glass flex flex-col gap-2 rounded-2xl p-2.5">
+          <div className="flex items-center gap-2 px-1">
+            <Search className="h-4 w-4 shrink-0 text-white/40" />
+            <input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              onFocus={() => setListaAberta(true)}
+              placeholder="Buscar cliente…"
+              className="w-full flex-1 bg-transparent text-xs font-bold text-white placeholder:text-white/35 outline-none"
+            />
+            <button
+              onClick={() => setListaAberta((v) => !v)}
+              aria-label={listaAberta ? 'Fechar lista de clientes' : 'Selecionar da lista de clientes'}
+              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${listaAberta ? 'bg-brand-500 text-ink-950' : 'bg-white/8 text-white/50'}`}
+            >
+              {listaAberta ? <X className="h-3.5 w-3.5" /> : <List className="h-3.5 w-3.5" />}
+            </button>
           </div>
-        )}
-      </div>
+          {(busca || listaAberta) && (
+            <div className="flex max-h-64 flex-col overflow-y-auto rounded-xl">
+              {carregandoClientes && <p className="p-2 text-center text-[11px] text-white/40">Carregando…</p>}
+              {!carregandoClientes && clientesFiltrados.length === 0 && <p className="p-2 text-center text-[11px] text-white/40">Nenhum cliente encontrado</p>}
+              {!carregandoClientes && clientesFiltrados.map((c) => (
+                <button
+                  key={c.codigo}
+                  onClick={() => { setClienteCodigo(c.codigo); setBusca(''); setListaAberta(false) }}
+                  className={`truncate rounded-lg px-2 py-2.5 text-left text-xs font-semibold transition-colors hover:bg-white/10 ${c.codigo === clienteCodigo ? 'bg-brand-500/15 text-brand-300' : 'text-white/80'}`}
+                >
+                  {c.nome}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {!clienteCodigo && !busca && !listaAberta && vendedorCodigo !== null && (
         <>
-          <h2 className="font-display px-1 text-base font-bold">Visão geral</h2>
+          <h2 className="font-display px-1 text-base font-bold">{vendedorCodigo === TODOS_VENDEDORES ? 'Visão geral — todos os vendedores' : 'Visão geral'}</h2>
           <VisaoGeralVendedor vendedorCodigo={vendedorCodigo} onSelecionarCliente={setClienteCodigo} />
         </>
       )}

@@ -8,7 +8,7 @@ import { ClienteForm } from '@/components/clientes/cliente-form'
 import { criarCliente } from '@/lib/clientes/queries'
 import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
 
-export function NovoClienteScreen() {
+export function NovoClienteScreen({ nomeInicial }: { nomeInicial?: string }) {
   usePageIntensity(0.2)
   const router = useRouter()
 
@@ -23,6 +23,7 @@ export function NovoClienteScreen() {
         </div>
 
         <ClienteForm
+          nomeInicial={nomeInicial}
           onSalvar={async (input) => {
             await criarCliente(input)
             toast.success('Cliente cadastrado com sucesso')
