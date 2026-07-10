@@ -19,21 +19,47 @@ export async function listarVendedoresComNotas(): Promise<VendedorComNotas[]> {
  * Clientes de um vendedor (pelo código do ERP) — a lista que alimenta o seletor da tela de BI.
  * Une notas fiscais e pedidos em aberto: um cliente com pedido em aberto mas ainda sem nenhuma
  * nota emitida (primeira compra) também precisa aparecer na lista.
+ *
+ * `userId`, quando informado, também une os clientes cadastrados manualmente (tabela `clientes`,
+ * carteira de cadastro pra nota fiscal) que ainda não têm nenhuma nota/pedido no ERP -- cliente
+ * novo, primeira venda ainda não rolou. Esses recebem um código sintético negativo (nunca colide
+ * com código real do ERP, que é sempre positivo) só pra servir de chave de seleção na lista;
+ * selecioná-los mostra o BI vazio (sem histórico mesmo, é verdade) até a primeira nota/pedido
+ * chegar. Só passe `userId` quando o próprio vendedor está vendo a própria carteira -- `clientes`
+ * tem RLS por `vendedor_id = auth.uid()`, então um admin "vendo como" outro vendedor (por código)
+ * só enxergaria os PRÓPRIOS clientes manuais do admin por essa via, não os do vendedor escolhido;
+ * omitir `userId` nesse caso evita misturar isso na lista de outra pessoa.
  */
-export async function listarClientesDoVendedor(vendedorCodigo: number): Promise<ClienteResumo[]> {
+export async function listarClientesDoVendedor(vendedorCodigo: number, userId?: string): Promise<ClienteResumo[]> {
   const supabase = createClient()
-  const [notas, pedidos] = await Promise.all([
+  const [notas, pedidos, manuais] = await Promise.all([
     buscarTodasAsPaginas<{ cliente_codigo: number; cliente_nome: string }>((from, to) =>
       supabase.from('notas_fiscais_importadas').select('cliente_codigo, cliente_nome').eq('vendedor_codigo', vendedorCodigo).range(from, to)
     ),
     buscarTodasAsPaginas<{ cliente_codigo: number; cliente_nome: string }>((from, to) =>
       supabase.from('pedidos_erp_importados').select('cliente_codigo, cliente_nome').eq('vendedor_codigo', vendedorCodigo).range(from, to)
     ),
+    userId
+      ? buscarTodasAsPaginas<{ nome: string }>((from, to) => supabase.from('clientes').select('nome').eq('vendedor_id', userId).range(from, to))
+      : Promise.resolve([] as { nome: string }[]),
   ])
 
   const porCodigo = new Map<number, string>()
   for (const row of [...notas, ...pedidos]) porCodigo.set(row.cliente_codigo, row.cliente_nome)
-  return [...porCodigo.entries()].map(([codigo, nome]) => ({ codigo, nome })).sort((a, b) => a.nome.localeCompare(b.nome))
+
+  const resultado: ClienteResumo[] = [...porCodigo.entries()].map(([codigo, nome]) => ({ codigo, nome }))
+
+  const nomesJaListados = new Set(resultado.map((c) => c.nome.trim().toLowerCase()))
+  let proximoCodigoSintetico = -1
+  for (const { nome } of manuais) {
+    const chave = nome.trim().toLowerCase()
+    if (nomesJaListados.has(chave)) continue
+    nomesJaListados.add(chave)
+    resultado.push({ codigo: proximoCodigoSintetico, nome })
+    proximoCodigoSintetico -= 1
+  }
+
+  return resultado.sort((a, b) => a.nome.localeCompare(b.nome))
 }
 
 /** Todo o histórico de notas do vendedor (todos os clientes) — base da Visão Geral. */

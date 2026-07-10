@@ -7,12 +7,18 @@ import type { VendedorComercial } from '@/lib/ranking/types'
 import { buscarNotasDoCliente, buscarPedidosDoCliente, listarClientesDoVendedor, listarVendedoresComNotas } from '@/lib/clientes-bi/queries'
 import { calcularInsights, calcularKpis, calcularResumoPedidos, calcularSazonalidade, calcularSerieAnual, calcularSerieMensal, calcularTopProdutos } from '@/lib/clientes-bi/calculos'
 import type { ClienteResumo, NotaFiscalRow, PedidoErpRow, VendedorComNotas } from '@/lib/clientes-bi/types'
+import { buscarComissoesDoCliente, buscarComissoesLiquidadasDoCliente } from '@/lib/comissoes/queries'
+import type { ComissaoErpRow } from '@/lib/comissoes/types'
+import { buscarLimiteCreditoDoCliente } from '@/lib/creditos/queries'
+import type { LimiteCreditoRow } from '@/lib/creditos/types'
+import { calcularResumoCredito } from '@/lib/creditos/calculos'
 import { SkeletonListaCards } from '@/components/ui/skeleton'
 import { GraficoBarras } from './grafico-barras'
 import { VisaoGeralVendedor } from './visao-geral-vendedor'
 import { HeatmapSazonalidade } from './heatmap-sazonalidade'
 import { ContadorAnimado } from './contador-animado'
 import { PedidoProgresso } from './pedido-progresso'
+import { LimiteCredito } from './limite-credito'
 
 const ANO = new Date().getFullYear()
 const NOMES_MES_CURTO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
@@ -45,6 +51,9 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
 
   const [notas, setNotas] = useState<NotaFiscalRow[]>([])
   const [pedidos, setPedidos] = useState<PedidoErpRow[]>([])
+  const [limiteCredito, setLimiteCredito] = useState<LimiteCreditoRow | null>(null)
+  const [comissoesGerais, setComissoesGerais] = useState<ComissaoErpRow[]>([])
+  const [comissoesLiquidadas, setComissoesLiquidadas] = useState<ComissaoErpRow[]>([])
   const [carregandoNotas, setCarregandoNotas] = useState(false)
   const [serieChave, setSerieChave] = useState<'toneladas' | 'reais'>('toneladas')
   const [produtosChave, setProdutosChave] = useState<'toneladas' | 'reais'>('reais')
@@ -72,11 +81,11 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
     setCarregandoClientes(true)
     setClienteCodigo(null)
     setNotas([])
-    listarClientesDoVendedor(vendedorCodigo).then((lista) => {
+    listarClientesDoVendedor(vendedorCodigo, ehAdmin ? undefined : userId).then((lista) => {
       setClientes(lista)
       setCarregandoClientes(false)
     })
-  }, [vendedorCodigo])
+  }, [vendedorCodigo, ehAdmin, userId])
 
   useEffect(() => {
     if (vendedorCodigo === null || clienteCodigo === null) return
@@ -84,9 +93,15 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
     Promise.all([
       buscarNotasDoCliente(vendedorCodigo, clienteCodigo),
       buscarPedidosDoCliente(vendedorCodigo, clienteCodigo),
-    ]).then(([listaNotas, listaPedidos]) => {
+      buscarLimiteCreditoDoCliente(clienteCodigo),
+      buscarComissoesDoCliente(vendedorCodigo, clienteCodigo),
+      buscarComissoesLiquidadasDoCliente(vendedorCodigo, clienteCodigo),
+    ]).then(([listaNotas, listaPedidos, limite, geral, liquidadas]) => {
       setNotas(listaNotas)
       setPedidos(listaPedidos)
+      setLimiteCredito(limite)
+      setComissoesGerais(geral)
+      setComissoesLiquidadas(liquidadas)
       setCarregandoNotas(false)
     })
   }, [vendedorCodigo, clienteCodigo])
@@ -104,6 +119,13 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
   const sazonalidade = useMemo(() => calcularSazonalidade(notas), [notas])
   const insights = useMemo(() => calcularInsights(notas, ANO), [notas])
   const resumoPedidos = useMemo(() => calcularResumoPedidos(pedidos), [pedidos])
+  const resumoCredito = useMemo(
+    () =>
+      limiteCredito
+        ? calcularResumoCredito(comissoesGerais, comissoesLiquidadas, limiteCredito.limiteLiberado, resumoPedidos.totalValorSaldo)
+        : null,
+    [limiteCredito, comissoesGerais, comissoesLiquidadas, resumoPedidos.totalValorSaldo]
+  )
 
   const clienteAtual = clientes.find((c) => c.codigo === clienteCodigo) ?? null
 
@@ -189,6 +211,8 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
               Trocar cliente
             </button>
           </div>
+
+          <LimiteCredito resumo={resumoCredito} statusCredito={limiteCredito?.statusCredito ?? null} />
 
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <div className="glass flex flex-col gap-1 rounded-2xl p-4">

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { ROUTES } from '@/constants/routes'
 import { Logo } from '@/components/brand/logo'
 import { SignOutButton } from '@/components/forms/sign-out-button'
+import { SinoNotificacoes } from '@/components/notificacoes/sino-notificacoes'
 import { AnunciarIntensidade } from '@/components/scene/living-background/anunciar-intensidade'
 
 export default async function MaisPage() {
@@ -22,7 +23,10 @@ export default async function MaisPage() {
       <div className="mx-auto flex max-w-md flex-col gap-5 p-5 pt-6">
         <header className="flex items-center justify-between">
           <Logo variant="icon" height={28} />
-          <SignOutButton />
+          <div className="flex items-center gap-2">
+            <SinoNotificacoes />
+            <SignOutButton />
+          </div>
         </header>
 
         <h1 className="font-display px-1 text-lg font-bold">Mais</h1>

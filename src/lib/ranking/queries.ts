@@ -143,6 +143,19 @@ export async function buscarVendedorComercialDoUsuario(userId: string): Promise<
   return data ? vendedorComercialFromRow(data) : null
 }
 
+/** Faturado/Pedido de um único vendedor no ano — base do trio no dashboard (zerado se ainda não tem linha). */
+export async function buscarFaturamentoDoVendedor(vendedorId: string, ano: number): Promise<{ faturado: number; pedido: number }> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('faturamento_comercial')
+    .select('faturado, pedido')
+    .eq('vendedor_id', vendedorId)
+    .eq('ano', ano)
+    .maybeSingle()
+  if (error) throw new Error(`Falha ao buscar faturamento do vendedor: ${error.message}`)
+  return { faturado: Number(data?.faturado ?? 0), pedido: Number(data?.pedido ?? 0) }
+}
+
 export async function criarVendedorComercial(params: { codigo: number; nome: string; profileId?: string | null }): Promise<VendedorComercial> {
   const supabase = createClient()
   const { data, error } = await supabase

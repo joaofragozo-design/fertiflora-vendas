@@ -3,6 +3,7 @@ export interface ComissaoErpRow {
   vendedorNome: string
   nota: string
   pedido: string
+  clienteCodigo: number | null
   clienteNome: string
   emissao: string // yyyy-mm-dd
   vencimento: string | null
@@ -20,6 +21,7 @@ export function comissaoErpFromRow(row: Record<string, unknown>): ComissaoErpRow
     vendedorNome: row.vendedor_nome as string,
     nota: (row.nota as string) ?? '',
     pedido: (row.pedido as string) ?? '',
+    clienteCodigo: (row.cliente_codigo as number) ?? null,
     clienteNome: row.cliente_nome as string,
     emissao: row.emissao as string,
     vencimento: (row.vencimento as string) ?? null,

@@ -4,7 +4,9 @@ import { Plus, FileText, HandCoins, ArrowRight } from 'lucide-react'
 import { AnunciarIntensidade } from '@/components/scene/living-background/anunciar-intensidade'
 import { Logo } from '@/components/brand/logo'
 import { SignOutButton } from '@/components/forms/sign-out-button'
+import { SinoNotificacoes } from '@/components/notificacoes/sino-notificacoes'
 import { PerfilCard } from '@/components/perfil/perfil-card'
+import { TrioFaturamentoVendedor } from '@/components/ranking/trio-faturamento-vendedor'
 import { createClient } from '@/lib/supabase/server'
 import { emailToUsername } from '@/lib/validations/auth'
 import { ROUTES } from '@/constants/routes'
@@ -21,10 +23,15 @@ export default async function DashboardPage() {
       <div className="relative z-10 mx-auto flex max-w-md flex-col gap-5 p-5 pt-6">
         <header className="flex items-center justify-between">
           <Logo variant="icon" height={30} />
-          <SignOutButton />
+          <div className="flex items-center gap-2">
+            <SinoNotificacoes />
+            <SignOutButton />
+          </div>
         </header>
 
         <PerfilCard userId={user.id} usernameFallback={user.email ? emailToUsername(user.email) : 'vendedor'} />
+
+        <TrioFaturamentoVendedor userId={user.id} />
 
         <Link
           href="/cotacao"
