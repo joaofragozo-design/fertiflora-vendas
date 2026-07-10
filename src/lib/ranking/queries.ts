@@ -25,11 +25,16 @@ export async function listarRanking(ano: number): Promise<RankingEntry[]> {
   const avatarPorProfile = new Map<string, string | null>()
   const localizacaoPorProfile = new Map<string, string | null>()
   if (profileIds.length > 0) {
-    const { data: perfis, error: errPerfis } = await supabase.from('profiles').select('id, avatar_url, praca_atuacao').in('id', profileIds)
-    if (errPerfis) throw new Error(`Falha ao carregar perfis: ${errPerfis.message}`)
-    for (const p of perfis ?? []) {
-      avatarPorProfile.set(p.id as string, (p.avatar_url as string) ?? null)
-      localizacaoPorProfile.set(p.id as string, (p.praca_atuacao as string) ?? null)
+    // RLS de profiles só libera a própria linha -- via RPC (security definer) pra ver a foto/localização de todo mundo.
+    // Nunca lança: se a migration da RPC ainda não rodou, o ranking continua funcionando (só sem foto/localização).
+    const { data: perfis, error: errPerfis } = await supabase.rpc('listar_avatares_vendedores', { p_ids: profileIds })
+    if (errPerfis) {
+      console.error('[ranking] falha ao carregar avatares/localização', errPerfis)
+    } else {
+      for (const p of perfis ?? []) {
+        avatarPorProfile.set(p.id as string, (p.avatar_url as string) ?? null)
+        localizacaoPorProfile.set(p.id as string, (p.praca_atuacao as string) ?? null)
+      }
     }
   }
 
