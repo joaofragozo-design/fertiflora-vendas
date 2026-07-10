@@ -8,16 +8,17 @@ export interface Tier {
   prisma: boolean
 }
 
-/** Patamares em toneladas vendidas (soma de `quantidade_toneladas` das cotações aprovadas). */
+/** Patamares em toneladas (faturado + pedido, ranking absoluto -- mesma base do Ranking Comercial). */
 export const TIERS: Tier[] = [
-  { chave: 'estreante', min: 0, nome: 'Estreante', frase: 'Toda safra começa com a primeira semente', cores: ['#14b8a6', '#5eead4'], wings: false, prisma: false },
+  { chave: 'inicio', min: 0, nome: 'Início', frase: 'Toda safra começa com a primeira semente', cores: ['#14b8a6', '#5eead4'], wings: false, prisma: false },
   { chave: 'toneladas_1k', min: 1_000, nome: '1K', frase: 'Recuperador de vendas', cores: ['#2563eb', '#7dd3fc'], wings: false, prisma: false },
   { chave: 'toneladas_2k', min: 2_000, nome: '2K', frase: 'Fechador nato', cores: ['#7c3aed', '#c4b5fd'], wings: false, prisma: false },
-  { chave: 'toneladas_3k', min: 3_000, nome: '3K', frase: 'Máquina de cotações', cores: ['#db2777', '#f9a8d4'], wings: false, prisma: false },
+  { chave: 'toneladas_3k', min: 3_000, nome: '3K', frase: 'Máquina de vendas', cores: ['#db2777', '#f9a8d4'], wings: false, prisma: false },
+  { chave: 'toneladas_4k', min: 4_000, nome: '4K', frase: 'Ritmo que não para', cores: ['#0891b2', '#67e8f9'], wings: false, prisma: false },
+  { chave: 'toneladas_5k', min: 5_000, nome: '5K', frase: 'Referência na região', cores: ['#4d7c0f', '#bef264'], wings: false, prisma: false },
+  { chave: 'toneladas_7_5k', min: 7_500, nome: '7,5K', frase: 'Presença que vira pedido', cores: ['#16a34a', '#86efac'], wings: true, prisma: false },
   { chave: 'toneladas_10k', min: 10_000, nome: '10K', frase: 'Motor da carteira', cores: ['#ea580c', '#fdba74'], wings: true, prisma: false },
-  { chave: 'toneladas_25k', min: 25_000, nome: '25K', frase: 'Presença que vira pedido', cores: ['#16a34a', '#86efac'], wings: true, prisma: false },
-  { chave: 'toneladas_50k', min: 50_000, nome: '50K', frase: 'Lenda da região', cores: ['#ca8a04', '#fde047'], wings: true, prisma: false },
-  { chave: 'toneladas_100k', min: 100_000, nome: '100K', frase: 'Um em cada milhão', cores: ['#f59e0b', '#a855f7'], wings: true, prisma: true },
+  { chave: 'toneladas_20k', min: 20_000, nome: '20K', frase: 'Um em cada milhão', cores: ['#f59e0b', '#a855f7'], wings: true, prisma: true },
 ]
 
 export function tierAtual(totalToneladas: number): Tier {

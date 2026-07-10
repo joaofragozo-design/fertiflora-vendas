@@ -5,19 +5,19 @@ import { MapPin, Pencil } from 'lucide-react'
 import { BadgeTier } from '@/components/perfil/badge-tier'
 import { EditarPerfilModal } from '@/components/perfil/editar-perfil-modal'
 import { buscarPerfil, type Perfil } from '@/lib/perfil/queries'
-import { buscarTotalToneladas, todosOsTiers } from '@/lib/gamificacao/queries'
-import { proximoTier, tierAtual, progressoPct } from '@/lib/gamificacao/tiers'
+import { todosOsTiers } from '@/lib/gamificacao/queries'
+import { tierAtual } from '@/lib/gamificacao/tiers'
+import { buscarVendedorComercialDoUsuario, buscarFaturamentoDoVendedor } from '@/lib/ranking/queries'
 import { cn } from '@/lib/utils/cn'
 
-function fmtT(v: number) {
-  return v.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' t'
-}
+const ANO = new Date().getFullYear()
 
 interface PerfilCardProps {
   userId: string
   usernameFallback: string
 }
 
+/** Insígnia baseada no total (faturado + pedido) real do vendedor no ano -- mesma fonte do Ranking, não em cotações feitas no app. Conta sem vínculo de vendedor (ex: admin) fica no tier inicial. */
 export function PerfilCard({ userId, usernameFallback }: PerfilCardProps) {
   const [perfil, setPerfil] = useState<Perfil | null>(null)
   const [totalToneladas, setTotalToneladas] = useState<number | null>(null)
@@ -25,13 +25,14 @@ export function PerfilCard({ userId, usernameFallback }: PerfilCardProps) {
 
   useEffect(() => {
     buscarPerfil(userId, usernameFallback).then(setPerfil).catch(() => setPerfil({ id: userId, username: usernameFallback, apelido: null, avatarUrl: null, pracaAtuacao: null, nomeCompleto: null, telefone: null }))
-    buscarTotalToneladas(userId).then(setTotalToneladas).catch(() => setTotalToneladas(0))
+    buscarVendedorComercialDoUsuario(userId)
+      .then((vendedor) => (vendedor ? buscarFaturamentoDoVendedor(vendedor.id, ANO) : { faturado: 0, pedido: 0, meta: 0 }))
+      .then((d) => setTotalToneladas(d.faturado + d.pedido))
+      .catch(() => setTotalToneladas(0))
   }, [userId, usernameFallback])
 
   const total = totalToneladas ?? 0
   const tier = tierAtual(total)
-  const proximo = proximoTier(total)
-  const progresso = progressoPct(total)
   const nomeExibicao = perfil?.apelido || perfil?.username || usernameFallback
 
   return (
@@ -66,23 +67,6 @@ export function PerfilCard({ userId, usernameFallback }: PerfilCardProps) {
               </div>
             )}
           </div>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between text-[11px] font-bold">
-            <span className="text-white/60">Toneladas vendidas</span>
-            <span className="tabular text-brand-300">{totalToneladas === null ? '—' : fmtT(total)}</span>
-          </div>
-          {proximo && (
-            <>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
-                <div className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-300 transition-all" style={{ width: `${progresso}%` }} />
-              </div>
-              <div className="text-right text-[10px] font-semibold text-white/50">
-                Faltam {fmtT(Math.max(0, proximo.min - total))} pro nível {proximo.nome}
-              </div>
-            </>
-          )}
         </div>
 
         <div
