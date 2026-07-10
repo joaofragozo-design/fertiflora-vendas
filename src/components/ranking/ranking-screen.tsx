@@ -14,24 +14,32 @@ import {
 } from '@/lib/ranking/queries'
 import { calcularBadges, calcularBadgesSemanais, type Badge } from '@/lib/ranking/badges'
 import type { RankingEntry } from '@/lib/ranking/types'
+import { listarEquipeApoio } from '@/lib/equipe-apoio/queries'
+import type { MembroEquipeApoio } from '@/lib/equipe-apoio/types'
+import type { AlvoProvocacao } from '@/lib/provocacoes/types'
 import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
 import { SkeletonListaCards } from '@/components/ui/skeleton'
 import { PodioTop3 } from './podio-top3'
 import { CardRanking } from './card-ranking'
 import { PainelLateral } from './painel-lateral'
 import { AjustarModal } from './ajustar-modal'
+import { ProvocarModal } from './provocar-modal'
+import { ProvocacoesListener } from './provocacoes-listener'
+import { EquipeApoioSecao } from './equipe-apoio-secao'
 import { MiniRankingSemanal, type ItemMiniRankingSemanal } from './mini-ranking-semanal'
 
 const ANO = new Date().getFullYear()
 
-export function RankingScreen({ ehAdmin }: { ehAdmin: boolean }) {
+export function RankingScreen({ ehAdmin, userId }: { ehAdmin: boolean; userId: string }) {
   usePageIntensity(0.25)
   const [entradas, setEntradas] = useState<RankingEntry[]>([])
+  const [equipeApoio, setEquipeApoio] = useState<MembroEquipeApoio[]>([])
   const [historico, setHistorico] = useState<HistoricoPonto[]>([])
   const [vendasSemana, setVendasSemana] = useState<VendaSemanalPorCodigo[]>([])
   const [pedidosSemana, setPedidosSemana] = useState<VendaSemanalPorCodigo[]>([])
   const [carregando, setCarregando] = useState(true)
   const [ajustando, setAjustando] = useState<RankingEntry | null>(null)
+  const [provocando, setProvocando] = useState<AlvoProvocacao | null>(null)
 
   useEffect(() => {
     let ativo = true
@@ -51,6 +59,15 @@ export function RankingScreen({ ehAdmin }: { ehAdmin: boolean }) {
     const parar = inscreverRankingEmTempoReal(carregar)
     return () => { ativo = false; parar() }
   }, [])
+
+  useEffect(() => {
+    listarEquipeApoio().then(setEquipeApoio).catch(() => setEquipeApoio([]))
+  }, [])
+
+  const meuNome = useMemo(
+    () => entradas.find((e) => e.profileId === userId)?.nome ?? equipeApoio.find((m) => m.profileId === userId)?.nome ?? 'Alguém',
+    [entradas, equipeApoio, userId]
+  )
 
   const disputantes = useMemo(() => entradas.filter((e) => !e.agregado), [entradas])
   const agregados = useMemo(() => entradas.filter((e) => e.agregado), [entradas])
@@ -109,7 +126,7 @@ export function RankingScreen({ ehAdmin }: { ehAdmin: boolean }) {
           )}
 
           {!carregando && top3.length > 0 && (
-            <PodioTop3 entradas={top3} badgesPorVendedor={badgesPorVendedor} ehAdmin={ehAdmin} onAjustar={setAjustando} />
+            <PodioTop3 entradas={top3} badgesPorVendedor={badgesPorVendedor} ehAdmin={ehAdmin} userId={userId} onAjustar={setAjustando} onProvocar={setProvocando} />
           )}
 
           {!carregando && resto.length > 0 && (
@@ -121,7 +138,9 @@ export function RankingScreen({ ehAdmin }: { ehAdmin: boolean }) {
                     entrada={entrada}
                     badges={badgesPorVendedor.get(entrada.id) ?? []}
                     ehAdmin={ehAdmin}
+                    userId={userId}
                     onAjustar={setAjustando}
+                    onProvocar={setProvocando}
                   />
                 ))}
               </AnimatePresence>
@@ -144,6 +163,8 @@ export function RankingScreen({ ehAdmin }: { ehAdmin: boolean }) {
               />
             </div>
           )}
+
+          <EquipeApoioSecao membros={equipeApoio} userId={userId} onProvocar={setProvocando} />
         </div>
 
         {!carregando && entradas.length > 0 && (
@@ -156,6 +177,17 @@ export function RankingScreen({ ehAdmin }: { ehAdmin: boolean }) {
       {ajustando && (
         <AjustarModal entrada={ajustando} ano={ANO} onFechar={() => setAjustando(null)} onAtualizado={recarregar} />
       )}
+
+      {provocando && (
+        <ProvocarModal
+          destinatarioProfileId={provocando.profileId}
+          destinatarioNome={provocando.nome}
+          remetenteNome={meuNome}
+          onFechar={() => setProvocando(null)}
+        />
+      )}
+
+      {!carregando && <ProvocacoesListener entradas={entradas} equipeApoio={equipeApoio} />}
     </main>
   )
 }

@@ -1,9 +1,10 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { MapPin, Pencil } from 'lucide-react'
+import { Flame, MapPin, Pencil } from 'lucide-react'
 import type { Badge } from '@/lib/ranking/badges'
 import type { RankingEntry } from '@/lib/ranking/types'
+import type { AlvoProvocacao } from '@/lib/provocacoes/types'
 import { AvatarVendedor } from './avatar-vendedor'
 import { BarraProgresso } from './barra-progresso'
 import { ChipsBadges } from './chips-badges'
@@ -15,10 +16,14 @@ interface CardRankingProps {
   entrada: RankingEntry
   badges: Badge[]
   ehAdmin: boolean
+  userId: string
   onAjustar?: (entrada: RankingEntry) => void
+  onProvocar?: (alvo: AlvoProvocacao) => void
 }
 
-export function CardRanking({ entrada, badges, ehAdmin, onAjustar }: CardRankingProps) {
+export function CardRanking({ entrada, badges, ehAdmin, userId, onAjustar, onProvocar }: CardRankingProps) {
+  const podeProvocar = !entrada.agregado && entrada.profileId !== null && entrada.profileId !== userId
+
   return (
     <motion.div
       layout
@@ -36,10 +41,19 @@ export function CardRanking({ entrada, badges, ehAdmin, onAjustar }: CardRanking
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <InsigniaVendedor faturado={entrada.faturado} size={15} />
+          <InsigniaVendedor totalToneladas={entrada.total} size={15} />
           <span className="min-w-0 flex-1 truncate text-sm font-bold text-white">{entrada.nome}</span>
           <ChipsBadges badges={badges} compacto />
           <span className="tabular shrink-0 text-xs font-extrabold text-brand-300">{fmtPct(entrada.percentual)}</span>
+          {podeProvocar && (
+            <button
+              onClick={() => onProvocar?.({ profileId: entrada.profileId as string, nome: entrada.nome })}
+              aria-label={`Provocar ${entrada.nome}`}
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/8 text-white/45 transition-colors hover:bg-warning-500/20 hover:text-warning-400 active:scale-90"
+            >
+              <Flame className="h-3 w-3" />
+            </button>
+          )}
         </div>
 
         {entrada.localizacao && (

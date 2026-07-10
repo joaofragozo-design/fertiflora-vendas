@@ -11,5 +11,5 @@ export default async function RankingPage() {
   const { data: perfil } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
   const ehAdmin = perfil?.role === 'admin'
 
-  return <RankingScreen ehAdmin={ehAdmin} />
+  return <RankingScreen ehAdmin={ehAdmin} userId={user.id} />
 }

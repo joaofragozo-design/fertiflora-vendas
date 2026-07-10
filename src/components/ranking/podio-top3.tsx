@@ -1,9 +1,11 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { MapPin, Pencil } from 'lucide-react'
+import { Flame, MapPin, Pencil } from 'lucide-react'
+import { cn } from '@/lib/utils/cn'
 import type { Badge } from '@/lib/ranking/badges'
 import type { RankingEntry } from '@/lib/ranking/types'
+import type { AlvoProvocacao } from '@/lib/provocacoes/types'
 import { AvatarVendedor } from './avatar-vendedor'
 import { BarraProgresso } from './barra-progresso'
 import { ChipsBadges } from './chips-badges'
@@ -18,10 +20,12 @@ interface PodioTop3Props {
   entradas: RankingEntry[]
   badgesPorVendedor: Map<string, Badge[]>
   ehAdmin: boolean
+  userId: string
   onAjustar?: (entrada: RankingEntry) => void
+  onProvocar?: (alvo: AlvoProvocacao) => void
 }
 
-export function PodioTop3({ entradas, badgesPorVendedor, ehAdmin, onAjustar }: PodioTop3Props) {
+export function PodioTop3({ entradas, badgesPorVendedor, ehAdmin, userId, onAjustar, onProvocar }: PodioTop3Props) {
   const [lider, ...resto] = entradas
   if (!lider) return null
 
@@ -58,8 +62,17 @@ export function PodioTop3({ entradas, badgesPorVendedor, ehAdmin, onAjustar }: P
           <div className="min-w-0 flex-1">
             <div className="text-[10px] font-bold uppercase tracking-wider text-warning-400">Líder do ranking</div>
             <div className="flex items-center gap-1.5">
-              <InsigniaVendedor faturado={lider.faturado} size={20} />
+              <InsigniaVendedor totalToneladas={lider.total} size={20} />
               <h2 className="font-display truncate text-lg font-extrabold text-white">{lider.nome}</h2>
+              {!lider.agregado && lider.profileId !== null && lider.profileId !== userId && (
+                <button
+                  onClick={() => onProvocar?.({ profileId: lider.profileId as string, nome: lider.nome })}
+                  aria-label={`Provocar ${lider.nome}`}
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/50 transition-colors hover:bg-warning-500/25 hover:text-warning-400 active:scale-90"
+                >
+                  <Flame className="h-3 w-3" />
+                </button>
+              )}
             </div>
             {lider.localizacao && (
               <div className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold leading-tight text-earth-tan">
@@ -109,10 +122,19 @@ export function PodioTop3({ entradas, badgesPorVendedor, ehAdmin, onAjustar }: P
                   <AvatarVendedor nome={entrada.nome} avatarUrl={entrada.avatarUrl} size={40} tone={tone} />
                   <span className="absolute -bottom-1 -right-1 text-base leading-none">{MEDALHA[idx + 1]}</span>
                 </div>
-                <div className="min-w-0 flex-1">
+                <div className={cn('min-w-0 flex-1', ehAdmin && 'pr-8')}>
                   <div className="flex items-center gap-1">
-                    <InsigniaVendedor faturado={entrada.faturado} size={14} />
+                    <InsigniaVendedor totalToneladas={entrada.total} size={14} />
                     <span className="truncate text-xs font-bold text-white">{entrada.nome}</span>
+                    {!entrada.agregado && entrada.profileId !== null && entrada.profileId !== userId && (
+                      <button
+                        onClick={() => onProvocar?.({ profileId: entrada.profileId as string, nome: entrada.nome })}
+                        aria-label={`Provocar ${entrada.nome}`}
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/45 transition-colors hover:bg-warning-500/25 hover:text-warning-400 active:scale-90"
+                      >
+                        <Flame className="h-2.5 w-2.5" />
+                      </button>
+                    )}
                   </div>
                   {entrada.localizacao && (
                     <div className="flex items-center gap-1 text-[9.5px] font-semibold leading-tight text-earth-tan">
