@@ -24,7 +24,6 @@ import { CardRanking } from './card-ranking'
 import { PainelLateral } from './painel-lateral'
 import { AjustarModal } from './ajustar-modal'
 import { ProvocarModal } from './provocar-modal'
-import { ProvocacoesListener } from './provocacoes-listener'
 import { EquipeApoioSecao } from './equipe-apoio-secao'
 import { MiniRankingSemanal, type ItemMiniRankingSemanal } from './mini-ranking-semanal'
 
@@ -186,8 +185,6 @@ export function RankingScreen({ ehAdmin, userId }: { ehAdmin: boolean; userId: s
           onFechar={() => setProvocando(null)}
         />
       )}
-
-      {!carregando && <ProvocacoesListener entradas={entradas} equipeApoio={equipeApoio} />}
     </main>
   )
 }

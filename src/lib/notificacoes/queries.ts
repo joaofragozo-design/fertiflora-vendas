@@ -37,3 +37,16 @@ export function inscreverNotificacoesEmTempoReal(onChange: () => void) {
 
   return () => { supabase.removeChannel(channel) }
 }
+
+/** RLS já restringe a `destinatario_id = auth.uid()` -- só chega evento de notificação recebida por mim. */
+export function inscreverNovasNotificacoes(onNova: (notificacao: Notificacao) => void) {
+  const supabase = createClient()
+  const channel = supabase
+    .channel('notificacoes-novas')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notificacoes' }, (payload) => {
+      onNova(notificacaoFromRow(payload.new as Record<string, unknown>))
+    })
+    .subscribe()
+
+  return () => { supabase.removeChannel(channel) }
+}
