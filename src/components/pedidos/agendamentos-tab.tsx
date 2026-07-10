@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { CalendarClock, CheckCircle2, Truck } from 'lucide-react'
 import { listarAgendamentosDoVendedor } from '@/lib/agendamentos/queries'
 import type { Agendamento } from '@/lib/agendamentos/types'
@@ -10,7 +10,27 @@ function fmtData(iso: string): string {
   return new Date(iso + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' }).replace('.', '')
 }
 
-/** Carregamentos agendados (na Programação do sistema de Carregamento) dos clientes do vendedor logado. */
+function pad(n: number): string {
+  return String(n).padStart(2, '0')
+}
+function paraIso(d: Date): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+/** Segunda-feira da semana de `ref` -- mesma fórmula da Programação do Carregamento (segunda a sexta). */
+function segundaDaSemana(ref: Date): Date {
+  const d = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate())
+  const dow = d.getDay() // 0 = domingo
+  const diff = dow === 0 ? -6 : 1 - dow
+  d.setDate(d.getDate() + diff)
+  return d
+}
+function somarDias(d: Date, n: number): Date {
+  const x = new Date(d)
+  x.setDate(x.getDate() + n)
+  return x
+}
+
+/** Carregamentos agendados (na Programação do sistema de Carregamento) dos clientes do vendedor logado, filtrado pela semana atual (segunda a sexta) -- mesma janela que a Françoa vê na tela dela. */
 export function AgendamentosTab() {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([])
   const [carregando, setCarregando] = useState(true)
@@ -23,21 +43,34 @@ export function AgendamentosTab() {
     return () => { ativo = false }
   }, [])
 
+  const { inicio, fim } = useMemo(() => {
+    const segunda = segundaDaSemana(new Date())
+    return { inicio: paraIso(segunda), fim: paraIso(somarDias(segunda, 4)) }
+  }, [])
+
+  const daSemana = useMemo(
+    () => agendamentos.filter((ag) => ag.data >= inicio && ag.data <= fim),
+    [agendamentos, inicio, fim]
+  )
+
+  const rotuloSemana = `${fmtData(inicio).split(' ')[1]} a ${fmtData(fim).split(' ')[1]}`
+
   if (carregando) return <SkeletonListaCards />
 
-  if (agendamentos.length === 0) {
+  if (daSemana.length === 0) {
     return (
       <div className="glass flex flex-col items-center gap-2 rounded-3xl p-8 text-center">
         <CalendarClock className="h-8 w-8 text-white/25" />
-        <p className="text-sm font-semibold text-white/60">Nenhum carregamento agendado ainda</p>
-        <p className="text-xs text-white/40">Assim que um cliente seu for programado na logística, aparece aqui.</p>
+        <p className="text-sm font-semibold text-white/60">Nada agendado para essa semana</p>
+        <p className="text-xs text-white/40">Semana de {rotuloSemana} · assim que um cliente seu for programado na logística, aparece aqui.</p>
       </div>
     )
   }
 
   return (
     <div className="flex flex-col gap-2">
-      {agendamentos.map((ag) => (
+      <div className="px-1 text-[11px] font-bold uppercase tracking-wide text-white/40">Semana de {rotuloSemana}</div>
+      {daSemana.map((ag) => (
         <div key={ag.id} className="glass flex flex-col gap-2 rounded-2xl p-4">
           <div className="flex items-center gap-3">
             <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${ag.confirmadoEm ? 'bg-brand-500/15 text-brand-300' : 'bg-white/10 text-white/50'}`}>

@@ -143,17 +143,16 @@ export async function buscarVendedorComercialDoUsuario(userId: string): Promise<
   return data ? vendedorComercialFromRow(data) : null
 }
 
-/** Faturado/Pedido de um único vendedor no ano — base do trio no dashboard (zerado se ainda não tem linha). */
-export async function buscarFaturamentoDoVendedor(vendedorId: string, ano: number): Promise<{ faturado: number; pedido: number }> {
+/** Faturado/Pedido/Meta de um único vendedor no ano — base do trio no dashboard (zerado se ainda não tem linha, mesmo dado exato do Ranking). */
+export async function buscarFaturamentoDoVendedor(vendedorId: string, ano: number): Promise<{ faturado: number; pedido: number; meta: number }> {
   const supabase = createClient()
-  const { data, error } = await supabase
-    .from('faturamento_comercial')
-    .select('faturado, pedido')
-    .eq('vendedor_id', vendedorId)
-    .eq('ano', ano)
-    .maybeSingle()
-  if (error) throw new Error(`Falha ao buscar faturamento do vendedor: ${error.message}`)
-  return { faturado: Number(data?.faturado ?? 0), pedido: Number(data?.pedido ?? 0) }
+  const [{ data: fat, error: errFat }, { data: meta, error: errMeta }] = await Promise.all([
+    supabase.from('faturamento_comercial').select('faturado, pedido').eq('vendedor_id', vendedorId).eq('ano', ano).maybeSingle(),
+    supabase.from('metas_comerciais').select('meta_toneladas').eq('vendedor_id', vendedorId).eq('ano', ano).maybeSingle(),
+  ])
+  if (errFat) throw new Error(`Falha ao buscar faturamento do vendedor: ${errFat.message}`)
+  if (errMeta) throw new Error(`Falha ao buscar meta do vendedor: ${errMeta.message}`)
+  return { faturado: Number(fat?.faturado ?? 0), pedido: Number(fat?.pedido ?? 0), meta: Number(meta?.meta_toneladas ?? 0) }
 }
 
 export async function criarVendedorComercial(params: { codigo: number; nome: string; profileId?: string | null }): Promise<VendedorComercial> {

@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { AlertTriangle, Clock3 } from 'lucide-react'
+import { AlertTriangle, Banknote } from 'lucide-react'
 import type { ResumoCreditoCliente, StatusVencimento } from '@/lib/creditos/calculos'
 
 function fmtBRL(v: number) {
@@ -34,8 +34,8 @@ export function LimiteCredito({ resumo, statusCredito }: LimiteCreditoProps) {
   if (!resumo) {
     return (
       <div className="glass flex flex-col items-center gap-2 rounded-2xl p-6 text-center">
-        <Clock3 className="h-6 w-6 text-white/25" />
-        <p className="text-xs font-semibold text-white/50">Limite de crédito ainda não sincronizado pra esse cliente.</p>
+        <Banknote className="h-6 w-6 text-white/25" />
+        <p className="text-xs font-semibold text-white/50">Cliente sem análise de crédito -- provavelmente paga à vista.</p>
       </div>
     )
   }
