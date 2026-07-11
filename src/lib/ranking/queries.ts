@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import { autenticarRealtime } from '@/lib/supabase/realtime'
 import { calcularFalta, calcularPercentual, diasUteisRestantes } from './calculos'
 import { vendedorComercialFromRow, type RankingEntry, type VendedorComercial } from './types'
 
@@ -225,7 +226,8 @@ export function inscreverRankingEmTempoReal(onChange: () => void) {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'faturamento_comercial' }, onChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'metas_comerciais' }, onChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'vendedores_comerciais' }, onChange)
-    .subscribe()
+
+  autenticarRealtime(supabase).then(() => channel.subscribe())
 
   return () => { supabase.removeChannel(channel) }
 }

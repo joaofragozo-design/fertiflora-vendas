@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import { autenticarRealtime } from '@/lib/supabase/realtime'
 import { notificacaoFromRow, type Notificacao } from './types'
 
 /**
@@ -33,7 +34,8 @@ export function inscreverNotificacoesEmTempoReal(onChange: () => void) {
   const channel = supabase
     .channel('notificacoes-realtime')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notificacoes' }, onChange)
-    .subscribe()
+
+  autenticarRealtime(supabase).then(() => channel.subscribe())
 
   return () => { supabase.removeChannel(channel) }
 }
@@ -46,7 +48,8 @@ export function inscreverNovasNotificacoes(onNova: (notificacao: Notificacao) =>
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notificacoes' }, (payload) => {
       onNova(notificacaoFromRow(payload.new as Record<string, unknown>))
     })
-    .subscribe()
+
+  autenticarRealtime(supabase).then(() => channel.subscribe())
 
   return () => { supabase.removeChannel(channel) }
 }
