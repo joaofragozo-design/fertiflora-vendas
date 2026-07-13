@@ -7,6 +7,7 @@ import { criarVendedorComercial, atualizarVendedorComercial } from '@/lib/rankin
 import type { VendedorComercial } from '@/lib/ranking/types'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Portal } from '@/components/ui/portal'
 
 interface VendedorComercialModalProps {
   vendedor: VendedorComercial | null
@@ -44,6 +45,7 @@ export function VendedorComercialModal({ vendedor, onFechar, onSalvo }: Vendedor
   }
 
   return (
+    <Portal>
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onClick={onFechar}>
       <div className="glass flex w-full max-w-md flex-col gap-4 rounded-t-[28px] p-6 sm:rounded-[28px]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
@@ -66,5 +68,6 @@ export function VendedorComercialModal({ vendedor, onFechar, onSalvo }: Vendedor
         </Button>
       </div>
     </div>
+    </Portal>
   )
 }

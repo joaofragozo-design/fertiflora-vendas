@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { PartyPopper } from 'lucide-react'
 import { BadgeTier } from '@/components/perfil/badge-tier'
 import { Button } from '@/components/ui/button'
+import { Portal } from '@/components/ui/portal'
 import type { Tier } from '@/lib/gamificacao/tiers'
 
 interface ConquistaOverlayProps {
@@ -22,6 +23,7 @@ export function ConquistaOverlay({ tiers, onFechar }: ConquistaOverlayProps) {
   }
 
   return (
+    <Portal>
     <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-5 bg-black/80 p-6 text-center backdrop-blur-md">
       <div className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest text-warning-400">
         <PartyPopper className="h-4 w-4" />
@@ -44,5 +46,6 @@ export function ConquistaOverlay({ tiers, onFechar }: ConquistaOverlayProps) {
         {indice + 1 < tiers.length ? 'Próxima conquista' : 'Continuar'}
       </Button>
     </div>
+    </Portal>
   )
 }

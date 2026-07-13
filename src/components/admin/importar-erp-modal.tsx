@@ -9,6 +9,7 @@ import { substituirNotasFiscais, substituirPedidosErp } from '@/lib/clientes-bi/
 import { substituirComissoesErp, substituirComissoesLiquidadasErp } from '@/lib/comissoes/queries'
 import type { VendedorComercial } from '@/lib/ranking/types'
 import { Button } from '@/components/ui/button'
+import { Portal } from '@/components/ui/portal'
 import { fmtT } from '@/components/ranking/formatadores'
 import { cn } from '@/lib/utils/cn'
 
@@ -192,6 +193,7 @@ export function ImportarErpModal({ linhasAtuais, ano, onFechar, onImportado }: I
   const vendedoresComissoesLiquidadasUnicos = comissoesLiquidadasErp ? new Set(comissoesLiquidadasErp.map((c) => c.vendedorCodigo)).size : 0
 
   return (
+    <Portal>
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onClick={onFechar}>
       <div
         className="glass flex max-h-[85vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-t-[28px] p-6 sm:rounded-[28px]"
@@ -396,5 +398,6 @@ export function ImportarErpModal({ linhasAtuais, ano, onFechar, onImportado }: I
         </div>
       </div>
     </div>
+    </Portal>
   )
 }

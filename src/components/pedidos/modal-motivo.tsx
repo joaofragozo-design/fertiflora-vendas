@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Loader2, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Portal } from '@/components/ui/portal'
 
 interface ModalMotivoProps {
   titulo: string
@@ -32,6 +33,7 @@ export function ModalMotivo({ titulo, onFechar, onConfirmar, onConfirmado }: Mod
   }
 
   return (
+    <Portal>
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onClick={onFechar}>
       <div className="glass flex w-full max-w-md flex-col gap-4 rounded-t-[28px] p-6 sm:rounded-[28px]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
@@ -47,5 +49,6 @@ export function ModalMotivo({ titulo, onFechar, onConfirmar, onConfirmado }: Mod
         </Button>
       </div>
     </div>
+    </Portal>
   )
 }

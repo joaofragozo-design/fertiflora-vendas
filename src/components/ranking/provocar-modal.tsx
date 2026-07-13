@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Loader2, X } from 'lucide-react'
+import { Portal } from '@/components/ui/portal'
 import { enviarProvocacao } from '@/lib/provocacoes/queries'
 import { CATALOGO_PROVOCACOES, type TipoProvocacao } from '@/lib/provocacoes/types'
 
@@ -32,6 +33,7 @@ export function ProvocarModal({ destinatarioProfileId, destinatarioNome, remeten
   }
 
   return (
+    <Portal>
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onClick={onFechar}>
       <div className="glass flex w-full max-w-md flex-col gap-4 rounded-t-[28px] p-6 sm:rounded-[28px]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
@@ -56,5 +58,6 @@ export function ProvocarModal({ destinatarioProfileId, destinatarioNome, remeten
         </div>
       </div>
     </div>
+    </Portal>
   )
 }

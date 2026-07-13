@@ -61,7 +61,13 @@ export function SinoNotificacoes() {
       </button>
 
       {aberto && (
-        <div className="glass absolute right-0 top-12 z-50 flex max-h-96 w-80 flex-col gap-1 overflow-y-auto rounded-2xl p-2 shadow-xl">
+        // fixed (não absolute) -- o sino não é o elemento mais à direita do header (o botão
+        // "Sair" vem depois dele), então "right-0" relativo ao próprio sino ficava deslocado
+        // pra esquerda e vazava pra fora da tela em telas estreitas.
+        <div
+          className="glass isolate fixed right-5 top-20 z-50 flex max-h-96 w-[min(20rem,calc(100vw-2.5rem))] flex-col gap-1 overflow-y-auto rounded-2xl p-2 shadow-xl"
+          style={{ backgroundColor: 'rgba(15, 18, 16, 0.97)' }}
+        >
           {notificacoes.length === 0 && (
             <p className="p-4 text-center text-xs font-semibold text-white/40">Nenhuma notificação ainda</p>
           )}

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Gift } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Portal } from '@/components/ui/portal'
 import { abrirBau } from '@/lib/baus/queries'
 import type { Bau, RecompensaBau } from '@/lib/baus/types'
 
@@ -30,6 +31,7 @@ export function BauOverlay({ baus, onFechar }: BauOverlayProps) {
   }
 
   return (
+    <Portal>
     <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-5 bg-black/80 p-6 text-center backdrop-blur-md">
       <div className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest text-warning-400">
         <Gift className="h-4 w-4" />
@@ -63,5 +65,6 @@ export function BauOverlay({ baus, onFechar }: BauOverlayProps) {
         </div>
       )}
     </div>
+    </Portal>
   )
 }
