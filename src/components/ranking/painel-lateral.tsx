@@ -69,7 +69,7 @@ export function PainelLateral({ entradas, historico, ano }: PainelLateralProps) 
         {topCrescimento.length === 0 && <p className="text-xs text-white/40">Sem crescimento registrado nos últimos dias.</p>}
         {topCrescimento.map(({ entrada, delta }) => (
           <div key={entrada.id} className="flex items-center gap-2.5">
-            <AvatarVendedor nome={entrada.nome} avatarUrl={entrada.avatarUrl} size={32} />
+            <AvatarVendedor nome={entrada.nome} avatarUrl={entrada.avatarUrl} size={32} molduraCor={entrada.molduraCor} />
             <div className="min-w-0 flex-1">
               <div className="truncate text-xs font-bold text-white">{entrada.nome}</div>
             </div>

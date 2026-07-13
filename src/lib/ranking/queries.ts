@@ -25,6 +25,7 @@ export async function listarRanking(ano: number): Promise<RankingEntry[]> {
   const profileIds = (vendedores ?? []).map((v) => v.profile_id).filter((id): id is string => !!id)
   const avatarPorProfile = new Map<string, string | null>()
   const localizacaoPorProfile = new Map<string, string | null>()
+  const molduraPorProfile = new Map<string, string | null>()
   if (profileIds.length > 0) {
     // RLS de profiles só libera a própria linha -- via RPC (security definer) pra ver a foto/localização de todo mundo.
     // Nunca lança: se a migration da RPC ainda não rodou, o ranking continua funcionando (só sem foto/localização).
@@ -35,6 +36,7 @@ export async function listarRanking(ano: number): Promise<RankingEntry[]> {
       for (const p of perfis ?? []) {
         avatarPorProfile.set(p.id as string, (p.avatar_url as string) ?? null)
         localizacaoPorProfile.set(p.id as string, (p.praca_atuacao as string) ?? null)
+        molduraPorProfile.set(p.id as string, (p.moldura_cor as string) ?? null)
       }
     }
   }
@@ -53,6 +55,7 @@ export async function listarRanking(ano: number): Promise<RankingEntry[]> {
       profileId: v.profileId,
       avatarUrl: v.profileId ? (avatarPorProfile.get(v.profileId) ?? null) : null,
       localizacao: v.profileId ? (localizacaoPorProfile.get(v.profileId) ?? null) : null,
+      molduraCor: v.profileId ? (molduraPorProfile.get(v.profileId) ?? null) : null,
       agregado: v.agregado,
       faturado,
       pedido,

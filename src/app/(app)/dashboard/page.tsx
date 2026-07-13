@@ -5,6 +5,7 @@ import { AnunciarIntensidade } from '@/components/scene/living-background/anunci
 import { Logo } from '@/components/brand/logo'
 import { SignOutButton } from '@/components/forms/sign-out-button'
 import { SinoNotificacoes } from '@/components/notificacoes/sino-notificacoes'
+import { BauIndicador } from '@/components/perfil/bau-indicador'
 import { PerfilCard } from '@/components/perfil/perfil-card'
 import { TrioFaturamentoVendedor } from '@/components/ranking/trio-faturamento-vendedor'
 import { createClient } from '@/lib/supabase/server'
@@ -30,6 +31,8 @@ export default async function DashboardPage() {
         </header>
 
         <PerfilCard userId={user.id} usernameFallback={user.email ? emailToUsername(user.email) : 'vendedor'} />
+
+        <BauIndicador />
 
         <TrioFaturamentoVendedor userId={user.id} />
 

@@ -7,6 +7,8 @@ interface AvatarVendedorProps {
   size?: number
   tone?: 'gold' | 'silver' | 'bronze' | 'default'
   className?: string
+  /** Cor de anel ganha em baú de recompensa -- camada independente do tone (posição no pódio). */
+  molduraCor?: string | null
 }
 
 const TONS: Record<NonNullable<AvatarVendedorProps['tone']>, string> = {
@@ -16,8 +18,8 @@ const TONS: Record<NonNullable<AvatarVendedorProps['tone']>, string> = {
   default: 'bg-brand-500/20 text-brand-300 ring-white/10',
 }
 
-export function AvatarVendedor({ nome, avatarUrl, size = 48, tone = 'default', className }: AvatarVendedorProps) {
-  return (
+export function AvatarVendedor({ nome, avatarUrl, size = 48, tone = 'default', className, molduraCor }: AvatarVendedorProps) {
+  const avatar = (
     <div
       className={cn('relative flex shrink-0 items-center justify-center overflow-hidden rounded-full font-extrabold ring-2', TONS[tone], className)}
       style={{ width: size, height: size, fontSize: size * 0.34 }}
@@ -28,6 +30,14 @@ export function AvatarVendedor({ nome, avatarUrl, size = 48, tone = 'default', c
       ) : (
         iniciais(nome)
       )}
+    </div>
+  )
+
+  if (!molduraCor) return avatar
+
+  return (
+    <div className="shrink-0 rounded-full p-[3px]" style={{ background: molduraCor }}>
+      {avatar}
     </div>
   )
 }

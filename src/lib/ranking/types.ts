@@ -15,6 +15,8 @@ export interface RankingEntry {
   profileId: string | null
   avatarUrl: string | null
   localizacao: string | null
+  /** Cor de anel ganha em baú de recompensa (null se nunca ganhou nenhuma). */
+  molduraCor: string | null
   /** null pros agregados (Fertiflora, Outros) — eles não disputam colocação. */
   colocacao: number | null
   agregado: boolean

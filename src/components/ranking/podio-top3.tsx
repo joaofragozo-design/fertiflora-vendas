@@ -56,7 +56,7 @@ export function PodioTop3({ entradas, badgesPorVendedor, ehAdmin, userId, onAjus
 
         <div className="relative flex items-center gap-4">
           <div className="relative shrink-0">
-            <AvatarVendedor nome={lider.nome} avatarUrl={lider.avatarUrl} size={60} tone="gold" />
+            <AvatarVendedor nome={lider.nome} avatarUrl={lider.avatarUrl} size={60} tone="gold" molduraCor={lider.molduraCor} />
             <span className="absolute -bottom-1.5 -right-1.5 text-2xl leading-none drop-shadow">{MEDALHA[0]}</span>
           </div>
           <div className="min-w-0 flex-1">
@@ -119,7 +119,7 @@ export function PodioTop3({ entradas, badgesPorVendedor, ehAdmin, userId, onAjus
               )}
               <div className="flex items-center gap-2.5">
                 <div className="relative shrink-0">
-                  <AvatarVendedor nome={entrada.nome} avatarUrl={entrada.avatarUrl} size={40} tone={tone} />
+                  <AvatarVendedor nome={entrada.nome} avatarUrl={entrada.avatarUrl} size={40} tone={tone} molduraCor={entrada.molduraCor} />
                   <span className="absolute -bottom-1 -right-1 text-base leading-none">{MEDALHA[idx + 1]}</span>
                 </div>
                 <div className={cn('min-w-0 flex-1', ehAdmin && 'pr-8')}>

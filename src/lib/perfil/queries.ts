@@ -8,6 +8,8 @@ export interface Perfil {
   pracaAtuacao: string | null
   nomeCompleto: string | null
   telefone: string | null
+  /** Cor de anel ganha em baú de recompensa (null se nunca ganhou nenhuma). */
+  molduraCor: string | null
 }
 
 /**
@@ -28,14 +30,14 @@ export async function buscarPerfil(userId: string, usernameFallback: string): Pr
   const supabase = createClient()
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, username, apelido, avatar_url, praca_atuacao, nome_completo, telefone')
+    .select('id, username, apelido, avatar_url, praca_atuacao, nome_completo, telefone, moldura_cor')
     .eq('id', userId)
     .maybeSingle()
   if (error) throw new Error(`Falha ao carregar perfil: ${error.message}`)
 
   if (!data) {
     await garantirPerfil(userId, usernameFallback)
-    return { id: userId, username: usernameFallback, apelido: null, avatarUrl: null, pracaAtuacao: null, nomeCompleto: null, telefone: null }
+    return { id: userId, username: usernameFallback, apelido: null, avatarUrl: null, pracaAtuacao: null, nomeCompleto: null, telefone: null, molduraCor: null }
   }
 
   return {
@@ -46,6 +48,7 @@ export async function buscarPerfil(userId: string, usernameFallback: string): Pr
     pracaAtuacao: data.praca_atuacao,
     nomeCompleto: data.nome_completo,
     telefone: data.telefone,
+    molduraCor: data.moldura_cor,
   }
 }
 

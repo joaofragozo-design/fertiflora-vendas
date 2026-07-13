@@ -37,7 +37,7 @@ export function CardRanking({ entrada, badges, ehAdmin, userId, onAjustar, onPro
       <div className="tabular flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/8 text-xs font-extrabold text-white/60">
         {entrada.colocacao !== null ? `${entrada.colocacao}º` : '—'}
       </div>
-      <AvatarVendedor nome={entrada.nome} avatarUrl={entrada.avatarUrl} size={36} />
+      <AvatarVendedor nome={entrada.nome} avatarUrl={entrada.avatarUrl} size={36} molduraCor={entrada.molduraCor} />
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">

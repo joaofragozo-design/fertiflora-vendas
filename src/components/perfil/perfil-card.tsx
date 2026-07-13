@@ -24,7 +24,7 @@ export function PerfilCard({ userId, usernameFallback }: PerfilCardProps) {
   const [editando, setEditando] = useState(false)
 
   useEffect(() => {
-    buscarPerfil(userId, usernameFallback).then(setPerfil).catch(() => setPerfil({ id: userId, username: usernameFallback, apelido: null, avatarUrl: null, pracaAtuacao: null, nomeCompleto: null, telefone: null }))
+    buscarPerfil(userId, usernameFallback).then(setPerfil).catch(() => setPerfil({ id: userId, username: usernameFallback, apelido: null, avatarUrl: null, pracaAtuacao: null, nomeCompleto: null, telefone: null, molduraCor: null }))
     buscarVendedorComercialDoUsuario(userId)
       .then((vendedor) => (vendedor ? buscarFaturamentoDoVendedor(vendedor.id, ANO) : { faturado: 0, pedido: 0, meta: 0 }))
       .then((d) => setTotalToneladas(d.faturado + d.pedido))
@@ -39,13 +39,18 @@ export function PerfilCard({ userId, usernameFallback }: PerfilCardProps) {
     <>
       <div className="glass flex flex-col gap-4 rounded-3xl p-6">
         <div className="flex items-center gap-3.5">
-          <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-500/20 text-base font-extrabold text-brand-300">
-            {perfil?.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={perfil.avatarUrl} alt={nomeExibicao} className="h-full w-full object-cover" />
-            ) : (
-              nomeExibicao.slice(0, 2).toUpperCase()
-            )}
+          <div
+            className={cn('shrink-0 rounded-full', perfil?.molduraCor && 'p-[3px]')}
+            style={perfil?.molduraCor ? { background: perfil.molduraCor } : undefined}
+          >
+            <div className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-brand-500/20 text-base font-extrabold text-brand-300">
+              {perfil?.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={perfil.avatarUrl} alt={nomeExibicao} className="h-full w-full object-cover" />
+              ) : (
+                nomeExibicao.slice(0, 2).toUpperCase()
+              )}
+            </div>
           </div>
 
           <div className="min-w-0 flex-1">
