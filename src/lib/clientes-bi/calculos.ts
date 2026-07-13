@@ -8,6 +8,15 @@ function mesDe(emissao: string): number {
   return Number(emissao.slice(5, 7))
 }
 
+/** 'MM-DD' -- comparável lexicograficamente na mesma ordem do calendário. */
+function chaveDiaDoAno(emissao: string): string {
+  return emissao.slice(5, 10)
+}
+
+function corteDiaDoAno(hoje: Date): string {
+  return `${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`
+}
+
 function somaToneladas(notas: NotaFiscalRow[]): number {
   return notas.filter((n) => n.un === 'KG').reduce((s, n) => s + n.pesoLiquidoKg, 0) / 1000
 }
@@ -21,9 +30,15 @@ export function variacaoPct(atual: number, anterior: number): number | null {
   return ((atual - anterior) / anterior) * 100
 }
 
-export function calcularKpis(notas: NotaFiscalRow[], ano: number): KpiCliente {
-  const doAno = notas.filter((n) => anoDe(n.emissao) === ano)
-  const doAnoAnterior = notas.filter((n) => anoDe(n.emissao) === ano - 1)
+/**
+ * "vs ano anterior" sempre até o mesmo dia do calendário nos dois anos (ex.: 13/07/2026 vs
+ * 13/07/2025) -- sem o corte, o ano anterior (já fechado) entra inteiro (jan-dez) contra o
+ * ano atual parcial (jan-hoje), inflando artificialmente a queda/alta.
+ */
+export function calcularKpis(notas: NotaFiscalRow[], ano: number, hoje: Date = new Date()): KpiCliente {
+  const corte = corteDiaDoAno(hoje)
+  const doAno = notas.filter((n) => anoDe(n.emissao) === ano && chaveDiaDoAno(n.emissao) <= corte)
+  const doAnoAnterior = notas.filter((n) => anoDe(n.emissao) === ano - 1 && chaveDiaDoAno(n.emissao) <= corte)
 
   const toneladasAno = somaToneladas(doAno)
   const reaisAno = somaReais(doAno)
@@ -120,7 +135,7 @@ export function calcularInsights(notas: NotaFiscalRow[], ano: number, hoje: Date
   const insights: Insight[] = []
   if (notas.length === 0) return insights
 
-  const kpis = calcularKpis(notas, ano)
+  const kpis = calcularKpis(notas, ano, hoje)
   const topProdutosAno = calcularTopProdutos(notas, ano, 1)
   const topProdutoHistorico = calcularTopProdutos(notas, ano).length > 0 ? topProdutosAno[0] : calcularTopProdutos(notas, hoje.getFullYear(), 1)[0]
 
@@ -149,10 +164,16 @@ export function calcularInsights(notas: NotaFiscalRow[], ano: number, hoje: Date
   return insights
 }
 
-/** Visão geral de todos os clientes de um vendedor — base da tela "Visão Geral" e do gráfico de pizza. */
-export function calcularResumoVendedor(notas: NotaFiscalRow[], ano: number): ResumoVendedor {
-  const doAno = notas.filter((n) => anoDe(n.emissao) === ano)
-  const doAnoAnterior = notas.filter((n) => anoDe(n.emissao) === ano - 1)
+/**
+ * Visão geral de todos os clientes de um vendedor — base da tela "Visão Geral" e do gráfico de pizza.
+ * "vs ano anterior" sempre até o mesmo dia do calendário nos dois anos (ex.: 13/07/2026 vs
+ * 13/07/2025) -- sem o corte, o ano anterior (já fechado) entra inteiro (jan-dez) contra o
+ * ano atual parcial (jan-hoje), inflando artificialmente a queda/alta.
+ */
+export function calcularResumoVendedor(notas: NotaFiscalRow[], ano: number, hoje: Date = new Date()): ResumoVendedor {
+  const corte = corteDiaDoAno(hoje)
+  const doAno = notas.filter((n) => anoDe(n.emissao) === ano && chaveDiaDoAno(n.emissao) <= corte)
+  const doAnoAnterior = notas.filter((n) => anoDe(n.emissao) === ano - 1 && chaveDiaDoAno(n.emissao) <= corte)
 
   const totalToneladas = somaToneladas(doAno)
   const totalReais = somaReais(doAno)
