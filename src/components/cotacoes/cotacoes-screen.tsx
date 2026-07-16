@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Plus, CheckCircle2, AlertTriangle, Eye, FileClock } from 'lucide-react'
-import { listarCotacoes } from '@/lib/cotacoes/queries'
-import { statusCotacao, type CotacaoSalva } from '@/lib/cotacoes/types'
+import { toast } from 'sonner'
+import { Plus, CheckCircle2, AlertTriangle, Eye, FileClock, Lock, Unlock, Loader2 } from 'lucide-react'
+import { destravarCotacao, inscreverConfigCotacaoEmTempoReal, listarCotacoes, travarCotacao } from '@/lib/cotacoes/queries'
+import { statusCotacao, type CotacaoConfig, type CotacaoSalva } from '@/lib/cotacoes/types'
 import { listarClientes } from '@/lib/clientes/queries'
 import type { Cliente } from '@/lib/clientes/types'
 import { cn } from '@/lib/utils/cn'
@@ -16,13 +17,20 @@ function fmtBRL(v: number) { return 'R$ ' + v.toLocaleString('pt-BR', { minimumF
 
 type Aba = 'validas' | 'historico'
 
-export function CotacoesScreen() {
+interface CotacoesScreenProps {
+  ehAdmin: boolean
+  configInicial: CotacaoConfig | null
+}
+
+export function CotacoesScreen({ ehAdmin, configInicial }: CotacoesScreenProps) {
   usePageIntensity(0.2)
   const [cotacoes, setCotacoes] = useState<CotacaoSalva[]>([])
   const [clientesPorId, setClientesPorId] = useState<Record<string, Cliente>>({})
   const [carregando, setCarregando] = useState(true)
   const [aba, setAba] = useState<Aba>('validas')
   const [selecionada, setSelecionada] = useState<CotacaoSalva | null>(null)
+  const [config, setConfig] = useState(configInicial)
+  const [alternandoTrava, setAlternandoTrava] = useState(false)
 
   useEffect(() => {
     Promise.all([listarCotacoes(), listarClientes()]).then(([c, cli]) => {
@@ -31,6 +39,33 @@ export function CotacoesScreen() {
       setCarregando(false)
     })
   }, [])
+
+  useEffect(() => inscreverConfigCotacaoEmTempoReal(setConfig), [])
+
+  async function handleAlternarTrava() {
+    if (!config) return
+    setAlternandoTrava(true)
+    try {
+      if (config.travada) {
+        await destravarCotacao(config.id)
+        toast.success('Cotação destravada — vendedores já podem criar novas cotações')
+      } else {
+        await travarCotacao(config.id)
+        toast.success('Cotação travada — vendedores não conseguem mais criar novas cotações')
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Falha ao atualizar a trava')
+    } finally {
+      setAlternandoTrava(false)
+    }
+  }
+
+  function handleCliqueNovaCotacao(e: React.MouseEvent) {
+    if (config?.travada && !ehAdmin) {
+      e.preventDefault()
+      toast.error('Cotação travada pelo administrador no momento.')
+    }
+  }
 
   const filtradas = useMemo(
     () => cotacoes.filter((c) => statusCotacao(c.createdAt) === (aba === 'validas' ? 'valida' : 'historico')),
@@ -47,14 +82,42 @@ export function CotacoesScreen() {
       <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
         <div className="flex items-center gap-3">
           <h1 className="font-display text-lg font-bold">Cotações</h1>
-          <Link
-            href="/cotacao"
-            aria-label="Nova cotação"
-            className="ml-auto flex h-11 w-11 items-center justify-center rounded-full bg-brand-500 text-ink-950 transition-transform active:scale-90"
-          >
-            <Plus className="h-4.5 w-4.5" />
-          </Link>
+          <div className="ml-auto flex items-center gap-2">
+            {ehAdmin && config && (
+              <button
+                onClick={handleAlternarTrava}
+                disabled={alternandoTrava}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-full px-3 py-2 text-[11px] font-bold transition-colors',
+                  config.travada ? 'bg-danger-500/20 text-danger-300' : 'bg-white/8 text-white/60 hover:bg-white/12'
+                )}
+              >
+                {alternandoTrava ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : config.travada ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+                {config.travada ? 'Travada' : 'Travar cotação'}
+              </button>
+            )}
+            <Link
+              href="/cotacao"
+              aria-label="Nova cotação"
+              onClick={handleCliqueNovaCotacao}
+              className={cn(
+                'flex h-11 w-11 items-center justify-center rounded-full transition-transform active:scale-90',
+                !ehAdmin && config?.travada ? 'bg-white/10 text-white/35' : 'bg-brand-500 text-ink-950'
+              )}
+            >
+              {!ehAdmin && config?.travada ? <Lock className="h-4 w-4" /> : <Plus className="h-4.5 w-4.5" />}
+            </Link>
+          </div>
         </div>
+
+        {config?.travada && (
+          <div className="glass flex items-center gap-2.5 rounded-2xl border border-warning-500/30 px-3.5 py-2.5">
+            <Lock className="h-4 w-4 shrink-0 text-warning-400" />
+            <p className="text-[11.5px] font-semibold leading-snug text-warning-300">
+              {ehAdmin ? 'Cotação travada — vendedores não conseguem criar novas cotações agora.' : 'Cotação travada pelo administrador — fale com a diretoria para liberar.'}
+            </p>
+          </div>
+        )}
 
         <div className="flex gap-1.5 rounded-2xl bg-white/[0.06] p-1">
           <button
@@ -82,7 +145,7 @@ export function CotacoesScreen() {
             <p className="text-sm font-semibold text-white/60">
               {aba === 'validas' ? 'Nenhuma cotação válida no momento' : 'Nenhuma cotação no histórico ainda'}
             </p>
-            {aba === 'validas' && <Link href="/cotacao" className="text-xs font-bold text-brand-300">Criar uma cotação</Link>}
+            {aba === 'validas' && !(config?.travada && !ehAdmin) && <Link href="/cotacao" className="text-xs font-bold text-brand-300">Criar uma cotação</Link>}
           </div>
         )}
 

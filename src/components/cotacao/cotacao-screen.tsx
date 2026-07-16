@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle2, AlertTriangle, Download, Printer, ArrowLeftCircle, CalendarClock, Pencil, Share2, ShieldAlert, UserCircle2, ChevronRight, Loader2, Save } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, AlertTriangle, Download, Printer, ArrowLeftCircle, CalendarClock, Pencil, Share2, ShieldAlert, UserCircle2, ChevronRight, Loader2, Save, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { calcularCotacao, COMISSAO_BASE_NIVEL } from '@/lib/pricing/calculadora'
 import { calcularPrazoMedio, type Parcela } from '@/lib/pricing/prazo-medio'
@@ -12,8 +12,9 @@ import { ClientePicker } from '@/components/cotacao/cliente-picker'
 import { FormulaCombobox } from '@/components/cotacao/formula-combobox'
 import { ClienteForm } from '@/components/clientes/cliente-form'
 import { criarCliente } from '@/lib/clientes/queries'
-import { salvarCotacao } from '@/lib/cotacoes/queries'
+import { inscreverConfigCotacaoEmTempoReal, salvarCotacao } from '@/lib/cotacoes/queries'
 import type { Cliente } from '@/lib/clientes/types'
+import type { CotacaoConfig } from '@/lib/cotacoes/types'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils/cn'
@@ -29,6 +30,8 @@ interface CotacaoScreenProps {
   formulas: FormulaPreco[]
   dataTabela: string
   vendedor: string
+  ehAdmin: boolean
+  configInicial: CotacaoConfig | null
 }
 
 type Visao = 'form' | 'prazo' | 'resumo' | 'clientes' | 'novoCliente'
@@ -58,9 +61,10 @@ function linhasPagamento(modoPagamento: ModoPagamento, pagamentoAvista: string, 
   return validas.map((p, i) => [`Pagamento ${i + 1}/${validas.length} (${fmtPct(p.percentual)})`, fmtDateInput(p.data)])
 }
 
-export function CotacaoScreen({ formulas: formulasIniciais, dataTabela, vendedor }: CotacaoScreenProps) {
+export function CotacaoScreen({ formulas: formulasIniciais, dataTabela, vendedor, ehAdmin, configInicial }: CotacaoScreenProps) {
   usePageIntensity(0.2)
   const [formulas, setFormulas] = useState(formulasIniciais)
+  const [config, setConfig] = useState(configInicial)
   const [visao, setVisao] = useState<Visao>('form')
   const [produto, setProduto] = useState('')
   const [estado, setEstado] = useState('MS')
@@ -106,6 +110,10 @@ export function CotacaoScreen({ formulas: formulasIniciais, dataTabela, vendedor
     })
   }, [])
 
+  // Segunda checagem de tempo real (a primeira já acontece antes do clique, em CotacoesScreen) --
+  // se o admin travar enquanto o vendedor já está com o formulário aberto, bloqueia na hora.
+  useEffect(() => inscreverConfigCotacaoEmTempoReal(setConfig), [])
+
   const precoBase = useMemo(() => formulas.find((f) => f.nome === produto)?.precoUsdAvista, [formulas, produto])
 
   const prazoCalc = useMemo(() => calcularPrazoMedio(parcelas, new Date()), [parcelas])
@@ -140,6 +148,28 @@ export function CotacaoScreen({ formulas: formulasIniciais, dataTabela, vendedor
   }, [precoBase, dolar, entrega, pagamentoEfetivo, frete, agenciador, precoVendidoNum, estado, dataTabela])
 
   const validadeHoje = new Date().toLocaleDateString('pt-BR')
+
+  if (config?.travada && !ehAdmin) {
+    return (
+      <main className="relative z-10 min-h-screen pb-28">
+        <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pt-6">
+          <div className="flex items-center gap-3">
+            <Link href="/cotacoes" className="flex h-11 w-11 items-center justify-center rounded-full bg-white/8 text-white transition-colors hover:bg-white/12 active:scale-90" aria-label="Voltar">
+              <ArrowLeft className="h-4.5 w-4.5" />
+            </Link>
+            <h1 className="font-display text-lg font-bold">Nova Cotação</h1>
+          </div>
+          <div className="glass flex flex-col items-center gap-3 rounded-3xl p-8 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-danger-500/15 text-danger-400">
+              <Lock className="h-6 w-6" />
+            </div>
+            <p className="text-sm font-bold text-white">Cotação travada pelo administrador</p>
+            <p className="text-xs text-white/50">Fale com a diretoria para liberar a criação de novas cotações.</p>
+          </div>
+        </div>
+      </main>
+    )
+  }
 
   function montarSecoes(): ResumoSecao[] {
     if (!resultado) return []

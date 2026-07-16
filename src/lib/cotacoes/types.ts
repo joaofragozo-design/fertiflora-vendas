@@ -54,3 +54,17 @@ export function cotacaoFromRow(row: Record<string, unknown>): CotacaoSalva {
     createdAt: row.created_at as string,
   }
 }
+
+export interface CotacaoConfig {
+  id: string
+  travada: boolean
+  travadaEm: string | null
+}
+
+export function cotacaoConfigFromRow(row: Record<string, unknown>): CotacaoConfig {
+  return {
+    id: row.id as string,
+    travada: row.travada as boolean,
+    travadaEm: (row.travada_em as string) ?? null,
+  }
+}
