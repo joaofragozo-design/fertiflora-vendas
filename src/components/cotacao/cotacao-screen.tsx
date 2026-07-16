@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle2, AlertTriangle, Download, Printer, ArrowLeftCircle, CalendarClock, Pencil, X, Share2, ShieldAlert, UserCircle2, ChevronRight, Loader2, Save } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, AlertTriangle, Download, Printer, ArrowLeftCircle, CalendarClock, Pencil, Share2, ShieldAlert, UserCircle2, ChevronRight, Loader2, Save } from 'lucide-react'
 import { toast } from 'sonner'
 import { calcularCotacao, COMISSAO_BASE_NIVEL } from '@/lib/pricing/calculadora'
 import { calcularPrazoMedio, type Parcela } from '@/lib/pricing/prazo-medio'
 import { gerarImagemResumo, type ResumoSecao } from '@/lib/pricing/resumo-image'
 import { PrazoMedioScreen } from '@/components/cotacao/prazo-medio-screen'
 import { ClientePicker } from '@/components/cotacao/cliente-picker'
+import { FormulaCombobox } from '@/components/cotacao/formula-combobox'
 import { ClienteForm } from '@/components/clientes/cliente-form'
 import { criarCliente } from '@/lib/clientes/queries'
 import { salvarCotacao } from '@/lib/cotacoes/queries'
@@ -17,6 +18,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils/cn'
 import type { FormulaPreco } from '@/lib/pricing/formulas'
+import { buscarFormulasComPrecoAgora, inscreverFormulaPrecosEmTempoReal } from '@/lib/pricing/formula-precos-realtime'
 import { createClient } from '@/lib/supabase/client'
 import { buscarTotalToneladas, verificarNovasConquistas } from '@/lib/gamificacao/queries'
 import type { Tier } from '@/lib/gamificacao/tiers'
@@ -56,8 +58,9 @@ function linhasPagamento(modoPagamento: ModoPagamento, pagamentoAvista: string, 
   return validas.map((p, i) => [`Pagamento ${i + 1}/${validas.length} (${fmtPct(p.percentual)})`, fmtDateInput(p.data)])
 }
 
-export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenProps) {
+export function CotacaoScreen({ formulas: formulasIniciais, dataTabela, vendedor }: CotacaoScreenProps) {
   usePageIntensity(0.2)
+  const [formulas, setFormulas] = useState(formulasIniciais)
   const [visao, setVisao] = useState<Visao>('form')
   const [produto, setProduto] = useState('')
   const [estado, setEstado] = useState('MS')
@@ -77,8 +80,30 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
   const [salva, setSalva] = useState(false)
   const [novasConquistas, setNovasConquistas] = useState<Tier[]>([])
 
+  // Poll a cada 5s -- o dólar não vem por realtime (não é nossa tabela, é cotação de mercado externa
+  // via /api/dolar), então "tempo real" aqui é o polling mais rápido plausível sem martelar a API
+  // externa: a fonte primária (AwesomeAPI) já só atualiza a cada "poucos segundos" por si só.
   useEffect(() => {
-    fetch('/api/dolar').then((r) => r.json()).then((d) => setDolar(d.bid)).catch(() => setDolar(5.2))
+    let cancelado = false
+    function buscar() {
+      fetch('/api/dolar')
+        .then((r) => r.json())
+        .then((d) => { if (!cancelado) setDolar(d.bid) })
+        .catch(() => { if (!cancelado) setDolar((atual) => atual ?? 5.2) })
+    }
+    buscar()
+    const intervalo = setInterval(buscar, 5000)
+    return () => { cancelado = true; clearInterval(intervalo) }
+  }, [])
+
+  // Reage ao sync da planilha de fórmulas (nome/preço) sem precisar de F5 -- recarrega a tabela
+  // inteira a cada mudança (upsert por fórmula editada, nunca é uma rajada tipo reimport de CSV).
+  useEffect(() => {
+    return inscreverFormulaPrecosEmTempoReal(() => {
+      buscarFormulasComPrecoAgora()
+        .then(setFormulas)
+        .catch((e) => console.error('Falha ao recarregar preços de fórmulas:', e))
+    })
   }, [])
 
   const precoBase = useMemo(() => formulas.find((f) => f.nome === produto)?.precoUsdAvista, [formulas, produto])
@@ -145,8 +170,25 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
     ]
   }
 
+  /**
+   * "Preço campanha à vista" é informação exclusiva do vendedor — nunca deve aparecer no resumo
+   * do cliente (tela, imagem compartilhada/baixada, ou impressão). Mesmo filtro já usado em
+   * comprovante-cotacao.tsx, repetido aqui porque esta tela gera o resumo ao vivo (a outra só
+   * reabre uma cotação já salva) — `montarSecoes()` em si continua sem filtro, porque o snapshot
+   * salvo em `salvarCotacaoAtual` precisa do valor real pro histórico do vendedor.
+   */
+  function removerCampanha(secoes: ResumoSecao[]): ResumoSecao[] {
+    return secoes.map((sec) => {
+      const indiceRemovido = sec.rows.findIndex((row) => row[0] === 'Preço campanha à vista')
+      if (indiceRemovido === -1) return sec
+      const rows = sec.rows.filter((_, i) => i !== indiceRemovido)
+      const destaque = sec.destaque === undefined ? undefined : sec.destaque > indiceRemovido ? sec.destaque - 1 : sec.destaque
+      return { ...sec, rows, destaque }
+    })
+  }
+
   function gerarImagem() {
-    return gerarImagemResumo(montarSecoes(), `Válida somente hoje, ${validadeHoje}`, `vendedor ${vendedor}`)
+    return gerarImagemResumo(removerCampanha(montarSecoes()), `Válida somente hoje, ${validadeHoje}`, `vendedor ${vendedor}`)
   }
 
   async function baixarResumo() {
@@ -267,7 +309,7 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
     }
   }
 
-  const secoes = visao === 'resumo' ? montarSecoes() : []
+  const secoes = visao === 'resumo' ? removerCampanha(montarSecoes()) : []
 
   return (
     <main className="relative z-10 min-h-screen pb-28">
@@ -325,29 +367,7 @@ export function CotacaoScreen({ formulas, dataTabela, vendedor }: CotacaoScreenP
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-bold uppercase tracking-wide text-white/50">Fórmula</label>
-                <div className="relative">
-                  <input
-                    list="lista-formulas"
-                    value={produto}
-                    onChange={(e) => setProduto(e.target.value)}
-                    placeholder="Buscar fórmula…"
-                    autoComplete="off"
-                    className="w-full rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 pr-11 text-[15px] font-medium text-white outline-none placeholder:text-white/45 focus:border-brand-400 focus:bg-brand-500/10"
-                  />
-                  {produto && (
-                    <button
-                      type="button"
-                      onClick={() => setProduto('')}
-                      aria-label="Limpar fórmula selecionada"
-                      className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-                <datalist id="lista-formulas">
-                  {formulas.map((f) => <option key={f.nome} value={f.nome} />)}
-                </datalist>
+                <FormulaCombobox formulas={formulas} value={produto} onChange={setProduto} />
                 <p className="text-[10.5px] text-white/50">
                   {precoBase !== undefined ? `Referência 100% à vista: ${fmtUSD(precoBase)}/t` : produto ? 'Fórmula não encontrada no catálogo.' : 'Preço de referência aparece aqui.'}
                 </p>

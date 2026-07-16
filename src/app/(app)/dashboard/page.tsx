@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, FileText, HandCoins, ArrowRight } from 'lucide-react'
+import { Plus, FileText, HandCoins, BarChart3, Truck, ArrowRight } from 'lucide-react'
 import { AnunciarIntensidade } from '@/components/scene/living-background/anunciar-intensidade'
 import { Logo } from '@/components/brand/logo'
 import { SignOutButton } from '@/components/forms/sign-out-button'
@@ -16,6 +16,9 @@ export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(ROUTES.LOGIN)
+
+  const { data: perfil } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+  const ehAdmin = perfil?.role === 'admin'
 
   return (
     <main className="relative min-h-screen pb-28">
@@ -71,6 +74,33 @@ export default async function DashboardPage() {
           </div>
           <ArrowRight className="h-4 w-4 shrink-0 text-white/30" />
         </Link>
+
+        <Link href="/entrega" className="glass flex items-center gap-3 rounded-2xl p-4 transition-colors hover:bg-white/10 active:scale-[0.98]">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-500/20 text-brand-300">
+            <Truck className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="font-display text-sm font-bold">Acompanhar Entrega</div>
+            <div className="text-xs text-white/50">Já carregado, carregando e a semana toda</div>
+          </div>
+          <ArrowRight className="h-4 w-4 shrink-0 text-white/30" />
+        </Link>
+
+        {ehAdmin && (
+          <Link
+            href="/admin/vendas-gerais"
+            className="glass flex items-center gap-3 rounded-2xl border border-warning-500/30 p-4 transition-colors hover:bg-white/10 active:scale-[0.98]"
+          >
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-warning-500/20 text-warning-400">
+              <BarChart3 className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="font-display text-sm font-bold">Visão Geral de Vendas</div>
+              <div className="text-xs text-white/50">Indicadores agregados e fluxo de caixa</div>
+            </div>
+            <ArrowRight className="h-4 w-4 shrink-0 text-white/30" />
+          </Link>
+        )}
       </div>
     </main>
   )

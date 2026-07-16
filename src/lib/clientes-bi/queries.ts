@@ -80,6 +80,15 @@ export async function buscarTodasAsNotas(): Promise<NotaFiscalRow[]> {
   return linhas.map(notaFiscalFromRow)
 }
 
+/** Todos os pedidos em aberto de TODOS os vendedores — base do sub-gráfico do painel de Fluxo de Caixa & Crédito. RLS só libera isso pra admin. */
+export async function buscarTodosOsPedidos(): Promise<PedidoErpRow[]> {
+  const supabase = createClient()
+  const linhas = await buscarTodasAsPaginas<Record<string, unknown>>((from, to) =>
+    supabase.from('pedidos_erp_importados').select('*').range(from, to)
+  )
+  return linhas.map(pedidoErpFromRow)
+}
+
 /** Todo o histórico de notas de um cliente — base para KPIs, séries, produtos e sazonalidade. */
 export async function buscarNotasDoCliente(vendedorCodigo: number, clienteCodigo: number): Promise<NotaFiscalRow[]> {
   const supabase = createClient()
@@ -118,6 +127,7 @@ function linhaToRow(l: NotaFiscalLinha) {
     cliente_nome: l.clienteNome,
     nota: l.nota || null,
     emissao: l.emissao,
+    vencimento: l.vencimento,
     produto: l.produto,
     municipio: l.municipio || null,
     un: l.un,

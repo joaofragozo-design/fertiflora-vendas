@@ -1,3 +1,4 @@
+import { excluirLiquidadas } from '@/lib/comissoes/calculos'
 import type { ComissaoErpRow } from '@/lib/comissoes/types'
 
 export type StatusVencimento = 'pago' | 'atraso' | 'vence_essa_semana' | 'a_vencer'
@@ -62,8 +63,7 @@ export function calcularResumoCredito(
   pedidosEmAberto: number,
   hoje: Date = new Date()
 ): ResumoCreditoCliente {
-  const chavesLiquidadas = new Set(liquidadas.map(chaveLinha))
-  const naoPagas = geral.filter((l) => !chavesLiquidadas.has(chaveLinha(l)))
+  const naoPagas = excluirLiquidadas(geral, liquidadas, chaveLinha)
 
   const nfAVencer = naoPagas.reduce((soma, l) => soma + l.liquido, 0)
   const limiteDisponivel = limiteLiberado - nfAVencer - pedidosEmAberto

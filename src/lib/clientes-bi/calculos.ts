@@ -1,6 +1,6 @@
 import type { ClienteRanqueado, ItemPedidoAberto, Insight, KpiCliente, NotaFiscalRow, PedidoErpRow, PontoAnual, PontoMensal, PontoSazonalidade, ResumoPedidosCliente, ResumoVendedor, TopProduto } from './types'
 
-function anoDe(emissao: string): number {
+export function anoDe(emissao: string): number {
   return Number(emissao.slice(0, 4))
 }
 
@@ -9,11 +9,11 @@ function mesDe(emissao: string): number {
 }
 
 /** 'MM-DD' -- comparável lexicograficamente na mesma ordem do calendário. */
-function chaveDiaDoAno(emissao: string): string {
+export function chaveDiaDoAno(emissao: string): string {
   return emissao.slice(5, 10)
 }
 
-function corteDiaDoAno(hoje: Date): string {
+export function corteDiaDoAno(hoje: Date): string {
   return `${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`
 }
 

@@ -44,6 +44,19 @@ function chaveLinha(l: ComissaoErpRow): string {
 }
 
 /**
+ * Remove de `geral` qualquer linha cuja chave já apareça em `liquidadas` -- as duas fontes se
+ * sobrepõem parcialmente (o relatório "geral" pode não ter sido reimportado ainda depois que uma
+ * parcela foi paga). `chaveDe` é passada pelo chamador porque o escopo da chave muda conforme o
+ * contexto: aqui mesmo (por vendedor, `chaveLinha` acima) e em `creditos/calculos.ts` (por
+ * cliente) -- o que importa em cada caso é diferente ("esse vendedor já recebeu" vs "esse título
+ * já foi pago"), então não dá pra fixar uma chave única dentro desta função.
+ */
+export function excluirLiquidadas<T>(geral: T[], liquidadas: T[], chaveDe: (item: T) => string): T[] {
+  const chavesLiquidadas = new Set(liquidadas.map(chaveDe))
+  return geral.filter((l) => !chavesLiquidadas.has(chaveDe(l)))
+}
+
+/**
  * Estado do ciclo de um mês em relação a hoje:
  * - `passado`: ciclo já fechou. Só "já liquidada" importa -- o que venceu e não foi pago nesse
  *   ciclo não é mais "a pagar" dele, porque o ciclo já acabou. Se o cliente pagar depois, o
@@ -128,9 +141,8 @@ export function calcularResumoCicloMes(
   let aPagar = 0
   let projecao = 0
   if (estado !== 'passado') {
-    const chavesLiquidadas = new Set(liquidadas.map(chaveLinha))
-    for (const l of geral) {
-      if (dentroDoCiclo(l.vencimento, ciclo) && !chavesLiquidadas.has(chaveLinha(l))) aPagar += l.valorComissao
+    for (const l of excluirLiquidadas(geral, liquidadas, chaveLinha)) {
+      if (dentroDoCiclo(l.vencimento, ciclo)) aPagar += l.valorComissao
     }
   }
   if (estado === 'futuro') {
@@ -191,8 +203,7 @@ export function montarItensDoCiclo(
     chaveOrdenacao = 'pagamento'
   } else if (modo === 'aPagar') {
     if (estadoDoCiclo(ano, mes, hoje) === 'passado') return []
-    const chavesLiquidadas = new Set(liquidadas.map(chaveLinha))
-    filtrados = geral.filter((l) => dentroDoCiclo(l.vencimento, ciclo) && !chavesLiquidadas.has(chaveLinha(l)))
+    filtrados = excluirLiquidadas(geral, liquidadas, chaveLinha).filter((l) => dentroDoCiclo(l.vencimento, ciclo))
     chaveOrdenacao = 'vencimento'
   } else {
     filtrados = geral.filter((l) => dentroDoCiclo(l.emissao, ciclo))

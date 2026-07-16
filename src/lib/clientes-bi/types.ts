@@ -5,6 +5,8 @@ export interface NotaFiscalRow {
   clienteNome: string
   nota: string
   emissao: string // yyyy-mm-dd
+  /** Vencimento da nota (um único valor por nota inteira). null em notas importadas antes da migration 054 ou sem essa coluna no CSV. */
+  vencimento: string | null
   produto: string
   municipio: string
   un: string
@@ -21,6 +23,7 @@ export function notaFiscalFromRow(row: Record<string, unknown>): NotaFiscalRow {
     clienteNome: row.cliente_nome as string,
     nota: (row.nota as string) ?? '',
     emissao: row.emissao as string,
+    vencimento: (row.vencimento as string) ?? null,
     produto: row.produto as string,
     municipio: (row.municipio as string) ?? '',
     un: row.un as string,

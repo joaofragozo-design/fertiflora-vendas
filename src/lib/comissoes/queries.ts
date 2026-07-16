@@ -34,6 +34,24 @@ export async function buscarComissoesLiquidadasDoCliente(vendedorCodigo: number,
   return buscarComissoesDe('comissoes_liquidadas_importadas', vendedorCodigo, clienteCodigo)
 }
 
+/** Histórico "geral" de TODOS os vendedores -- base do painel de Fluxo de Caixa & Crédito. RLS só libera pra admin. */
+export async function buscarTodasAsComissoes(): Promise<ComissaoErpRow[]> {
+  const supabase = createClient()
+  const linhas = await buscarTodasAsPaginas<Record<string, unknown>>((from, to) =>
+    supabase.from('comissoes_erp_importadas').select('*').range(from, to)
+  )
+  return linhas.map(comissaoErpFromRow)
+}
+
+/** Histórico "liquidadas" de TODOS os vendedores -- base do painel de Fluxo de Caixa & Crédito. RLS só libera pra admin. */
+export async function buscarTodasAsComissoesLiquidadas(): Promise<ComissaoErpRow[]> {
+  const supabase = createClient()
+  const linhas = await buscarTodasAsPaginas<Record<string, unknown>>((from, to) =>
+    supabase.from('comissoes_liquidadas_importadas').select('*').range(from, to)
+  )
+  return linhas.map(comissaoErpFromRow)
+}
+
 function linhaToRow(l: ComissaoErpLinha) {
   return {
     vendedor_codigo: l.vendedorCodigo,

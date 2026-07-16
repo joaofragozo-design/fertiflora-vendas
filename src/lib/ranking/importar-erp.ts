@@ -39,6 +39,14 @@ function paraDataIso(dataBr: string): string | null {
   return `${ano}-${mes}-${dia}`
 }
 
+/** dd/mm/yy → yyyy-mm-dd -- a coluna "Vencto" do RFT6 vem com ano de 2 dígitos (diferente de "Emissao", que vem com 4). Assume sempre 20YY -- faixa de datas do relatório nunca chega perto de 1900. */
+function paraDataIsoAnoCurto(dataBr: string): string | null {
+  const match = dataBr.trim().match(/^(\d{2})\/(\d{2})\/(\d{2})$/)
+  if (!match) return null
+  const [, dia, mes, anoCurto] = match
+  return `20${anoCurto}-${mes}-${dia}`
+}
+
 interface CabecalhoErp {
   linhas: string[]
   indiceCabecalho: number
@@ -94,6 +102,8 @@ export interface NotaFiscalLinha {
   clienteNome: string
   nota: string
   emissao: string
+  /** Vencimento da nota inteira (coluna "Vencto", ano com 2 dígitos) -- confirmado nos dados reais que não varia entre as linhas de produto de uma mesma nota. null em relatórios antigos que não tinham essa coluna. */
+  vencimento: string | null
   produto: string
   municipio: string
   un: string
@@ -113,6 +123,7 @@ export function parseNotasFiscais(texto: string): NotaFiscalLinha[] {
   const idxVendedor = idx('Vendedor')
   const idxClifor = idx('Clifor')
   const idxEmissao = idx('Emissao')
+  const idxVencto = idx('Vencto')
   const idxNota = idx('Nota')
   const idxDescricao = idx('Descricao')
   const idxMunicipio = idx('Municipio')
@@ -148,6 +159,7 @@ export function parseNotasFiscais(texto: string): NotaFiscalLinha[] {
       clienteNome: cliente.nome,
       nota: campos[idxNota]?.trim() ?? '',
       emissao: emissaoIso,
+      vencimento: idxVencto !== -1 ? paraDataIsoAnoCurto(campos[idxVencto] ?? '') : null,
       produto,
       municipio: campos[idxMunicipio]?.trim() ?? '',
       un: campos[idxUn]?.trim() ?? '',

@@ -9,7 +9,6 @@ import { precisaAvisoMinimo, type Pedido, type StatusPedido } from '@/lib/pedido
 import { cn } from '@/lib/utils/cn'
 import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
 import { SkeletonListaCards } from '@/components/ui/skeleton'
-import { AgendamentosTab } from './agendamentos-tab'
 
 const STATUS_INFO: Record<StatusPedido, { rotulo: string; cor: string; icone: typeof CheckCircle2 }> = {
   rascunho: { rotulo: 'Rascunho', cor: 'text-white/50 bg-white/10', icone: FileText },
@@ -24,7 +23,6 @@ export function PedidosScreen() {
   usePageIntensity(0.2)
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [carregando, setCarregando] = useState(true)
-  const [aba, setAba] = useState<'pedidos' | 'agendamentos'>('pedidos')
 
   useEffect(() => {
     listarMeusPedidos().then((p) => { setPedidos(p); setCarregando(false) })
@@ -44,25 +42,8 @@ export function PedidosScreen() {
           </Link>
         </div>
 
-        <div className="flex gap-1.5 rounded-2xl bg-white/[0.06] p-1">
-          <button
-            onClick={() => setAba('pedidos')}
-            className={cn('flex-1 rounded-xl py-2 text-xs font-bold transition-colors', aba === 'pedidos' ? 'bg-brand-500 text-ink-950' : 'text-white/50')}
-          >
-            Pedidos
-          </button>
-          <button
-            onClick={() => setAba('agendamentos')}
-            className={cn('flex-1 rounded-xl py-2 text-xs font-bold transition-colors', aba === 'agendamentos' ? 'bg-brand-500 text-ink-950' : 'text-white/50')}
-          >
-            Agendamentos
-          </button>
-        </div>
-
-        {aba === 'agendamentos' && <AgendamentosTab />}
-
-        {aba === 'pedidos' && carregando && <SkeletonListaCards />}
-        {aba === 'pedidos' && !carregando && pedidos.length === 0 && (
+        {carregando && <SkeletonListaCards />}
+        {!carregando && pedidos.length === 0 && (
           <div className="glass flex flex-col items-center gap-2 rounded-3xl p-8 text-center">
             <FileText className="h-8 w-8 text-white/25" />
             <p className="text-sm font-semibold text-white/60">Nenhum pedido gerado ainda</p>
@@ -70,7 +51,6 @@ export function PedidosScreen() {
           </div>
         )}
 
-        {aba === 'pedidos' && (
         <div className="flex flex-col gap-2">
           {pedidos.map((p) => {
             const info = STATUS_INFO[p.status]
@@ -107,7 +87,6 @@ export function PedidosScreen() {
             )
           })}
         </div>
-        )}
       </div>
     </main>
   )
