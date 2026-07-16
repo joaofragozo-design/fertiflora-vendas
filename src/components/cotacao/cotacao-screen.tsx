@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle2, AlertTriangle, Download, Printer, ArrowLeftCircle, CalendarClock, Pencil, Share2, ShieldAlert, UserCircle2, ChevronRight, Loader2, Save, Lock } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, AlertTriangle, Download, Printer, ArrowLeftCircle, CalendarClock, Pencil, Share2, ShieldAlert, UserCircle2, ChevronRight, Loader2, Save, Lock, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import { calcularCotacao, COMISSAO_BASE_NIVEL } from '@/lib/pricing/calculadora'
 import { calcularPrazoMedio, type Parcela } from '@/lib/pricing/prazo-medio'
@@ -13,6 +13,7 @@ import { FormulaCombobox } from '@/components/cotacao/formula-combobox'
 import { ClienteForm } from '@/components/clientes/cliente-form'
 import { criarCliente } from '@/lib/clientes/queries'
 import { inscreverConfigCotacaoEmTempoReal, salvarCotacao } from '@/lib/cotacoes/queries'
+import { carregarRascunho, limparRascunho, rascunhoTemConteudo, salvarRascunho } from '@/lib/cotacao/rascunho'
 import type { Cliente } from '@/lib/clientes/types'
 import type { CotacaoConfig } from '@/lib/cotacoes/types'
 import { Input } from '@/components/ui/input'
@@ -114,6 +115,35 @@ export function CotacaoScreen({ formulas: formulasIniciais, dataTabela, vendedor
   // se o admin travar enquanto o vendedor já está com o formulário aberto, bloqueia na hora.
   useEffect(() => inscreverConfigCotacaoEmTempoReal(setConfig), [])
 
+  // Restaura um rascunho em andamento (aparelho desligou, aba fechou) -- só uma vez, no mount.
+  // `restauradoRef` trava o efeito de salvar (abaixo) até essa restauração terminar, senão o
+  // primeiro render (com os valores padrão em branco) sobrescreveria o rascunho salvo antes dele
+  // ser lido.
+  const restauradoRef = useRef(false)
+  useEffect(() => {
+    const rascunho = carregarRascunho()
+    if (rascunho) {
+      setProduto(rascunho.produto)
+      setEstado(rascunho.estado)
+      setEntrega(rascunho.entrega)
+      setFrete(rascunho.frete)
+      setAgenciador(rascunho.agenciador)
+      setPrecoVendido(rascunho.precoVendido)
+      setQuantidade(rascunho.quantidade)
+      setModoPagamento(rascunho.modoPagamento)
+      setPagamentoAvista(rascunho.pagamentoAvista)
+      setParcelas(rascunho.parcelas)
+      setCliente(rascunho.cliente)
+      if (rascunhoTemConteudo(rascunho)) toast.info('Cotação em andamento restaurada')
+    }
+    restauradoRef.current = true
+  }, [])
+
+  useEffect(() => {
+    if (!restauradoRef.current) return
+    salvarRascunho({ produto, estado, entrega, frete, agenciador, precoVendido, quantidade, modoPagamento, pagamentoAvista, parcelas, cliente })
+  }, [produto, estado, entrega, frete, agenciador, precoVendido, quantidade, modoPagamento, pagamentoAvista, parcelas, cliente])
+
   const precoBase = useMemo(() => formulas.find((f) => f.nome === produto)?.precoUsdAvista, [formulas, produto])
 
   const prazoCalc = useMemo(() => calcularPrazoMedio(parcelas, new Date()), [parcelas])
@@ -126,6 +156,7 @@ export function CotacaoScreen({ formulas: formulasIniciais, dataTabela, vendedor
   const precoVendidoNum = parseFloat(precoVendido) || 0
   const temPrecoNegociado = precoVendidoNum > 0
   const quantidadeNum = parseFloat(quantidade) || 0
+  const temRascunho = rascunhoTemConteudo({ produto, estado, entrega, frete, agenciador, precoVendido, quantidade, modoPagamento, pagamentoAvista, parcelas, cliente })
 
   // Calculado assim que fórmula + datas + dólar estão prontos, mesmo sem preço
   // vendido ainda -- preço de tabela não depende dele, só a comissão depende.
@@ -298,6 +329,22 @@ export function CotacaoScreen({ formulas: formulasIniciais, dataTabela, vendedor
     )
   }
 
+  function handleComecarDoZero() {
+    limparRascunho()
+    setProduto('')
+    setEstado('MS')
+    setEntrega(toDateInput(new Date(Date.now() + 60 * 86400000)))
+    setFrete('750')
+    setAgenciador('0')
+    setPrecoVendido('')
+    setQuantidade('50')
+    setModoPagamento('avista')
+    setPagamentoAvista(toDateInput(new Date(Date.now() + 300 * 86400000)))
+    setParcelas([])
+    setCliente(null)
+    toast.success('Formulário limpo')
+  }
+
   async function salvarCotacaoAtual() {
     if (!resultado || !pagamentoEfetivo) return
     setSalvando(true)
@@ -325,6 +372,7 @@ export function CotacaoScreen({ formulas: formulasIniciais, dataTabela, vendedor
         },
       })
       setSalva(true)
+      limparRascunho()
       toast.success('Cotação salva em Cotações válidas')
 
       if (user && resultado.aprovado) {
@@ -353,6 +401,16 @@ export function CotacaoScreen({ formulas: formulasIniciais, dataTabela, vendedor
             Vendedor<b className="block text-xs text-white">{vendedor}</b>
           </div>
         </div>
+
+        {visao === 'form' && temRascunho && (
+          <button
+            onClick={handleComecarDoZero}
+            className="flex items-center gap-1.5 self-start text-[11px] font-bold text-white/40 transition-colors hover:text-white/70"
+          >
+            <RotateCcw className="h-3 w-3" />
+            Começar do zero
+          </button>
+        )}
 
         <div className="glass flex items-center gap-3 rounded-2xl p-3.5">
           <span className="h-2 w-2 shrink-0 rounded-full bg-brand-400 shadow-[0_0_0_0_rgba(24,165,88,0.6)]" />
