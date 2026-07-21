@@ -21,6 +21,8 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils/cn'
 import type { FormulaPreco } from '@/lib/pricing/formulas'
 import { buscarFormulasComPrecoAgora, inscreverFormulaPrecosEmTempoReal } from '@/lib/pricing/formula-precos-realtime'
+import { buscarTaxasJurosAgora, inscreverTaxasJurosEmTempoReal } from '@/lib/pricing/taxas-juros-realtime'
+import type { TaxasJuros } from '@/lib/pricing/taxas-juros'
 import { createClient } from '@/lib/supabase/client'
 import { buscarTotalToneladas, verificarNovasConquistas } from '@/lib/gamificacao/queries'
 import type { Tier } from '@/lib/gamificacao/tiers'
@@ -33,6 +35,7 @@ interface CotacaoScreenProps {
   vendedor: string
   ehAdmin: boolean
   configInicial: CotacaoConfig | null
+  taxasJurosIniciais: TaxasJuros
 }
 
 type Visao = 'form' | 'prazo' | 'resumo' | 'clientes' | 'novoCliente'
@@ -62,10 +65,11 @@ function linhasPagamento(modoPagamento: ModoPagamento, pagamentoAvista: string, 
   return validas.map((p, i) => [`Pagamento ${i + 1}/${validas.length} (${fmtPct(p.percentual)})`, fmtDateInput(p.data)])
 }
 
-export function CotacaoScreen({ formulas: formulasIniciais, dataTabela, vendedor, ehAdmin, configInicial }: CotacaoScreenProps) {
+export function CotacaoScreen({ formulas: formulasIniciais, dataTabela, vendedor, ehAdmin, configInicial, taxasJurosIniciais }: CotacaoScreenProps) {
   usePageIntensity(0.2)
   const [formulas, setFormulas] = useState(formulasIniciais)
   const [config, setConfig] = useState(configInicial)
+  const [taxasJuros, setTaxasJuros] = useState(taxasJurosIniciais)
   const [visao, setVisao] = useState<Visao>('form')
   const [produto, setProduto] = useState('')
   const [estado, setEstado] = useState('MS')
@@ -108,6 +112,16 @@ export function CotacaoScreen({ formulas: formulasIniciais, dataTabela, vendedor
       buscarFormulasComPrecoAgora()
         .then(setFormulas)
         .catch((e) => console.error('Falha ao recarregar preços de fórmulas:', e))
+    })
+  }, [])
+
+  // Reage ao sync de TAXA_AM/TAXA_MP (MP!D3/G1 na planilha) -- essas taxas mudam conforme o custo
+  // de financiamento da empresa muda, nunca mais hardcoded no código (ver taxas-juros.ts).
+  useEffect(() => {
+    return inscreverTaxasJurosEmTempoReal(() => {
+      buscarTaxasJurosAgora()
+        .then((t) => { if (t) setTaxasJuros(t) })
+        .catch((e) => console.error('Falha ao recarregar taxas de juros:', e))
     })
   }, [])
 
@@ -175,8 +189,10 @@ export function CotacaoScreen({ formulas: formulasIniciais, dataTabela, vendedor
       precoVendido: precoVendidoNum,
       dolarAgora: dolar,
       dataTabela: new Date(dataTabela),
+      taxaAM: taxasJuros.taxaAM,
+      taxaMP: taxasJuros.taxaMP,
     })
-  }, [precoBase, dolar, entrega, pagamentoEfetivo, frete, agenciador, precoVendidoNum, estado, dataTabela])
+  }, [precoBase, dolar, entrega, pagamentoEfetivo, frete, agenciador, precoVendidoNum, estado, dataTabela, taxasJuros])
 
   const validadeHoje = new Date().toLocaleDateString('pt-BR')
 

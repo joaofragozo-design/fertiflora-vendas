@@ -8,8 +8,6 @@
 export const ICMS_TABLE: Record<string, number> = { SC: 0.04, MT: 0.04, PR: 0.0, SP: 0.04, MS: 0.04, RO: 0.04 }
 export const ICMS_DEFAULT = 0.04
 
-export const TAXA_AM = 0.022 // TAXA %(A.M) — juros mensal sobre o preço à vista
-export const TAXA_MP = 0.014 // TAXA MP — juros mensal sobre a base de frete (US$44,80)
 export const TAXA_AM_DOLAR = 0.0 // TAXA A.M DOLAR — projeção de valorização do dólar ao mês
 export const FRETE_BASE_USD = 44.8
 export const COMISSAO_BASE_NIVEL = 0.05 // Nível III — nível de comissão ainda não é configurável por vendedor
@@ -34,6 +32,10 @@ export interface CotacaoInput {
   precoVendido: number
   dolarAgora: number
   dataTabela: Date
+  /** TAXA %(A.M) — juros mensal sobre o preço à vista. Vem de `taxas_juros_cotacao` (sincronizado de MP!D3 na planilha), nunca mais hardcoded — esse valor muda conforme o custo de financiamento da empresa muda. */
+  taxaAM: number
+  /** TAXA MP — juros mensal sobre a base de frete (preço à vista − US$44,80). Vem de `taxas_juros_cotacao` (MP!G1). */
+  taxaMP: number
 }
 
 export interface CotacaoResultado {
@@ -60,7 +62,7 @@ function diffDias(a: Date, b: Date) {
 }
 
 export function calcularCotacao(input: CotacaoInput): CotacaoResultado {
-  const { precoAvistaUSD, entrega, pagamento, frete, agenciadorPct, precoVendido, dolarAgora, dataTabela } = input
+  const { precoAvistaUSD, entrega, pagamento, frete, agenciadorPct, precoVendido, dolarAgora, dataTabela, taxaAM, taxaMP } = input
   const icms = ICMS_TABLE[input.estado] ?? ICMS_DEFAULT
 
   // O18 dias até travar / O19 dólar calc
@@ -81,8 +83,8 @@ export function calcularCotacao(input: CotacaoInput): CotacaoResultado {
     : Math.max(0, (diffDias(entrega, dataTabela) - 15) / 30)
 
   // O42 valor com juros (USD)
-  const valorComJuros = precoAvistaUSD * Math.pow(1 + TAXA_AM, prazoEmMeses)
-    + (precoAvistaUSD - FRETE_BASE_USD) * Math.pow(1 + TAXA_MP, prazoAteCarregamento)
+  const valorComJuros = precoAvistaUSD * Math.pow(1 + taxaAM, prazoEmMeses)
+    + (precoAvistaUSD - FRETE_BASE_USD) * Math.pow(1 + taxaMP, prazoAteCarregamento)
     - (precoAvistaUSD - FRETE_BASE_USD)
 
   // O44 valor em reais
