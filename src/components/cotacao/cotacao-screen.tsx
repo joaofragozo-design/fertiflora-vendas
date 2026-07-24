@@ -191,8 +191,10 @@ export function CotacaoScreen({ formulas: formulasIniciais, dataTabela, vendedor
       dataTabela: new Date(dataTabela),
       taxaAM: taxasJuros.taxaAM,
       taxaMP: taxasJuros.taxaMP,
+      campanhaAvistaAtiva: config?.campanhaAvistaAtiva ?? true,
+      campanhaAvistaDescontoPct: config?.campanhaAvistaDescontoPct ?? 0.02,
     })
-  }, [precoBase, dolar, entrega, pagamentoEfetivo, frete, agenciador, precoVendidoNum, estado, dataTabela, taxasJuros])
+  }, [precoBase, dolar, entrega, pagamentoEfetivo, frete, agenciador, precoVendidoNum, estado, dataTabela, taxasJuros, config])
 
   const validadeHoje = new Date().toLocaleDateString('pt-BR')
 

@@ -36,6 +36,10 @@ export interface CotacaoInput {
   taxaAM: number
   /** TAXA MP — juros mensal sobre a base de frete (preço à vista − US$44,80). Vem de `taxas_juros_cotacao` (MP!G1). */
   taxaMP: number
+  /** Liga/desliga o preço de "campanha à vista" — configurável pelo admin (`cotacao_config`), não é mais sempre ativo. */
+  campanhaAvistaAtiva: boolean
+  /** Percentual de desconto da campanha à vista (0.02 = 2%) — configurável pelo admin, não é mais fixo. */
+  campanhaAvistaDescontoPct: number
 }
 
 export interface CotacaoResultado {
@@ -62,7 +66,7 @@ function diffDias(a: Date, b: Date) {
 }
 
 export function calcularCotacao(input: CotacaoInput): CotacaoResultado {
-  const { precoAvistaUSD, entrega, pagamento, frete, agenciadorPct, precoVendido, dolarAgora, dataTabela, taxaAM, taxaMP } = input
+  const { precoAvistaUSD, entrega, pagamento, frete, agenciadorPct, precoVendido, dolarAgora, dataTabela, taxaAM, taxaMP, campanhaAvistaAtiva, campanhaAvistaDescontoPct } = input
   const icms = ICMS_TABLE[input.estado] ?? ICMS_DEFAULT
 
   // O18 dias até travar / O19 dólar calc
@@ -107,7 +111,7 @@ export function calcularCotacao(input: CotacaoInput): CotacaoResultado {
   const pedidoEntrega: 'FUTURA' | 'IMEDIATA' = diasEntregaMenosTabela > 60 ? 'FUTURA' : 'IMEDIATA'
 
   // L50 preço campanha à vista
-  const campanhaAvista = entrega >= pagamento ? precoTabela * 0.98 : null
+  const campanhaAvista = campanhaAvistaAtiva && entrega >= pagamento ? precoTabela * (1 - campanhaAvistaDescontoPct) : null
   const precoTTabela = campanhaAvista ?? precoTabela
 
   // comissão

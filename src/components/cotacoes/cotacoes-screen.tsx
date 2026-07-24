@@ -3,17 +3,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Plus, CheckCircle2, AlertTriangle, Eye, FileClock, Lock, Unlock, Loader2 } from 'lucide-react'
-import { destravarCotacao, inscreverConfigCotacaoEmTempoReal, listarCotacoes, travarCotacao } from '@/lib/cotacoes/queries'
+import { Plus, CheckCircle2, AlertTriangle, Eye, FileClock, Lock, Unlock, Loader2, Percent, Pencil } from 'lucide-react'
+import { definirCampanhaAvista, destravarCotacao, inscreverConfigCotacaoEmTempoReal, listarCotacoes, travarCotacao } from '@/lib/cotacoes/queries'
 import { statusCotacao, type CotacaoConfig, type CotacaoSalva } from '@/lib/cotacoes/types'
 import { listarClientes } from '@/lib/clientes/queries'
 import type { Cliente } from '@/lib/clientes/types'
 import { cn } from '@/lib/utils/cn'
 import { ComprovanteCotacao } from '@/components/cotacoes/comprovante-cotacao'
+import { EditarCampanhaModal } from '@/components/cotacoes/editar-campanha-modal'
 import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
 import { SkeletonListaCards } from '@/components/ui/skeleton'
 
 function fmtBRL(v: number) { return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+function fmtPct(v: number) { return (v * 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + '%' }
 
 type Aba = 'validas' | 'historico'
 
@@ -31,6 +33,8 @@ export function CotacoesScreen({ ehAdmin, configInicial }: CotacoesScreenProps) 
   const [selecionada, setSelecionada] = useState<CotacaoSalva | null>(null)
   const [config, setConfig] = useState(configInicial)
   const [alternandoTrava, setAlternandoTrava] = useState(false)
+  const [alternandoCampanha, setAlternandoCampanha] = useState(false)
+  const [editandoCampanha, setEditandoCampanha] = useState(false)
 
   useEffect(() => {
     Promise.all([listarCotacoes(), listarClientes()]).then(([c, cli]) => {
@@ -57,6 +61,19 @@ export function CotacoesScreen({ ehAdmin, configInicial }: CotacoesScreenProps) 
       toast.error(e instanceof Error ? e.message : 'Falha ao atualizar a trava')
     } finally {
       setAlternandoTrava(false)
+    }
+  }
+
+  async function handleDefinirCampanhaAtiva(ativa: boolean) {
+    if (!config || config.campanhaAvistaAtiva === ativa) return
+    setAlternandoCampanha(true)
+    try {
+      await definirCampanhaAvista(config.id, { ativa, descontoPct: config.campanhaAvistaDescontoPct })
+      toast.success(ativa ? 'Campanha à vista ativada' : 'Campanha à vista desativada')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Falha ao atualizar campanha à vista')
+    } finally {
+      setAlternandoCampanha(false)
     }
   }
 
@@ -119,6 +136,47 @@ export function CotacoesScreen({ ehAdmin, configInicial }: CotacoesScreenProps) 
           </div>
         )}
 
+        {ehAdmin && config && (
+          <div className="glass flex flex-col gap-3 rounded-2xl p-3.5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-earth-tan/20 text-earth-tan">
+                <Percent className="h-4.5 w-4.5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Campanha à vista</div>
+                <div className="truncate text-sm font-bold text-white">
+                  {config.campanhaAvistaAtiva ? `Ativa — ${fmtPct(config.campanhaAvistaDescontoPct)} de desconto` : 'Desativada'}
+                </div>
+              </div>
+              <button
+                onClick={() => setEditandoCampanha(true)}
+                aria-label="Editar percentual"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/8 text-white/60 transition-colors hover:bg-white/15 hover:text-white active:scale-90"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="flex gap-1.5 rounded-2xl bg-white/[0.06] p-1">
+              <button
+                onClick={() => handleDefinirCampanhaAtiva(false)}
+                disabled={alternandoCampanha}
+                className={cn('flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition-colors', !config.campanhaAvistaAtiva ? 'bg-danger-500/20 text-danger-300' : 'text-white/50')}
+              >
+                {alternandoCampanha && config.campanhaAvistaAtiva && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Tirar
+              </button>
+              <button
+                onClick={() => handleDefinirCampanhaAtiva(true)}
+                disabled={alternandoCampanha}
+                className={cn('flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition-colors', config.campanhaAvistaAtiva ? 'bg-brand-500 text-ink-950' : 'text-white/50')}
+              >
+                {alternandoCampanha && !config.campanhaAvistaAtiva && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Colocar
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-1.5 rounded-2xl bg-white/[0.06] p-1">
           <button
             onClick={() => setAba('validas')}
@@ -177,6 +235,16 @@ export function CotacoesScreen({ ehAdmin, configInicial }: CotacoesScreenProps) 
           })}
         </div>
       </div>
+
+      {editandoCampanha && config && (
+        <EditarCampanhaModal
+          configId={config.id}
+          ativaAtual={config.campanhaAvistaAtiva}
+          descontoPctAtual={config.campanhaAvistaDescontoPct}
+          onFechar={() => setEditandoCampanha(false)}
+          onSalvo={() => setEditandoCampanha(false)}
+        />
+      )}
     </main>
   )
 }

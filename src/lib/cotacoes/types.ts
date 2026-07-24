@@ -59,6 +59,9 @@ export interface CotacaoConfig {
   id: string
   travada: boolean
   travadaEm: string | null
+  /** Desconto de "campanha à vista" (mostrado quando entrega >= pagamento) -- editável pelo admin, não é mais hardcoded em 2%. */
+  campanhaAvistaAtiva: boolean
+  campanhaAvistaDescontoPct: number
 }
 
 export function cotacaoConfigFromRow(row: Record<string, unknown>): CotacaoConfig {
@@ -66,5 +69,9 @@ export function cotacaoConfigFromRow(row: Record<string, unknown>): CotacaoConfi
     id: row.id as string,
     travada: row.travada as boolean,
     travadaEm: (row.travada_em as string) ?? null,
+    campanhaAvistaAtiva: (row.campanha_avista_ativa as boolean) ?? true,
+    campanhaAvistaDescontoPct: row.campanha_avista_desconto_pct !== undefined && row.campanha_avista_desconto_pct !== null
+      ? Number(row.campanha_avista_desconto_pct)
+      : 0.02,
   }
 }

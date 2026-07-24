@@ -72,6 +72,15 @@ export async function destravarCotacao(id: string): Promise<void> {
   if (error) throw new Error(`Falha ao destravar cotação: ${error.message}`)
 }
 
+export async function definirCampanhaAvista(id: string, params: { ativa: boolean; descontoPct: number }): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('cotacao_config')
+    .update({ campanha_avista_ativa: params.ativa, campanha_avista_desconto_pct: params.descontoPct })
+    .eq('id', id)
+  if (error) throw new Error(`Falha ao atualizar campanha à vista: ${error.message}`)
+}
+
 /** RLS aberta pra qualquer autenticado (não depende de auth.uid() na condição) -- autenticarRealtime não é estritamente necessário aqui, mas mantém o mesmo padrão do resto do app. */
 export function inscreverConfigCotacaoEmTempoReal(onChange: (config: CotacaoConfig) => void): () => void {
   const supabase = createClient()
