@@ -2,22 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
 import { ArrowLeft, Landmark, ShieldCheck } from 'lucide-react'
 import { buscarTodasAsComissoes, buscarTodasAsComissoesLiquidadas } from '@/lib/comissoes/queries'
 import type { ComissaoErpRow } from '@/lib/comissoes/types'
 import { buscarTodasAsNotas, buscarTodosOsPedidos } from '@/lib/clientes-bi/queries'
 import type { NotaFiscalRow, PedidoErpRow } from '@/lib/clientes-bi/types'
-import {
-  calcularAgingPorAno,
-  calcularAtrasoPorAno,
-  calcularResumoCarteiraPrazo,
-  calcularResumoPedidosAbertoPrazo,
-  montarItensAgingDDF,
-  montarItensCarteiraPrazo,
-  montarItensPedidosAbertoPrazo,
-} from '@/lib/fluxo-caixa/calculos'
+import { calcularResumoCarteiraPrazo, montarItensCarteiraPrazo, montarItensPedidosAbertoPrazo } from '@/lib/fluxo-caixa/calculos'
 import { buscarLimiteVigente, inscreverFluxoCaixaEmTempoReal, liberarReservaSafrinha } from '@/lib/fluxo-caixa/queries'
 import { estaNaJanelaDeDefinicao, periodoQueAJanelaDefine } from '@/lib/fluxo-caixa/safra'
 import type { BucketVencimento, LimiteCarteiraPrazoRow } from '@/lib/fluxo-caixa/types'
@@ -28,15 +19,6 @@ import { BucketsCarteiraPrazo } from '@/components/fluxo-caixa/buckets-carteira-
 import { ListaBucket } from '@/components/fluxo-caixa/lista-bucket'
 import { DefinirLimiteModal } from '@/components/fluxo-caixa/definir-limite-modal'
 import { fmtT } from '@/components/ranking/formatadores'
-
-// ssr:false -- ResponsiveContainer do Recharts usa useLayoutEffect (warning inofensivo mas
-// ruidoso em SSR); os dados só chegam depois do mount de qualquer forma, então não há risco
-// real de mismatch de hidratação, só adia o parse/execução do JS do Recharts pro client.
-const GraficoAgingRecebiveis = dynamic(
-  () => import('@/components/fluxo-caixa/grafico-aging-recebiveis').then((m) => m.GraficoAgingRecebiveis),
-  { ssr: false, loading: () => <div className="flex h-[280px] items-center justify-center text-xs text-white/30">Carregando gráfico…</div> }
-)
-type LenteAging = import('@/components/fluxo-caixa/grafico-aging-recebiveis').LenteAging
 
 function fmtBRL(v: number): string {
   return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
@@ -54,8 +36,6 @@ export function FluxoCaixaScreen() {
   const [bucketSelecionado, setBucketSelecionado] = useState<BucketVencimento | null>(null)
   const [definindoLimite, setDefinindoLimite] = useState(false)
   const [carteiraChave, setCarteiraChave] = useState<'toneladas' | 'reais'>('toneladas')
-  const [agingChave, setAgingChave] = useState<'toneladas' | 'reais'>('reais')
-  const [agingLente, setAgingLente] = useState<LenteAging>('ddf')
 
   function carregar() {
     setCarregando(true)
@@ -80,20 +60,11 @@ export function FluxoCaixaScreen() {
     return inscreverFluxoCaixaEmTempoReal(carregar)
   }, [])
 
-  const itensAging = useMemo(
-    () => montarItensAgingDDF(notas, comissoesGerais, comissoesLiquidadas),
-    [notas, comissoesGerais, comissoesLiquidadas]
-  )
-  const agingPorAno = useMemo(() => calcularAgingPorAno(itensAging), [itensAging])
-  const atrasoPorAno = useMemo(() => calcularAtrasoPorAno(itensAging), [itensAging])
-  const naoConfirmadoRecebimentos = useMemo(() => agingPorAno.reduce((s, a) => s + a.totalReaisNaoConfirmado, 0), [agingPorAno])
-
   const itensCarteira = useMemo(
     () => montarItensCarteiraPrazo(notas, comissoesGerais, comissoesLiquidadas),
     [notas, comissoesGerais, comissoesLiquidadas]
   )
   const itensPedidos = useMemo(() => montarItensPedidosAbertoPrazo(pedidos), [pedidos])
-  const resumoPedidos = useMemo(() => calcularResumoPedidosAbertoPrazo(itensPedidos), [itensPedidos])
 
   const resumoCarteira = useMemo(() => (limite ? calcularResumoCarteiraPrazo(itensCarteira, itensPedidos, limite) : null), [itensCarteira, itensPedidos, limite])
 
@@ -176,51 +147,35 @@ export function FluxoCaixaScreen() {
         )}
 
         <div className="glass flex flex-col gap-3 rounded-2xl p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center justify-between">
             <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Painel de Recebimentos</div>
-            <div className="flex items-center gap-1.5">
-              <div className="flex gap-1 rounded-lg bg-white/8 p-0.5">
-                <button
-                  onClick={() => setAgingLente('ddf')}
-                  className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${agingLente === 'ddf' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}
-                >
-                  Desde emissão
-                </button>
-                <button
-                  onClick={() => setAgingLente('atraso')}
-                  className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${agingLente === 'atraso' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}
-                >
-                  Vs. vencimento
-                </button>
-              </div>
-              <div className="flex gap-1 rounded-lg bg-white/8 p-0.5">
-                <button
-                  onClick={() => setAgingChave('toneladas')}
-                  className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${agingChave === 'toneladas' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}
-                >
-                  t
-                </button>
-                <button
-                  onClick={() => setAgingChave('reais')}
-                  className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${agingChave === 'reais' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}
-                >
-                  R$
-                </button>
-              </div>
+            <div className="flex gap-1 rounded-lg bg-white/8 p-0.5">
+              <button
+                onClick={() => setCarteiraChave('toneladas')}
+                className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${carteiraChave === 'toneladas' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}
+              >
+                t
+              </button>
+              <button
+                onClick={() => setCarteiraChave('reais')}
+                className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${carteiraChave === 'reais' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}
+              >
+                R$
+              </button>
             </div>
           </div>
           <p className="text-[10px] text-white/35">
-            {agingLente === 'ddf'
-              ? 'Emissão, vencimento, peso e valor direto da nota fiscal (RFT6); pagamento cruzado com o Relatório de Comissionados (RFT159) — DDF = dias entre a emissão da nota e o pagamento (ou hoje, se ainda em aberto).'
-              : 'Atraso vs a data de vencimento da nota fiscal (RFT6) — separa quem pagou dentro de um prazo longo já acertado (ex.: financiamento até a colheita) de quem realmente atrasou.'}
-            {' '}“Em aberto” (cinza) = ainda sem pagamento registrado no relatório de comissões — não é atraso confirmado, é dado faltante.
-            {agingChave === 'toneladas' && ' Toneladas somadas direto da nota fiscal — notas sem nenhuma linha em KG ficam de fora.'}
+            Pedidos ainda não faturados + notas fiscais já emitidas, por dias até o vencimento — atualiza sozinho conforme os dias passam, sempre a partir de
+            hoje. Pedido usa a janela emissão→entrega como estimativa de prazo (não existe prazo de pagamento real salvo pra pedido ainda). Título já vencido e
+            não pago fica no bucket &quot;Vencido&quot; em vez de sumir da tela; o que já foi pago não aparece mais aqui. Clique num bucket pra ver os títulos.
           </p>
-          <GraficoAgingRecebiveis porAno={agingLente === 'ddf' ? agingPorAno : atrasoPorAno} chave={agingChave} lente={agingLente} />
-          {agingChave === 'reais' && naoConfirmadoRecebimentos > 0 && (
-            <p className="text-center text-[10px] text-white/30">
-              {fmtBRL(naoConfirmadoRecebimentos)} sem nenhuma correspondência no relatório de comissões — status de pagamento não confirmado, contado como em aberto
-            </p>
+          {resumoCarteira && (
+            <BucketsCarteiraPrazo
+              buckets={resumoCarteira.buckets}
+              chave={carteiraChave}
+              formatarValor={carteiraChave === 'toneladas' ? fmtT : fmtBRL}
+              onSelecionarBucket={setBucketSelecionado}
+            />
           )}
         </div>
 
@@ -237,16 +192,10 @@ export function FluxoCaixaScreen() {
         {resumoCarteira && (
           <>
             <GaugeCarteiraPrazo resumo={resumoCarteira} onEditar={() => setDefinindoLimite(true)} />
-            {resumoCarteira.totalReaisForaDoAno > 0 && (
+            {resumoCarteira.totalReaisVencidoOutroAno > 0 && (
               <p className="px-1 text-[10px] text-white/35">
-                {fmtBRL(resumoCarteira.totalReaisForaDoAno)} ({fmtT(resumoCarteira.totalToneladasForaDoAno)}) de anos anteriores — não consome mais a cota
-                da safra vigente, acompanhe no Painel de Recebimentos
-              </p>
-            )}
-            {resumoCarteira.totalReaisForaDoPrazo > 0 && (
-              <p className="px-1 text-[10px] text-white/35">
-                {fmtBRL(resumoCarteira.totalReaisForaDoPrazo)} ({fmtT(resumoCarteira.totalToneladasForaDoPrazo)}) vencido ou com menos de 60 dias até o
-                vencimento — fora da carteira a prazo, acompanhe no Painel de Recebimentos
+                {fmtBRL(resumoCarteira.totalReaisVencidoOutroAno)} ({fmtT(resumoCarteira.totalToneladasVencidoOutroAno)}) vencidos de anos anteriores — não
+                consomem mais a cota da safrinha vigente, mas continuam visíveis no bucket &quot;Vencido&quot; do Painel de Recebimentos
               </p>
             )}
             {resumoCarteira.totalReaisSemPeso > 0 && (
@@ -259,40 +208,8 @@ export function FluxoCaixaScreen() {
                 {fmtBRL(resumoCarteira.totalReaisNaoConfirmado)} sem nenhuma correspondência no relatório de comissões — status de pagamento não confirmado, contado como em aberto
               </p>
             )}
-            <div className="glass flex flex-col gap-3 rounded-2xl p-4">
-              <div className="flex items-center justify-between">
-                <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Carteira a prazo por vencimento (60+ dias)</div>
-                <div className="flex gap-1 rounded-lg bg-white/8 p-0.5">
-                  <button
-                    onClick={() => setCarteiraChave('toneladas')}
-                    className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${carteiraChave === 'toneladas' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}
-                  >
-                    t
-                  </button>
-                  <button
-                    onClick={() => setCarteiraChave('reais')}
-                    className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${carteiraChave === 'reais' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}
-                  >
-                    R$
-                  </button>
-                </div>
-              </div>
-              <p className="text-[10px] text-white/35">Toneladas direto da nota fiscal (RFT6) — clique num bucket pra ver as notas</p>
-              <BucketsCarteiraPrazo
-                buckets={resumoCarteira.buckets}
-                chave={carteiraChave}
-                formatarValor={carteiraChave === 'toneladas' ? fmtT : fmtBRL}
-                onSelecionarBucket={setBucketSelecionado}
-              />
-            </div>
           </>
         )}
-
-        <div className="glass flex flex-col gap-3 rounded-2xl p-4">
-          <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Pedidos em aberto a prazo</div>
-          <p className="text-[10px] text-white/35">Estimado pela janela emissão→entrega do pedido — não é o prazo de pagamento real (esse dado não existe no ERP hoje)</p>
-          <BucketsCarteiraPrazo buckets={resumoPedidos} chave="toneladas" formatarValor={fmtT} />
-        </div>
 
         {limite && !limite.reservaLiberada && (
           <button onClick={handleLiberarReserva} className="glass rounded-2xl p-3 text-center text-xs font-bold text-white/70 transition-colors hover:bg-white/10">

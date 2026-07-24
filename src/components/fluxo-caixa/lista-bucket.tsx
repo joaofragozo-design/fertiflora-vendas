@@ -2,7 +2,7 @@
 
 import { X } from 'lucide-react'
 import { Portal } from '@/components/ui/portal'
-import type { BucketVencimento, ItemCarteiraPrazo } from '@/lib/fluxo-caixa/types'
+import type { BucketVencimento, ItemAbertoUnificado } from '@/lib/fluxo-caixa/types'
 
 function fmtBRL(v: number): string {
   return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -14,21 +14,22 @@ function fmtData(iso: string): string {
 const ROTULOS_BUCKET: Record<BucketVencimento, string> = {
   vencido: 'Vencido',
   ate_30: 'Até 30 dias',
-  ate_60: 'Até 60 dias',
-  ate_90: 'Até 90 dias',
-  ate_120: 'Até 120 dias',
-  ate_180: 'Até 180 dias',
-  mais_180: 'Acima de 180 dias',
+  ate_60: '30 a 60 dias',
+  ate_90: '60 a 90 dias',
+  ate_120: '90 a 120 dias',
+  ate_180: '120 a 180 dias',
+  ate_210: '180 a 210 dias',
+  mais_210: 'Acima de 210 dias',
   sem_vencimento: 'Sem vencimento',
 }
 
 interface ListaBucketProps {
   bucket: BucketVencimento
-  itens: ItemCarteiraPrazo[]
+  itens: ItemAbertoUnificado[]
   onFechar: () => void
 }
 
-/** Drill-down de um bucket da carteira a prazo -- mesmo padrão de modal (Portal + glass) já usado no app. */
+/** Drill-down de um bucket -- mesmo padrão de modal (Portal + glass) já usado no app. Mistura notas fiscais emitidas e pedidos ainda não faturados, diferenciados pelo texto da segunda linha. */
 export function ListaBucket({ bucket, itens, onFechar }: ListaBucketProps) {
   return (
     <Portal>
@@ -51,22 +52,42 @@ export function ListaBucket({ bucket, itens, onFechar }: ListaBucketProps) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            {itens.map((item, i) => (
-              <div
-                key={`${item.vendedorCodigo}-${item.nota}-${i}`}
-                className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 ${item.vencido ? 'bg-danger-500/10' : 'bg-white/5'}`}
-              >
-                <div className="min-w-0">
-                  <div className="truncate text-xs font-bold text-white">{item.clienteNome}</div>
-                  <div className="text-[10px] text-white/45">
-                    Nota {item.nota || '—'} · {item.vencimento ? `Vence ${fmtData(item.vencimento)}` : 'Sem vencimento'}
-                    {item.pesoToneladas !== null && ` · ${item.pesoToneladas.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}t`}
-                    {!item.confirmadoPorComissao && ' · sem confirmação de pagamento no relatório de comissões'}
+            {itens.map((item, i) => {
+              if (item.tipo === 'nota') {
+                return (
+                  <div
+                    key={`nota-${item.vendedorCodigo}-${item.nota}-${i}`}
+                    className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 ${item.vencido ? 'bg-danger-500/10' : 'bg-white/5'}`}
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate text-xs font-bold text-white">{item.clienteNome}</div>
+                      <div className="text-[10px] text-white/45">
+                        Nota {item.nota || '—'} · {item.vencimento ? `Vence ${fmtData(item.vencimento)}` : 'Sem vencimento'}
+                        {item.pesoToneladas !== null && ` · ${item.pesoToneladas.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}t`}
+                        {!item.confirmadoPorComissao && ' · sem confirmação de pagamento no relatório de comissões'}
+                      </div>
+                    </div>
+                    <span className={`tabular shrink-0 text-xs font-extrabold ${item.vencido ? 'text-danger-400' : 'text-white'}`}>{fmtBRL(item.liquido)}</span>
                   </div>
+                )
+              }
+              const vencido = item.diasAteEntrega !== null && item.diasAteEntrega < 0
+              return (
+                <div
+                  key={`pedido-${item.vendedorCodigo}-${item.numeroPedido}-${i}`}
+                  className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 ${vencido ? 'bg-danger-500/10' : 'bg-white/5'}`}
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-xs font-bold text-white">{item.clienteNome}</div>
+                    <div className="text-[10px] text-white/45">
+                      Pedido {item.numeroPedido || '—'} (ainda não faturado) · {item.entrega ? `Entrega ${fmtData(item.entrega)}` : 'Sem entrega'}
+                      {` · ${item.pesoSaldoToneladas.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}t`}
+                    </div>
+                  </div>
+                  <span className={`tabular shrink-0 text-xs font-extrabold ${vencido ? 'text-danger-400' : 'text-white'}`}>{fmtBRL(item.valorSaldo)}</span>
                 </div>
-                <span className={`tabular shrink-0 text-xs font-extrabold ${item.vencido ? 'text-danger-400' : 'text-white'}`}>{fmtBRL(item.liquido)}</span>
-              </div>
-            ))}
+              )
+            })}
             {itens.length === 0 && <p className="p-4 text-center text-xs text-white/40">Nenhum título nesse bucket</p>}
           </div>
         </div>

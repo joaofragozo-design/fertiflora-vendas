@@ -2,19 +2,12 @@ import { excluirLiquidadas } from '@/lib/comissoes/calculos'
 import type { ComissaoErpRow } from '@/lib/comissoes/types'
 import type { NotaFiscalRow, PedidoErpRow } from '@/lib/clientes-bi/types'
 import type {
-  AgingAno,
-  AgingAnoAtraso,
-  AgingAnoDDF,
   BucketVencimento,
-  FaixaAtraso,
-  FaixaDDF,
-  ItemAgingDDF,
+  ItemAbertoUnificado,
   ItemCarteiraPrazo,
   ItemPedidoAbertoPrazo,
   LimiteCarteiraPrazoRow,
   ResumoBucket,
-  ResumoBucketCarteiraPrazo,
-  ResumoBucketPedidos,
   ResumoCarteiraPrazo,
 } from './types'
 
@@ -157,125 +150,9 @@ function statusPagamentoPorNota(geral: ComissaoErpRow[], liquidadas: ComissaoErp
   return resultado
 }
 
-// ─── Gráfico 1: Painel de Recebimentos (aging por DDF) ──────────────────────
+// ─── Carteira a Prazo (buckets por dias-até-vencimento/entrega) ────────────
 
-export function calcularDDF(emissao: string, pagamento: string | null, hoje: Date): number {
-  return diasEntre(emissao, pagamento ?? paraIso(hoje))
-}
-
-/** Até 5 dias já conta como "à vista" -- não é só pagamento no mesmo dia da emissão. */
-export function faixaDeDDF(ddf: number): FaixaDDF {
-  if (ddf <= 5) return 'a_vista'
-  if (ddf <= 30) return 'ate_30'
-  if (ddf <= 90) return 'ate_90'
-  return 'mais_90'
-}
-
-/**
- * Atraso vs a data COMBINADA (vencimento) -- pagamento (ou hoje, se em aberto) menos vencimento.
- * Positivo = pagou/está depois do combinado; negativo ou zero = em dia ou adiantado. `null` quando
- * a nota não tem vencimento cadastrado (não dá pra medir atraso sem uma data combinada).
- */
-export function calcularAtraso(vencimento: string | null, pagamento: string | null, hoje: Date): number | null {
-  if (!vencimento) return null
-  return diasEntre(vencimento, pagamento ?? paraIso(hoje))
-}
-
-/** Distingue "pagou certinho num prazo longo combinado" (ex.: financiamento até a colheita) de atraso de verdade. */
-export function faixaDeAtraso(atraso: number | null): FaixaAtraso {
-  if (atraso === null) return 'sem_vencimento'
-  if (atraso <= 0) return 'adiantado'
-  if (atraso <= 15) return 'ate_15'
-  if (atraso <= 30) return 'ate_30'
-  return 'mais_30'
-}
-
-/**
- * Todas as notas fiscais conhecidas (pagas + em aberto, por nota inteira), com DDF/Atraso
- * calculados até o pagamento ou, se ainda em aberto, até hoje (envelhece em tempo real). Emissão,
- * vencimento, peso e valor vêm direto da nota fiscal (RFT6) -- o Relatório de Comissionados
- * (RFT159) entra só pra confirmar o status de pagamento (`statusPagamentoPorNota`), já que a RFT6
- * não tem data de pagamento.
- */
-export function montarItensAgingDDF(notasFiscais: NotaFiscalRow[], geral: ComissaoErpRow[], liquidadas: ComissaoErpRow[], hoje: Date = new Date()): ItemAgingDDF[] {
-  const notas = agregarNotasPorNumero(notasFiscais)
-  const statusPorNota = statusPagamentoPorNota(geral, liquidadas)
-
-  return [...notas.values()].map((n) => {
-    const chave = chaveNota(n.vendedorCodigo, n.nota)
-    const status = chave ? statusPorNota.get(chave) : undefined
-    const pago = status?.pago ?? false
-    const pagamento = status?.pagamento ?? null
-    const ddf = calcularDDF(n.emissao, pagamento, hoje)
-    const atraso = calcularAtraso(n.vencimento, pagamento, hoje)
-    return {
-      vendedorCodigo: n.vendedorCodigo,
-      clienteCodigo: n.clienteCodigo,
-      clienteNome: n.clienteNome,
-      nota: n.nota,
-      emissao: n.emissao,
-      vencimento: n.vencimento,
-      pagamento,
-      liquido: n.liquido,
-      confirmadoPorComissao: status?.confirmadoPorComissao ?? false,
-      ddf,
-      // Sem confirmação de pagamento, ddf/atraso ainda "contam" em tempo real mas não são um dado
-      // final -- não classifica como velocidade de pagamento confirmada (evita uma nota de 2022
-      // sem pagamento aparecer como "atrasou 1600 dias" quando na real é só falta de informação).
-      faixa: pago ? faixaDeDDF(ddf) : 'em_aberto',
-      atraso,
-      faixaAtraso: pago ? faixaDeAtraso(atraso) : 'em_aberto',
-      pago,
-      pesoToneladas: n.pesoToneladas,
-    }
-  })
-}
-
-const FAIXAS_DDF_ZERADAS: Record<FaixaDDF, number> = { a_vista: 0, ate_30: 0, ate_90: 0, mais_90: 0, em_aberto: 0 }
-const FAIXAS_ATRASO_ZERADAS: Record<FaixaAtraso, number> = { adiantado: 0, ate_15: 0, ate_30: 0, mais_30: 0, sem_vencimento: 0, em_aberto: 0 }
-
-/** Agrupa por ano de EMISSÃO (não de vencimento/pagamento) -- mesma linha do tempo pra DDF e Atraso, só muda a faixa. */
-function agruparPorAno<F extends string>(
-  itens: ItemAgingDDF[],
-  faixaDe: (item: ItemAgingDDF) => F,
-  faixasZeradas: Record<F, number>,
-  anoInicio: number,
-  anoFim: number
-): AgingAno<F>[] {
-  const anos: AgingAno<F>[] = []
-  for (let ano = anoInicio; ano <= anoFim; ano++) {
-    const porFaixaReais = { ...faixasZeradas }
-    const porFaixaToneladas = { ...faixasZeradas }
-    let totalReais = 0
-    let totalToneladas = 0
-    let totalReaisNaoConfirmado = 0
-    for (const i of itens) {
-      if (Number(i.emissao.slice(0, 4)) !== ano) continue
-      const faixa = faixaDe(i)
-      porFaixaReais[faixa] += i.liquido
-      totalReais += i.liquido
-      if (!i.confirmadoPorComissao) totalReaisNaoConfirmado += i.liquido
-      if (i.pesoToneladas !== null) {
-        porFaixaToneladas[faixa] += i.pesoToneladas
-        totalToneladas += i.pesoToneladas
-      }
-    }
-    anos.push({ ano, totalReais, totalToneladas, porFaixaReais, porFaixaToneladas, totalReaisNaoConfirmado })
-  }
-  return anos
-}
-
-export function calcularAgingPorAno(itens: ItemAgingDDF[], anoInicio = 2022, anoFim: number = new Date().getFullYear()): AgingAnoDDF[] {
-  return agruparPorAno(itens, (i) => i.faixa, FAIXAS_DDF_ZERADAS, anoInicio, anoFim)
-}
-
-export function calcularAtrasoPorAno(itens: ItemAgingDDF[], anoInicio = 2022, anoFim: number = new Date().getFullYear()): AgingAnoAtraso[] {
-  return agruparPorAno(itens, (i) => i.faixaAtraso, FAIXAS_ATRASO_ZERADAS, anoInicio, anoFim)
-}
-
-// ─── Gráfico 2: Carteira a Prazo (buckets por dias-até-vencimento) ──────────
-
-const ORDEM_BUCKETS: BucketVencimento[] = ['vencido', 'ate_30', 'ate_60', 'ate_90', 'ate_120', 'ate_180', 'mais_180', 'sem_vencimento']
+const ORDEM_BUCKETS: BucketVencimento[] = ['vencido', 'ate_30', 'ate_60', 'ate_90', 'ate_120', 'ate_180', 'ate_210', 'mais_210', 'sem_vencimento']
 
 export function bucketDeVencimento(dias: number | null): BucketVencimento {
   if (dias === null) return 'sem_vencimento'
@@ -285,13 +162,15 @@ export function bucketDeVencimento(dias: number | null): BucketVencimento {
   if (dias <= 90) return 'ate_90'
   if (dias <= 120) return 'ate_120'
   if (dias <= 180) return 'ate_180'
-  return 'mais_180'
+  if (dias <= 210) return 'ate_210'
+  return 'mais_210'
 }
 
 /**
  * Só notas ainda não pagas (por nota inteira, ver `statusPagamentoPorNota`) -- dias-até-vencimento
- * recalculado em tempo real (a mesma nota "desce" de bucket conforme os dias passam). Uma nota sai
- * da carteira assim que TODAS as suas parcelas de comissão aparecem com pagamento registrado.
+ * recalculado em tempo real (a mesma nota "desce" de bucket conforme os dias passam, incluindo o
+ * bucket "até 30" que é sempre uma janela rolante a partir de hoje, nunca uma data fixa). Uma nota
+ * sai da carteira assim que TODAS as suas parcelas de comissão aparecem com pagamento registrado.
  * Reage em tempo real porque a tela já assina mudanças em `comissoes_erp_importadas` e
  * `notas_fiscais_importadas` via `inscreverFluxoCaixaEmTempoReal`.
  */
@@ -360,23 +239,19 @@ export function alertaReservaSafrinha(totalToneladas: number, limiteToneladas: n
   return totalToneladas > limiteConsumivel
 }
 
-/** Piso mínimo (dias até o vencimento) pra uma nota contar como exposição de financiamento (Pilar 2) na Carteira a Prazo. */
-const LIMIAR_DIAS_CARTEIRA_PRAZO = 60
-
 /**
- * `itensPedidos` entra só pra somar no total que consome a cota (Pilar 2: "vendeu a prazo
- * consome a cota", não só quando vira nota fiscal) -- os buckets exibidos no gráfico principal
- * são só das notas; o sub-gráfico de pedidos usa `calcularResumoPedidosAbertoPrazo` à parte.
+ * `itensNotas` (nota fiscal emitida, ainda não paga) + `itensPedidos` (pedido em aberto, ainda não
+ * faturado) somados no mesmo conjunto de buckets -- é a Carteira a Prazo completa (Pilar 2: "vendeu
+ * a prazo consome a cota", não só quando vira nota fiscal). Único critério de exclusão é já ter
+ * sido pago (`montarItensCarteiraPrazo`/`montarItensPedidosAbertoPrazo` já filtram isso na origem)
+ * -- sem piso de dias nem restrição de ano nos buckets exibidos: um título vencido e não pago
+ * continua no Painel de Recebimentos, exposto no bucket "vencido" em vez de sumir da tela.
  *
- * Só nota com 60+ dias até o vencimento conta como "carteira a prazo" de fato -- uma nota vencida
- * ou a poucos dias de vencer está perto demais de se resolver sozinha (virar caixa) pra consumir a
- * cota da safra; ela continua rastreada no Painel de Recebimentos (DDF/Atraso), só sai deste
- * painel especificamente. Recalculado a cada render a partir de `diasAteVencimento`, que já
- * envelhece em tempo real -- a mesma nota sai da carteira sozinha conforme os dias passam.
- *
- * A cota também é só do ANO CORRENTE (a safra vigente) -- nota/pedido emitido em ano anterior não
- * consome mais a cota deste ano, mesmo que ainda apareça "em aberto" só por falta de confirmação
- * de pagamento no relatório de comissões (ver `totalReaisForaDoAno`).
+ * A COTA da safrinha (`totalToneladas`/`totalReais`, o que alimenta o medidor) é mais restrita:
+ * título vencido com vencimento/entrega de ano anterior ao corrente não consome mais a cota -- é
+ * dívida velha (cobrança/write-off), não exposição de crédito ativa do ciclo vigente. Continua
+ * contado no bucket "vencido" acima (nunca invisível), só sai da conta que dispara o alerta de
+ * reserva da safrinha.
  */
 export function calcularResumoCarteiraPrazo(
   itensNotas: ItemCarteiraPrazo[],
@@ -385,31 +260,36 @@ export function calcularResumoCarteiraPrazo(
   hoje: Date = new Date()
 ): ResumoCarteiraPrazo {
   const anoAtual = hoje.getFullYear()
-  const notasDoAno = itensNotas.filter((i) => Number(i.emissao.slice(0, 4)) === anoAtual)
-  const notasDeOutroAno = itensNotas.filter((i) => Number(i.emissao.slice(0, 4)) !== anoAtual)
-  const pedidosDoAno = itensPedidos.filter((i) => Number(i.emissao.slice(0, 4)) === anoAtual)
-  const pedidosDeOutroAno = itensPedidos.filter((i) => Number(i.emissao.slice(0, 4)) !== anoAtual)
 
-  const dentroDoPrazo = notasDoAno.filter((i) => i.diasAteVencimento === null || i.diasAteVencimento >= LIMIAR_DIAS_CARTEIRA_PRAZO)
-  const foraDoPrazo = notasDoAno.filter((i) => i.diasAteVencimento !== null && i.diasAteVencimento < LIMIAR_DIAS_CARTEIRA_PRAZO)
+  const itensUnificados: ItemAbertoUnificado[] = [
+    ...itensNotas.map((i) => ({ ...i, tipo: 'nota' as const })),
+    ...itensPedidos.map((i) => ({ ...i, tipo: 'pedido' as const })),
+  ]
 
-  const buckets: ResumoBucketCarteiraPrazo[] = agruparPorBucket(
-    dentroDoPrazo,
-    (i) => i.pesoToneladas ?? 0,
-    (i) => i.liquido
+  const buckets = agruparPorBucket(
+    itensUnificados,
+    (i) => (i.tipo === 'nota' ? i.pesoToneladas ?? 0 : i.pesoSaldoToneladas),
+    (i) => (i.tipo === 'nota' ? i.liquido : i.valorSaldo)
   )
 
-  // Soma dos buckets já recalcula o peso de dentroDoPrazo -- evita um segundo scan do array inteiro.
-  const totalToneladasNotas = buckets.reduce((s, b) => s + b.totalToneladas, 0)
-  const totalToneladasPedidos = pedidosDoAno.reduce((s, i) => s + i.pesoSaldoToneladas, 0)
-  const totalToneladas = totalToneladasNotas + totalToneladasPedidos
+  const pesoDe = (i: ItemAbertoUnificado) => (i.tipo === 'nota' ? i.pesoToneladas ?? 0 : i.pesoSaldoToneladas)
+  const reaisDe = (i: ItemAbertoUnificado) => (i.tipo === 'nota' ? i.liquido : i.valorSaldo)
+  const anoDoVencimento = (i: ItemAbertoUnificado): number | null => {
+    const data = i.tipo === 'nota' ? i.vencimento : i.entrega
+    return data ? Number(data.slice(0, 4)) : null
+  }
 
-  const totalReaisSemPeso = dentroDoPrazo.filter((i) => i.pesoToneladas === null).reduce((s, i) => s + i.liquido, 0)
-  const totalReaisNaoConfirmado = dentroDoPrazo.filter((i) => !i.confirmadoPorComissao).reduce((s, i) => s + i.liquido, 0)
-  const totalReaisForaDoPrazo = foraDoPrazo.reduce((s, i) => s + i.liquido, 0)
-  const totalToneladasForaDoPrazo = foraDoPrazo.reduce((s, i) => s + (i.pesoToneladas ?? 0), 0)
-  const totalReaisForaDoAno = notasDeOutroAno.reduce((s, i) => s + i.liquido, 0)
-  const totalToneladasForaDoAno = notasDeOutroAno.reduce((s, i) => s + (i.pesoToneladas ?? 0), 0) + pedidosDeOutroAno.reduce((s, i) => s + i.pesoSaldoToneladas, 0)
+  const paraQuota = itensUnificados.filter((i) => i.bucket !== 'vencido' || anoDoVencimento(i) === anoAtual)
+  const vencidoOutroAno = itensUnificados.filter((i) => i.bucket === 'vencido' && anoDoVencimento(i) !== anoAtual)
+
+  const totalToneladas = paraQuota.reduce((s, i) => s + pesoDe(i), 0)
+  const totalReais = paraQuota.reduce((s, i) => s + reaisDe(i), 0)
+  const totalReaisVencidoOutroAno = vencidoOutroAno.reduce((s, i) => s + reaisDe(i), 0)
+  const totalToneladasVencidoOutroAno = vencidoOutroAno.reduce((s, i) => s + pesoDe(i), 0)
+
+  const notasParaQuota = paraQuota.filter((i): i is ItemCarteiraPrazo & { tipo: 'nota' } => i.tipo === 'nota')
+  const totalReaisSemPeso = notasParaQuota.filter((i) => i.pesoToneladas === null).reduce((s, i) => s + i.liquido, 0)
+  const totalReaisNaoConfirmado = notasParaQuota.filter((i) => !i.confirmadoPorComissao).reduce((s, i) => s + i.liquido, 0)
   // Limite zerado/mal configurado com exposição real: mostra 100% (gauge cheio/alerta), nunca "0% usado" --
   // um limite de 0t com toneladas reais em aberto é o pior caso possível, não "nada consumido".
   const percentualUsado = limite.limiteToneladas > 0 ? (totalToneladas / limite.limiteToneladas) * 100 : totalToneladas > 0 ? 100 : 0
@@ -420,18 +300,17 @@ export function calcularResumoCarteiraPrazo(
     reservaLiberada: limite.reservaLiberada,
     buckets,
     totalToneladas,
+    totalReais,
     totalReaisSemPeso,
     totalReaisNaoConfirmado,
-    totalReaisForaDoPrazo,
-    totalToneladasForaDoPrazo,
-    totalReaisForaDoAno,
-    totalToneladasForaDoAno,
+    totalReaisVencidoOutroAno,
+    totalToneladasVencidoOutroAno,
     percentualUsado,
     alertaReserva: alertaReservaSafrinha(totalToneladas, limite.limiteToneladas, limite.reservaPct, limite.reservaLiberada),
   }
 }
 
-// ─── Sub-gráfico: Pedidos em aberto a prazo (proxy por dias-até-entrega) ────
+// ─── Pedidos em aberto a prazo (proxy por dias-até-entrega) ────────────────
 
 /**
  * `entrega` é logística, não prazo de pagamento real (esse dado não existe em nenhuma tabela do
@@ -458,12 +337,4 @@ export function montarItensPedidosAbertoPrazo(pedidos: PedidoErpRow[], hoje: Dat
         bucket: bucketDeVencimento(dias),
       }
     })
-}
-
-export function calcularResumoPedidosAbertoPrazo(itens: ItemPedidoAbertoPrazo[]): ResumoBucketPedidos[] {
-  return agruparPorBucket(
-    itens,
-    (i) => i.pesoSaldoToneladas,
-    (i) => i.valorSaldo
-  )
 }

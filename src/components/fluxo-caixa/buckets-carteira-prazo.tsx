@@ -6,11 +6,12 @@ import type { BucketVencimento, ResumoBucket } from '@/lib/fluxo-caixa/types'
 const ROTULOS_BUCKET: Record<BucketVencimento, string> = {
   vencido: 'Vencido',
   ate_30: 'Até 30 dias',
-  ate_60: 'Até 60 dias',
-  ate_90: 'Até 90 dias',
-  ate_120: 'Até 120 dias',
-  ate_180: 'Até 180 dias',
-  mais_180: 'Acima de 180 dias',
+  ate_60: '30 a 60 dias',
+  ate_90: '60 a 90 dias',
+  ate_120: '90 a 120 dias',
+  ate_180: '120 a 180 dias',
+  ate_210: '180 a 210 dias',
+  mais_210: 'Acima de 210 dias',
   sem_vencimento: 'Sem vencimento',
 }
 

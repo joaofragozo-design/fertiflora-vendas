@@ -1,60 +1,20 @@
-/**
- * "À vista" inclui pagamento em até 5 dias do faturamento -- não é só pagamento no mesmo dia.
- * `em_aberto` = ainda não pago (`pagamento` null) -- não entra nas faixas de velocidade de
- * pagamento porque não é um dado final: um título em aberto de 2022 sem `pagamento` registrado
- * não significa "atrasou 1600 dias", significa "não sabemos" (o relatório de comissões pode
- * simplesmente não ter sido reimportado com o pagamento daquele período). Fica destacado à parte
- * (cinza) em vez de contaminar `mais_90` com um sinal que parece atraso real mas não é.
- */
-export type FaixaDDF = 'a_vista' | 'ate_30' | 'ate_90' | 'mais_90' | 'em_aberto'
-
-/** Atraso vs a data COMBINADA (vencimento), não vs a emissão -- distingue prazo longo acertado (ex.: financiamento até a colheita) de atraso de verdade. `em_aberto` tem a mesma razão de ser da versão em `FaixaDDF` (título ainda não pago não é atraso confirmado). */
-export type FaixaAtraso = 'adiantado' | 'ate_15' | 'ate_30' | 'mais_30' | 'sem_vencimento' | 'em_aberto'
-
-export interface ItemAgingDDF {
-  vendedorCodigo: number
-  clienteCodigo: number | null
-  clienteNome: string
-  nota: string
-  emissao: string // yyyy-mm-dd -- direto da nota fiscal (RFT6), não mais do relatório de comissões
-  vencimento: string | null // direto da nota fiscal (RFT6) -- um único vencimento por nota inteira
-  pagamento: string | null
-  /** Valor real da nota fiscal (RFT6), somado por nota -- fonte de verdade do R$, nunca mais um fallback pro `liquido` de comissões. */
-  liquido: number
-  /** false = nenhuma parcela do Relatório de Comissionados (RFT159) bate com essa nota -- não dá pra confirmar se foi paga, então conta como `pago: false` por padrão (conservador). Nunca esconder isso do usuário. */
-  confirmadoPorComissao: boolean
-  /** Dias depois do faturamento -- até `pagamento` se já pago, senão até hoje (envelhece em tempo real). */
-  ddf: number
-  faixa: FaixaDDF
-  /** pagamento (ou hoje) - vencimento. Negativo/zero = pagou em dia ou adiantado. Null se não há vencimento cadastrado. */
-  atraso: number | null
-  faixaAtraso: FaixaAtraso
-  pago: boolean
-  /** Somado direto das linhas `un='KG'` da nota fiscal -- real, não mais uma estimativa por rateio. null se a nota não tem nenhuma linha em KG. */
-  pesoToneladas: number | null
-}
-
-/** Genérico: serve tanto pra distribuição por DDF (dias desde emissão) quanto por atraso (dias vs vencimento combinado). */
-export interface AgingAno<F extends string> {
-  ano: number
-  totalReais: number
-  totalToneladas: number
-  porFaixaReais: Record<F, number>
-  porFaixaToneladas: Record<F, number>
-  /** Parcela de `totalReais` sem NENHUMA correspondência no Relatório de Comissionados -- status de pagamento não confirmado, tratado como `em_aberto` por padrão (ver `ItemAgingDDF.confirmadoPorComissao`). */
-  totalReaisNaoConfirmado: number
-}
-export type AgingAnoDDF = AgingAno<FaixaDDF>
-export type AgingAnoAtraso = AgingAno<FaixaAtraso>
-
-export type BucketVencimento = 'vencido' | 'ate_30' | 'ate_60' | 'ate_90' | 'ate_120' | 'ate_180' | 'mais_180' | 'sem_vencimento'
+export type BucketVencimento =
+  | 'vencido'
+  | 'ate_30'
+  | 'ate_60'
+  | 'ate_90'
+  | 'ate_120'
+  | 'ate_180'
+  | 'ate_210'
+  | 'mais_210'
+  | 'sem_vencimento'
 
 export interface ItemCarteiraPrazo {
   vendedorCodigo: number
   clienteCodigo: number | null
   clienteNome: string
   nota: string
-  emissao: string // yyyy-mm-dd -- direto da nota fiscal (RFT6); usado pra restringir a Carteira a Prazo ao ano corrente (safra vigente)
+  emissao: string // yyyy-mm-dd -- direto da nota fiscal (RFT6)
   vencimento: string | null // direto da nota fiscal (RFT6) -- um único vencimento por nota inteira
   /** Valor real da nota fiscal (RFT6), somado por nota -- fonte de verdade do R$, nunca mais um fallback pro `liquido` de comissões. */
   liquido: number
@@ -68,36 +28,12 @@ export interface ItemCarteiraPrazo {
   pesoToneladas: number | null
 }
 
-/** Genérico pra servir tanto a carteira a prazo (notas) quanto o sub-gráfico de pedidos abertos. */
+/** Genérico pra servir qualquer lista agrupada por bucket de dias-até-vencimento. */
 export interface ResumoBucket<T> {
   bucket: BucketVencimento
   totalReais: number
   totalToneladas: number
   itens: T[]
-}
-export type ResumoBucketCarteiraPrazo = ResumoBucket<ItemCarteiraPrazo>
-
-export interface ResumoCarteiraPrazo {
-  limiteToneladas: number
-  reservaPct: number
-  reservaLiberada: boolean
-  buckets: ResumoBucketCarteiraPrazo[]
-  /** Notas em aberto + pedidos ainda não faturados -- o que efetivamente consome a cota (Pilar 2: "vendeu a prazo consome a cota"). */
-  totalToneladas: number
-  /** Soma do `liquido` de notas sem nenhuma linha em KG (vendidas só em outra unidade) -- não entram no totalToneladas, exposto por transparência, nunca zerado silenciosamente. */
-  totalReaisSemPeso: number
-  /** Soma do `liquido` de notas sem NENHUMA correspondência no Relatório de Comissionados -- status de pagamento não confirmado, tratadas como em aberto por padrão (ver `ItemCarteiraPrazo.confirmadoPorComissao`). */
-  totalReaisNaoConfirmado: number
-  /** Soma do `liquido` de títulos vencidos ou com menos de 60 dias até o vencimento -- não consomem mais a cota (perto demais de se resolver sozinhos), mas exposto aqui por transparência, nunca descartado silenciosamente. */
-  totalReaisForaDoPrazo: number
-  /** Toneladas correspondentes a `totalReaisForaDoPrazo` (mesma exclusão de <60 dias). */
-  totalToneladasForaDoPrazo: number
-  /** Soma do `liquido` de títulos/pedidos com emissão fora do ano corrente -- a cota é da safra vigente, dado antigo (2022-2024 etc.) não deve mais consumi-la, mesmo que ainda apareça "em aberto" por falta de confirmação de pagamento. */
-  totalReaisForaDoAno: number
-  /** Toneladas correspondentes a `totalReaisForaDoAno`. */
-  totalToneladasForaDoAno: number
-  percentualUsado: number
-  alertaReserva: boolean
 }
 
 export type BucketEntrega = BucketVencimento
@@ -115,7 +51,35 @@ export interface ItemPedidoAbertoPrazo {
   diasAteEntrega: number | null
   bucket: BucketEntrega
 }
-export type ResumoBucketPedidos = ResumoBucket<ItemPedidoAbertoPrazo>
+
+/**
+ * União discriminada por `tipo` -- combina nota fiscal emitida (ainda não paga) e pedido em aberto
+ * (ainda não faturado) no mesmo conjunto de buckets, já que a Carteira a Prazo passou a somar os
+ * dois (Pilar 2: "vendeu a prazo consome a cota", não só quando vira nota fiscal).
+ */
+export type ItemAbertoUnificado = (ItemCarteiraPrazo & { tipo: 'nota' }) | (ItemPedidoAbertoPrazo & { tipo: 'pedido' })
+export type ResumoBucketAberto = ResumoBucket<ItemAbertoUnificado>
+
+export interface ResumoCarteiraPrazo {
+  limiteToneladas: number
+  reservaPct: number
+  reservaLiberada: boolean
+  buckets: ResumoBucketAberto[]
+  /** Notas em aberto + pedidos ainda não faturados -- único critério de exclusão é já ter sido pago; sem piso de dias nem restrição de ano. */
+  totalToneladas: number
+  /** Mesmo total em R$ -- alimenta o Painel de Recebimentos na chave R$/toneladas. */
+  totalReais: number
+  /** Soma do `liquido` de notas sem nenhuma linha em KG (vendidas só em outra unidade) -- não entram no totalToneladas, exposto por transparência, nunca zerado silenciosamente. */
+  totalReaisSemPeso: number
+  /** Soma do `liquido` de notas sem NENHUMA correspondência no Relatório de Comissionados -- status de pagamento não confirmado, tratadas como em aberto por padrão (ver `ItemCarteiraPrazo.confirmadoPorComissao`). */
+  totalReaisNaoConfirmado: number
+  /** Soma do `liquido`/`valorSaldo` de títulos vencidos com vencimento/entrega de ano DIFERENTE do corrente -- dívida velha (cobrança/write-off), não exposição de crédito ativa da safra vigente. Não entra em `totalToneladas`/`totalReais` (a cota), mas continua visível no bucket "Vencido" acima (nunca some da tela), por transparência. */
+  totalReaisVencidoOutroAno: number
+  /** Toneladas correspondentes a `totalReaisVencidoOutroAno`. */
+  totalToneladasVencidoOutroAno: number
+  percentualUsado: number
+  alertaReserva: boolean
+}
 
 export interface LimiteCarteiraPrazoRow {
   id: string
