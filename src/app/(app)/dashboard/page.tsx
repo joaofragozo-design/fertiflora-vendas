@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, FileText, HandCoins, BarChart3, Truck, ArrowRight } from 'lucide-react'
+import { Plus, FileText, HandCoins, BarChart3, ShieldCheck, Truck, ArrowRight } from 'lucide-react'
 import { AnunciarIntensidade } from '@/components/scene/living-background/anunciar-intensidade'
 import { Logo } from '@/components/brand/logo'
 import { SignOutButton } from '@/components/forms/sign-out-button'
@@ -63,12 +63,21 @@ export default async function DashboardPage() {
               <span className="font-display text-[11px] font-bold leading-tight">Novo Pedido</span>
             </Link>
 
-            <Link href="/comissoes" className="glass flex flex-col items-center gap-2 rounded-2xl p-3.5 text-center transition-colors hover:bg-white/10 active:scale-[0.96]">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning-500/20 text-warning-400">
-                <HandCoins className="h-5 w-5" />
-              </div>
-              <span className="font-display text-[11px] font-bold leading-tight">Comissões</span>
-            </Link>
+            {ehAdmin ? (
+              <Link href="/admin/pedidos" className="glass flex flex-col items-center gap-2 rounded-2xl p-3.5 text-center transition-colors hover:bg-white/10 active:scale-[0.96]">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-danger-500/20 text-danger-400">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <span className="font-display text-[11px] font-bold leading-tight">Análise de Crédito</span>
+              </Link>
+            ) : (
+              <Link href="/comissoes" className="glass flex flex-col items-center gap-2 rounded-2xl p-3.5 text-center transition-colors hover:bg-white/10 active:scale-[0.96]">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning-500/20 text-warning-400">
+                  <HandCoins className="h-5 w-5" />
+                </div>
+                <span className="font-display text-[11px] font-bold leading-tight">Comissões</span>
+              </Link>
+            )}
 
             <Link href="/entrega" className="glass flex flex-col items-center gap-2 rounded-2xl p-3.5 text-center transition-colors hover:bg-white/10 active:scale-[0.96]">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-olive-500/20 text-olive-400">
