@@ -40,3 +40,19 @@ export function calcularFalta(faturado: number, meta: number): number {
   return Math.max(0, meta - faturado)
 }
 
+interface EntradaComTotais {
+  faturado: number
+  pedido: number
+  total: number
+  meta: number
+}
+
+/** Soma faturado/pedido/total/meta de todas as entradas do ranking -- mesma conta do card "Resumo geral". */
+export function calcularResumoGeral(entradas: EntradaComTotais[]) {
+  const somaFaturado = entradas.reduce((s, e) => s + e.faturado, 0)
+  const somaPedido = entradas.reduce((s, e) => s + e.pedido, 0)
+  const somaTotal = entradas.reduce((s, e) => s + e.total, 0)
+  const somaMeta = entradas.reduce((s, e) => s + e.meta, 0)
+  return { somaFaturado, somaPedido, somaTotal, somaMeta, percentual: calcularPercentual(somaTotal, somaMeta) }
+}
+

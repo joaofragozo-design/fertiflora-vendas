@@ -7,7 +7,9 @@ import { EditarPerfilModal } from '@/components/perfil/editar-perfil-modal'
 import { buscarPerfil, type Perfil } from '@/lib/perfil/queries'
 import { todosOsTiers } from '@/lib/gamificacao/queries'
 import { tierAtual } from '@/lib/gamificacao/tiers'
-import { buscarVendedorComercialDoUsuario, buscarFaturamentoDoVendedor } from '@/lib/ranking/queries'
+import { TIERS_GESTAO } from '@/lib/gamificacao/tiers-gestao'
+import { buscarVendedorComercialDoUsuario, buscarFaturamentoDoVendedor, listarRanking } from '@/lib/ranking/queries'
+import { calcularResumoGeral } from '@/lib/ranking/calculos'
 import { cn } from '@/lib/utils/cn'
 
 const ANO = new Date().getFullYear()
@@ -15,24 +17,34 @@ const ANO = new Date().getFullYear()
 interface PerfilCardProps {
   userId: string
   usernameFallback: string
+  /** Conta de gestão geral (régua é o % da meta geral da empresa, não toneladas individuais) -- ver tiers-gestao.ts. */
+  gestorGeral?: boolean
 }
 
-/** Insígnia baseada no total (faturado + pedido) real do vendedor no ano -- mesma fonte do Ranking, não em cotações feitas no app. Conta sem vínculo de vendedor (ex: admin) fica no tier inicial. */
-export function PerfilCard({ userId, usernameFallback }: PerfilCardProps) {
+/** Insígnia baseada no total (faturado + pedido) real do vendedor no ano -- mesma fonte do Ranking, não em cotações feitas no app. Conta de gestão geral usa o % da meta geral em vez disso (ver gestorGeral). */
+export function PerfilCard({ userId, usernameFallback, gestorGeral = false }: PerfilCardProps) {
   const [perfil, setPerfil] = useState<Perfil | null>(null)
-  const [totalToneladas, setTotalToneladas] = useState<number | null>(null)
+  const [valorTier, setValorTier] = useState<number | null>(null)
   const [editando, setEditando] = useState(false)
 
   useEffect(() => {
     buscarPerfil(userId, usernameFallback).then(setPerfil).catch(() => setPerfil({ id: userId, username: usernameFallback, apelido: null, avatarUrl: null, pracaAtuacao: null, nomeCompleto: null, telefone: null, molduraCor: null }))
+
+    if (gestorGeral) {
+      listarRanking(ANO)
+        .then((entradas) => setValorTier(calcularResumoGeral(entradas).percentual))
+        .catch(() => setValorTier(0))
+      return
+    }
     buscarVendedorComercialDoUsuario(userId)
       .then((vendedor) => (vendedor ? buscarFaturamentoDoVendedor(vendedor.id, ANO) : { faturado: 0, pedido: 0, meta: 0 }))
-      .then((d) => setTotalToneladas(d.faturado + d.pedido))
-      .catch(() => setTotalToneladas(0))
-  }, [userId, usernameFallback])
+      .then((d) => setValorTier(d.faturado + d.pedido))
+      .catch(() => setValorTier(0))
+  }, [userId, usernameFallback, gestorGeral])
 
-  const total = totalToneladas ?? 0
-  const tier = tierAtual(total)
+  const valor = valorTier ?? 0
+  const tiersAtivos = gestorGeral ? TIERS_GESTAO : todosOsTiers()
+  const tier = tierAtual(valor, tiersAtivos)
   const nomeExibicao = perfil?.apelido || perfil?.username || usernameFallback
 
   return (
@@ -78,8 +90,8 @@ export function PerfilCard({ userId, usernameFallback }: PerfilCardProps) {
           className="flex gap-2.5 overflow-x-auto pb-1 pt-1"
           style={{ maskImage: 'linear-gradient(to right, black 88%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, black 88%, transparent 100%)' }}
         >
-          {todosOsTiers().map((t) => {
-            const desbloqueado = total >= t.min
+          {tiersAtivos.map((t) => {
+            const desbloqueado = valor >= t.min
             const atual = t.chave === tier.chave
             return (
               <div key={t.chave} className="flex shrink-0 flex-col items-center gap-1">

@@ -21,21 +21,21 @@ export const TIERS: Tier[] = [
   { chave: 'toneladas_20k', min: 20_000, nome: '20K', frase: 'Um em cada milhão', cores: ['#f59e0b', '#a855f7'], wings: true, prisma: true },
 ]
 
-export function tierAtual(totalToneladas: number): Tier {
-  let atual = TIERS[0]
-  for (const t of TIERS) {
+export function tierAtual(totalToneladas: number, tiers: Tier[] = TIERS): Tier {
+  let atual = tiers[0]
+  for (const t of tiers) {
     if (totalToneladas >= t.min) atual = t
   }
   return atual
 }
 
-export function proximoTier(totalToneladas: number): Tier | null {
-  return TIERS.find((t) => t.min > totalToneladas) ?? null
+export function proximoTier(totalToneladas: number, tiers: Tier[] = TIERS): Tier | null {
+  return tiers.find((t) => t.min > totalToneladas) ?? null
 }
 
-export function progressoPct(totalToneladas: number): number {
-  const atual = tierAtual(totalToneladas)
-  const proximo = proximoTier(totalToneladas)
+export function progressoPct(totalToneladas: number, tiers: Tier[] = TIERS): number {
+  const atual = tierAtual(totalToneladas, tiers)
+  const proximo = proximoTier(totalToneladas, tiers)
   if (!proximo) return 100
   const faixa = proximo.min - atual.min
   return Math.min(100, Math.round(((totalToneladas - atual.min) / faixa) * 100))

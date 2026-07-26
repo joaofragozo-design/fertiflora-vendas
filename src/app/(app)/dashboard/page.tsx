@@ -10,6 +10,7 @@ import { PerfilCard } from '@/components/perfil/perfil-card'
 import { TrioFaturamentoVendedor } from '@/components/ranking/trio-faturamento-vendedor'
 import { createClient } from '@/lib/supabase/server'
 import { emailToUsername } from '@/lib/validations/auth'
+import { ehGestorGeral } from '@/lib/gamificacao/tiers-gestao'
 import { ROUTES } from '@/constants/routes'
 
 export default async function DashboardPage() {
@@ -19,6 +20,8 @@ export default async function DashboardPage() {
 
   const { data: perfil } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
   const ehAdmin = perfil?.role === 'admin'
+  const usernameFallback = user.email ? emailToUsername(user.email) : 'vendedor'
+  const gestorGeral = ehGestorGeral(usernameFallback)
 
   return (
     <main className="relative min-h-screen pb-28">
@@ -33,11 +36,11 @@ export default async function DashboardPage() {
           </div>
         </header>
 
-        <PerfilCard userId={user.id} usernameFallback={user.email ? emailToUsername(user.email) : 'vendedor'} />
+        <PerfilCard userId={user.id} usernameFallback={usernameFallback} gestorGeral={gestorGeral} />
 
         <BauIndicador />
 
-        <TrioFaturamentoVendedor userId={user.id} />
+        <TrioFaturamentoVendedor userId={user.id} gestorGeral={gestorGeral} />
 
         <Link
           href="/cotacao"
