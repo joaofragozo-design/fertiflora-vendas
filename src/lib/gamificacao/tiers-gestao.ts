@@ -1,7 +1,7 @@
 import type { Tier } from './tiers'
 
 /** Contas cuja régua de desempenho é a meta geral da empresa (soma de todos os vendedores), não a de um vendedor individual. */
-const USERNAMES_GESTAO_GERAL = new Set(['fertiflora2026', 'daniel'])
+const USERNAMES_GESTAO_GERAL = new Set(['admin', 'daniel'])
 
 export function ehGestorGeral(username: string | null | undefined): boolean {
   return !!username && USERNAMES_GESTAO_GERAL.has(username.trim().toLowerCase())
