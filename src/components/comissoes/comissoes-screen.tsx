@@ -148,7 +148,9 @@ export function ComissoesScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
 
         {!carregandoLinhas && !temDados && (
           <div className="glass flex flex-col items-center gap-2 rounded-3xl p-8 text-center">
-            <Wallet className="h-8 w-8 text-white/25" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-warning-500/10 text-warning-400">
+              <Wallet className="h-7 w-7" />
+            </div>
             <p className="text-sm font-semibold text-white/60">Nenhuma comissão importada ainda</p>
           </div>
         )}
@@ -285,7 +287,7 @@ function Cabecalho() {
       <Link href="/mais" className="flex h-11 w-11 items-center justify-center rounded-full bg-white/8 text-white transition-colors hover:bg-white/12 active:scale-90" aria-label="Voltar">
         <ArrowLeft className="h-4.5 w-4.5" />
       </Link>
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500/20 text-brand-300">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-warning-500/20 text-warning-400">
         <HandCoins className="h-4.5 w-4.5" />
       </div>
       <h1 className="font-display text-lg font-bold">Minhas Comissões</h1>

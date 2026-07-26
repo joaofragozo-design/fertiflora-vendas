@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'ghost'
+  variant?: 'primary' | 'ghost' | 'danger'
   loading?: boolean
 }
 
@@ -19,6 +19,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             'bg-gradient-to-br from-brand-300 to-brand-500 text-ink-950 shadow-glow-brand',
           variant === 'ghost' &&
             'glass text-white hover:bg-white/10',
+          variant === 'danger' &&
+            'bg-gradient-to-br from-danger-400 to-danger-600 text-white shadow-glow-danger',
           className
         )}
         {...props}

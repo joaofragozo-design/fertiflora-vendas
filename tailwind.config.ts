@@ -60,6 +60,7 @@ const config: Config = {
         glass: '0 24px 60px -24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.4)',
         'glow-brand': '0 10px 28px -6px rgba(24,165,88,0.5)',
         'glow-gold': '0 14px 36px -10px rgba(243,180,84,0.45)',
+        'glow-danger': '0 10px 28px -6px rgba(229,99,107,0.5)',
       },
       transitionTimingFunction: {
         cinematic: 'cubic-bezier(.16,1,.3,1)',

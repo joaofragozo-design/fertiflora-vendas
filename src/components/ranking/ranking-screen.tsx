@@ -119,7 +119,9 @@ export function RankingScreen({ ehAdmin, userId }: { ehAdmin: boolean; userId: s
 
           {!carregando && entradas.length === 0 && (
             <div className="glass flex flex-col items-center gap-2 rounded-3xl p-8 text-center">
-              <Trophy className="h-8 w-8 text-white/25" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-warning-500/10 text-warning-400">
+                <Trophy className="h-7 w-7" />
+              </div>
               <p className="text-sm font-semibold text-white/60">Nenhum vendedor no ranking ainda</p>
             </div>
           )}

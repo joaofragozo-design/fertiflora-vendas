@@ -51,7 +51,7 @@ export function ConferenciaScreen() {
             <ArrowLeft className="h-4.5 w-4.5" />
           </Link>
           <h1 className="font-display flex items-center gap-2 text-lg font-bold">
-            <ClipboardCheck className="h-5 w-5 text-brand-300" />
+            <ClipboardCheck className="h-5 w-5 text-warning-400" />
             Conferência
           </h1>
         </div>

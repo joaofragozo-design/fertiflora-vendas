@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, BarChart3, Landmark, MapPin, ShieldCheck, Target, TrendingUp, Users } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BarChart3, Landmark, MapPin, Package, ShieldCheck, Target, TrendingUp, Users, Wallet } from 'lucide-react'
 import { buscarTodasAsNotas } from '@/lib/clientes-bi/queries'
 import { calcularResumoVendedor, calcularSerieAnual, calcularSerieMensal, variacaoPct } from '@/lib/clientes-bi/calculos'
 import type { NotaFiscalRow } from '@/lib/clientes-bi/types'
@@ -97,7 +97,7 @@ export function VendasGeraisScreen() {
               <ArrowLeft className="h-4.5 w-4.5" />
             </Link>
             <h1 className="font-display flex items-center gap-2 text-lg font-bold">
-              <BarChart3 className="h-5 w-5 text-brand-300" />
+              <BarChart3 className="h-5 w-5 text-earth-tan" />
               Visão Geral de Vendas
             </h1>
           </div>
@@ -122,7 +122,7 @@ export function VendasGeraisScreen() {
             <ArrowLeft className="h-4.5 w-4.5" />
           </Link>
           <h1 className="font-display flex items-center gap-2 text-lg font-bold">
-            <BarChart3 className="h-5 w-5 text-brand-300" />
+            <BarChart3 className="h-5 w-5 text-earth-tan" />
             Visão Geral de Vendas
           </h1>
         </div>
@@ -153,27 +153,33 @@ export function VendasGeraisScreen() {
             </p>
 
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <div className="glass flex flex-col gap-1 rounded-2xl p-4">
-                <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Toneladas {ANO}</div>
-                <ContadorAnimado valor={resumo.totalToneladas} formatar={fmtT} className="tabular font-display text-lg font-extrabold text-white" />
+              <div className="glass flex flex-col gap-1 rounded-2xl border border-brand-500/20 p-4">
+                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/50">
+                  <Package className="h-3 w-3 text-brand-300" />
+                  Toneladas {ANO}
+                </div>
+                <ContadorAnimado valor={resumo.totalToneladas} formatar={fmtT} className="tabular font-display text-xl font-extrabold text-white" />
                 {variacaoToneladas !== null && (
                   <span className={`text-[10px] font-bold ${variacaoToneladas >= 0 ? 'text-brand-300' : 'text-danger-400'}`}>{fmtVariacao(variacaoToneladas)} vs {ANO - 1}</span>
                 )}
               </div>
-              <div className="glass flex flex-col gap-1 rounded-2xl p-4">
-                <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Faturado {ANO}</div>
-                <ContadorAnimado valor={resumo.totalReais} formatar={fmtBRL} className="tabular font-display text-lg font-extrabold text-white" />
+              <div className="glass flex flex-col gap-1 rounded-2xl border border-brand-500/20 p-4">
+                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/50">
+                  <Wallet className="h-3 w-3 text-brand-300" />
+                  Faturado {ANO}
+                </div>
+                <ContadorAnimado valor={resumo.totalReais} formatar={fmtBRL} className="tabular font-display text-xl font-extrabold text-white" />
                 {variacaoReais !== null && (
                   <span className={`text-[10px] font-bold ${variacaoReais >= 0 ? 'text-brand-300' : 'text-danger-400'}`}>{fmtVariacao(variacaoReais)} vs {ANO - 1}</span>
                 )}
               </div>
               <div className="glass flex flex-col gap-1 rounded-2xl p-4">
                 <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Vendedores ativos</div>
-                <div className="tabular font-display text-lg font-extrabold text-white">{rankingVendedores.length}</div>
+                <div className="tabular font-display text-lg font-extrabold text-white/80">{rankingVendedores.length}</div>
               </div>
               <div className="glass flex flex-col gap-1 rounded-2xl p-4">
                 <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Ticket médio/t</div>
-                <div className="tabular font-display text-lg font-extrabold text-white">{fmtBRL(resumo.ticketMedioReaisPorTonelada)}</div>
+                <div className="tabular font-display text-lg font-extrabold text-white/80">{fmtBRL(resumo.ticketMedioReaisPorTonelada)}</div>
               </div>
             </div>
 

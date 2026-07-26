@@ -43,7 +43,7 @@ export function ModalMotivo({ titulo, onFechar, onConfirmar, onConfirmado }: Mod
           </button>
         </div>
         <Input tone="dark" label="Motivo" placeholder="Explique o motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
-        <Button onClick={handleConfirmar} disabled={enviando}>
+        <Button variant="danger" onClick={handleConfirmar} disabled={enviando}>
           {enviando && <Loader2 className="h-4 w-4 animate-spin" />}
           Confirmar
         </Button>

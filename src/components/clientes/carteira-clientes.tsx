@@ -112,7 +112,9 @@ export function CarteiraClientes({ userId, ehAdmin }: { userId: string; ehAdmin:
 
             {!carregando && filtrados.length === 0 && (
               <div className="glass flex flex-col items-center gap-2 rounded-3xl p-8 text-center">
-                <Users className="h-8 w-8 text-white/25" />
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-earth-tan/10 text-earth-tan">
+                  <Users className="h-7 w-7" />
+                </div>
                 <p className="text-sm font-semibold text-white/60">Nenhum cliente cadastrado ainda</p>
                 <Link href="/clientes/novo" className="text-xs font-bold text-brand-300">Cadastrar o primeiro cliente</Link>
               </div>
@@ -133,7 +135,12 @@ export function CarteiraClientes({ userId, ehAdmin }: { userId: string; ehAdmin:
                       <div className="truncate text-sm font-bold text-white">{item.cliente.nome}</div>
                       <div className="truncate text-xs text-white/45">{formatarCpfCnpj(item.cliente.cpfCnpj)} · {item.cliente.cidade ?? '—'}{item.cliente.estado ? `/${item.cliente.estado}` : ''}</div>
                     </div>
-                    <span className="shrink-0 rounded-full bg-white/8 px-2 py-1 text-[10px] font-bold uppercase text-white/50">
+                    <span
+                      className={cn(
+                        'shrink-0 rounded-full px-2 py-1 text-[10px] font-bold uppercase',
+                        item.cliente.tipoPessoa === 'pj' ? 'bg-earth-tan/15 text-earth-tan' : 'bg-brand-500/15 text-brand-300'
+                      )}
+                    >
                       {item.cliente.tipoPessoa}
                     </span>
                   </button>

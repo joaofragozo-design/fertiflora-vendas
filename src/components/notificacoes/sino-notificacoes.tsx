@@ -1,9 +1,18 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Bell } from 'lucide-react'
+import { Bell, Flame, Gift } from 'lucide-react'
 import { listarMinhasNotificacoes, marcarTodasComoLidas, inscreverNotificacoesEmTempoReal } from '@/lib/notificacoes/queries'
 import type { Notificacao } from '@/lib/notificacoes/types'
+
+const ICONE_POR_TIPO: Record<string, { Icone: typeof Bell; tom: string }> = {
+  bau_recompensa: { Icone: Gift, tom: 'bg-warning-500/20 text-warning-400' },
+  provocacao: { Icone: Flame, tom: 'bg-danger-500/20 text-danger-400' },
+}
+const FUNDO_NAO_LIDA_POR_TIPO: Record<string, string> = {
+  bau_recompensa: 'bg-warning-500/10',
+  provocacao: 'bg-danger-500/10',
+}
 
 function fmtRelativo(iso: string): string {
   const diffMin = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
@@ -71,15 +80,24 @@ export function SinoNotificacoes() {
           {notificacoes.length === 0 && (
             <p className="p-4 text-center text-xs font-semibold text-white/40">Nenhuma notificação ainda</p>
           )}
-          {notificacoes.map((n) => (
-            <div key={n.id} className={`flex flex-col gap-0.5 rounded-xl p-3 ${n.lida ? '' : 'bg-brand-500/10'}`}>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-white">{n.titulo}</span>
-                <span className="shrink-0 text-[10px] text-white/35">{fmtRelativo(n.createdAt)}</span>
+          {notificacoes.map((n) => {
+            const { Icone, tom } = ICONE_POR_TIPO[n.tipo] ?? { Icone: Bell, tom: 'bg-brand-500/20 text-brand-300' }
+            const fundoNaoLida = FUNDO_NAO_LIDA_POR_TIPO[n.tipo] ?? 'bg-brand-500/10'
+            return (
+              <div key={n.id} className={`flex items-start gap-2.5 rounded-xl p-3 ${n.lida ? '' : fundoNaoLida}`}>
+                <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${tom}`}>
+                  <Icone className="h-3.5 w-3.5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-white">{n.titulo}</span>
+                    <span className="shrink-0 text-[10px] text-white/35">{fmtRelativo(n.createdAt)}</span>
+                  </div>
+                  <p className="text-[11px] leading-snug text-white/60">{n.corpo}</p>
+                </div>
               </div>
-              <p className="text-[11px] leading-snug text-white/60">{n.corpo}</p>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

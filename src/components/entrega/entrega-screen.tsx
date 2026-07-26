@@ -88,7 +88,7 @@ export function EntregaScreen() {
             <ArrowLeft className="h-4.5 w-4.5" />
           </Link>
           <h1 className="font-display flex items-center gap-2 text-lg font-bold">
-            <Truck className="h-5 w-5 text-brand-300" />
+            <Truck className="h-5 w-5 text-olive-400" />
             Acompanhar Entrega
           </h1>
         </div>
@@ -99,7 +99,9 @@ export function EntregaScreen() {
 
         {!carregando && daSemana.length === 0 && (
           <div className="glass flex flex-col items-center gap-2 rounded-3xl p-8 text-center">
-            <PackageSearch className="h-8 w-8 text-white/25" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-olive-500/10 text-olive-400">
+              <PackageSearch className="h-7 w-7" />
+            </div>
             <p className="text-sm font-semibold text-white/60">Nada agendado para essa semana</p>
             <p className="text-xs text-white/40">Assim que um cliente seu for programado na logística, aparece aqui.</p>
           </div>

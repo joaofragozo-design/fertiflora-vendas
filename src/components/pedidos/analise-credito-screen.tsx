@@ -54,7 +54,7 @@ export function AnaliseCreditoScreen() {
             <ArrowLeft className="h-4.5 w-4.5" />
           </Link>
           <h1 className="font-display flex items-center gap-2 text-lg font-bold">
-            <ShieldCheck className="h-5 w-5 text-brand-300" />
+            <ShieldCheck className="h-5 w-5 text-danger-400" />
             Análise de Crédito
           </h1>
         </div>

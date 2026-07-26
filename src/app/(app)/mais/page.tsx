@@ -32,15 +32,15 @@ export default async function MaisPage() {
         <h1 className="font-display px-1 text-lg font-bold">Mais</h1>
 
         <div className="flex flex-col gap-2">
-          <ItemMenu href="/mais/conta" icone={KeyRound} titulo="Minha Conta" descricao="Trocar senha de acesso" />
-          <ItemMenu href="/clientes/novo" icone={UserPlus} titulo="Cadastro de Clientes" descricao="Dados para nota fiscal" />
+          <ItemMenu href="/mais/conta" icone={KeyRound} titulo="Minha Conta" descricao="Trocar senha de acesso" tone="neutral" />
+          <ItemMenu href="/clientes/novo" icone={UserPlus} titulo="Cadastro de Clientes" descricao="Dados para nota fiscal" tone="earth" />
           {(ehConferencia || ehAdmin) && (
-            <ItemMenu href="/conferencia" icone={ClipboardCheck} titulo="Conferência" descricao="Pedidos aguardando conferência" destaque />
+            <ItemMenu href="/conferencia" icone={ClipboardCheck} titulo="Conferência" descricao="Pedidos aguardando conferência" tone="warning" destaque />
           )}
           {ehAdmin && (
             <>
-              <ItemMenu href="/admin/pedidos" icone={ShieldCheck} titulo="Análise de Crédito" descricao="Decisão final dos pedidos" destaque />
-              <ItemMenu href="/admin/vendedores" icone={Trophy} titulo="Vendedores Comerciais" descricao="Gerenciar ranking, metas e faturamento" destaque />
+              <ItemMenu href="/admin/pedidos" icone={ShieldCheck} titulo="Análise de Crédito" descricao="Decisão final dos pedidos" tone="danger" destaque />
+              <ItemMenu href="/admin/vendedores" icone={Trophy} titulo="Vendedores Comerciais" descricao="Gerenciar ranking, metas e faturamento" tone="warning" destaque />
             </>
           )}
         </div>
@@ -49,25 +49,43 @@ export default async function MaisPage() {
   )
 }
 
+type Tone = 'neutral' | 'earth' | 'warning' | 'danger'
+
+const CHIP_POR_TOM: Record<Tone, string> = {
+  neutral: 'bg-white/10 text-white/70',
+  earth: 'bg-earth-tan/20 text-earth-tan',
+  warning: 'bg-warning-500/20 text-warning-400',
+  danger: 'bg-danger-500/20 text-danger-400',
+}
+
+const BORDA_POR_TOM: Record<Tone, string> = {
+  neutral: 'border border-white/10',
+  earth: 'border border-earth-tan/25',
+  warning: 'border border-warning-500/30',
+  danger: 'border border-danger-500/30',
+}
+
 function ItemMenu({
   href,
   icone: Icone,
   titulo,
   descricao,
+  tone = 'neutral',
   destaque,
 }: {
   href: string
   icone: typeof HandCoins
   titulo: string
   descricao: string
+  tone?: Tone
   destaque?: boolean
 }) {
   return (
     <Link
       href={href}
-      className={`glass flex items-center gap-3 rounded-2xl p-4 transition-colors hover:bg-white/10 ${destaque ? 'border border-warning-500/30' : ''}`}
+      className={`glass flex items-center gap-3 rounded-2xl p-4 transition-colors hover:bg-white/10 ${destaque ? BORDA_POR_TOM[tone] : ''}`}
     >
-      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${destaque ? 'bg-warning-500/20 text-warning-400' : 'bg-brand-500/20 text-brand-300'}`}>
+      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${CHIP_POR_TOM[tone]}`}>
         <Icone className="h-5 w-5" />
       </div>
       <div className="min-w-0 flex-1">

@@ -53,38 +53,31 @@ export default async function DashboardPage() {
           <ArrowRight className="h-5 w-5 shrink-0 text-ink-950/60 transition-transform group-hover:translate-x-0.5" />
         </Link>
 
-        <Link href="/pedidos/novo" className="glass flex items-center gap-3 rounded-2xl p-4 transition-colors hover:bg-white/10 active:scale-[0.98]">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-500/20 text-brand-300">
-            <FileText className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="font-display text-sm font-bold">Novo Pedido</div>
-            <div className="text-xs text-white/50">Gerar contrato de venda</div>
-          </div>
-          <ArrowRight className="h-4 w-4 shrink-0 text-white/30" />
-        </Link>
+        <div className="flex flex-col gap-2.5">
+          <span className="px-1 text-[10px] font-bold uppercase tracking-wide text-white/40">Ações rápidas</span>
+          <div className="grid grid-cols-3 gap-2.5">
+            <Link href="/pedidos/novo" className="glass flex flex-col items-center gap-2 rounded-2xl p-3.5 text-center transition-colors hover:bg-white/10 active:scale-[0.96]">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/20 text-brand-300">
+                <FileText className="h-5 w-5" />
+              </div>
+              <span className="font-display text-[11px] font-bold leading-tight">Novo Pedido</span>
+            </Link>
 
-        <Link href="/comissoes" className="glass flex items-center gap-3 rounded-2xl p-4 transition-colors hover:bg-white/10 active:scale-[0.98]">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-500/20 text-brand-300">
-            <HandCoins className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="font-display text-sm font-bold">Minhas Comissões</div>
-            <div className="text-xs text-white/50">Recebidas e a receber, mês a mês</div>
-          </div>
-          <ArrowRight className="h-4 w-4 shrink-0 text-white/30" />
-        </Link>
+            <Link href="/comissoes" className="glass flex flex-col items-center gap-2 rounded-2xl p-3.5 text-center transition-colors hover:bg-white/10 active:scale-[0.96]">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning-500/20 text-warning-400">
+                <HandCoins className="h-5 w-5" />
+              </div>
+              <span className="font-display text-[11px] font-bold leading-tight">Comissões</span>
+            </Link>
 
-        <Link href="/entrega" className="glass flex items-center gap-3 rounded-2xl p-4 transition-colors hover:bg-white/10 active:scale-[0.98]">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-500/20 text-brand-300">
-            <Truck className="h-5 w-5" />
+            <Link href="/entrega" className="glass flex flex-col items-center gap-2 rounded-2xl p-3.5 text-center transition-colors hover:bg-white/10 active:scale-[0.96]">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-olive-500/20 text-olive-400">
+                <Truck className="h-5 w-5" />
+              </div>
+              <span className="font-display text-[11px] font-bold leading-tight">Entrega</span>
+            </Link>
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="font-display text-sm font-bold">Acompanhar Entrega</div>
-            <div className="text-xs text-white/50">Já carregado, carregando e a semana toda</div>
-          </div>
-          <ArrowRight className="h-4 w-4 shrink-0 text-white/30" />
-        </Link>
+        </div>
 
         {ehAdmin && (
           <Link

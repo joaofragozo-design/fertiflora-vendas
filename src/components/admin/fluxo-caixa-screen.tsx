@@ -100,7 +100,7 @@ export function FluxoCaixaScreen() {
               <ArrowLeft className="h-4.5 w-4.5" />
             </Link>
             <h1 className="font-display flex items-center gap-2 text-lg font-bold">
-              <Landmark className="h-5 w-5 text-brand-300" />
+              <Landmark className="h-5 w-5 text-danger-400" />
               Fluxo de Caixa & Crédito
             </h1>
           </div>
@@ -129,7 +129,7 @@ export function FluxoCaixaScreen() {
             <ArrowLeft className="h-4.5 w-4.5" />
           </Link>
           <h1 className="font-display flex items-center gap-2 text-lg font-bold">
-            <Landmark className="h-5 w-5 text-brand-300" />
+            <Landmark className="h-5 w-5 text-danger-400" />
             Fluxo de Caixa & Crédito
           </h1>
         </div>

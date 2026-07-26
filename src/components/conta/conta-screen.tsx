@@ -64,7 +64,7 @@ export function ContaScreen({ email }: ContaScreenProps) {
 
         <div className="glass flex flex-col gap-4 rounded-3xl p-5">
           <h2 className="font-display flex items-center gap-2 text-sm font-bold">
-            <KeyRound className="h-4 w-4 text-brand-300" />
+            <KeyRound className="h-4 w-4 text-white/50" />
             Trocar senha
           </h2>
           <Input
