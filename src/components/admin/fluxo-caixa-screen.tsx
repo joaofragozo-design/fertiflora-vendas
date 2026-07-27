@@ -194,8 +194,8 @@ export function FluxoCaixaScreen() {
             <GaugeCarteiraPrazo resumo={resumoCarteira} onEditar={() => setDefinindoLimite(true)} />
             {resumoCarteira.totalReaisVencidoOutroAno > 0 && (
               <p className="px-1 text-[10px] text-white/35">
-                {fmtBRL(resumoCarteira.totalReaisVencidoOutroAno)} ({fmtT(resumoCarteira.totalToneladasVencidoOutroAno)}) vencidos de anos anteriores — não
-                consomem mais a cota da safrinha vigente, mas continuam visíveis no bucket &quot;Vencido&quot; do Painel de Recebimentos
+                {fmtBRL(resumoCarteira.totalReaisVencidoOutroAno)} ({fmtT(resumoCarteira.totalToneladasVencidoOutroAno)}) vencidos fora do período vigente
+                (01/05/2026 a 30/04/2027) — dívida velha, não aparece mais no bucket &quot;Vencido&quot; nem consome a cota da safrinha
               </p>
             )}
             {resumoCarteira.totalReaisSemPeso > 0 && (

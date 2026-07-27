@@ -73,7 +73,7 @@ export interface ResumoCarteiraPrazo {
   totalReaisSemPeso: number
   /** Soma do `liquido` de notas sem NENHUMA correspondência no Relatório de Comissionados -- status de pagamento não confirmado, tratadas como em aberto por padrão (ver `ItemCarteiraPrazo.confirmadoPorComissao`). */
   totalReaisNaoConfirmado: number
-  /** Soma do `liquido`/`valorSaldo` de títulos vencidos com vencimento/entrega de ano DIFERENTE do corrente -- dívida velha (cobrança/write-off), não exposição de crédito ativa da safra vigente. Não entra em `totalToneladas`/`totalReais` (a cota), mas continua visível no bucket "Vencido" acima (nunca some da tela), por transparência. */
+  /** Soma do `liquido`/`valorSaldo` de títulos vencidos com vencimento/entrega FORA da janela vigente do bucket "Vencido" (ver `JANELA_VENCIDO_INICIO`/`FIM` em `calculos.ts`) -- dívida velha (cobrança/write-off), não exposição de crédito ativa do ciclo vigente. Não entra em `totalToneladas`/`totalReais` (a cota) nem no bucket "Vencido" exibido -- exposto aqui só por transparência. */
   totalReaisVencidoOutroAno: number
   /** Toneladas correspondentes a `totalReaisVencidoOutroAno`. */
   totalToneladasVencidoOutroAno: number

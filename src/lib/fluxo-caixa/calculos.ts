@@ -240,18 +240,26 @@ export function alertaReservaSafrinha(totalToneladas: number, limiteToneladas: n
 }
 
 /**
+ * Janela vigente do bucket "Vencido" -- título vencido com vencimento/entrega FORA desse intervalo
+ * não aparece mais no Painel de Recebimentos (nem no bucket, nem na cota): é dívida velha
+ * (cobrança/write-off), não exposição de crédito ativa do ciclo vigente. Pedida explicitamente pelo
+ * usuário em 2026-07-27 como um intervalo fixo (não é a mesma janela de `safra.ts`) -- precisa ser
+ * atualizada manualmente a cada novo ciclo.
+ */
+const JANELA_VENCIDO_INICIO = '2026-05-01'
+const JANELA_VENCIDO_FIM = '2027-04-30'
+
+/**
  * `itensNotas` (nota fiscal emitida, ainda não paga) + `itensPedidos` (pedido em aberto, ainda não
  * faturado) somados no mesmo conjunto de buckets -- é a Carteira a Prazo completa (Pilar 2: "vendeu
- * a prazo consome a cota", não só quando vira nota fiscal). Único critério de exclusão é já ter
- * sido pago (`montarItensCarteiraPrazo`/`montarItensPedidosAbertoPrazo` já filtram isso na origem)
- * -- sem piso de dias nem restrição de ano nos buckets exibidos: um título vencido e não pago
- * continua no Painel de Recebimentos, exposto no bucket "vencido" em vez de sumir da tela.
+ * a prazo consome a cota", não só quando vira nota fiscal). Único critério de exclusão além da
+ * janela do bucket "vencido" (ver `JANELA_VENCIDO_INICIO`/`FIM`) é já ter sido pago
+ * (`montarItensCarteiraPrazo`/`montarItensPedidosAbertoPrazo` já filtram isso na origem).
  *
- * A COTA da safrinha (`totalToneladas`/`totalReais`, o que alimenta o medidor) é mais restrita:
- * título vencido com vencimento/entrega de ano anterior ao corrente não consome mais a cota -- é
- * dívida velha (cobrança/write-off), não exposição de crédito ativa do ciclo vigente. Continua
- * contado no bucket "vencido" acima (nunca invisível), só sai da conta que dispara o alerta de
- * reserva da safrinha.
+ * A COTA da safrinha (`totalToneladas`/`totalReais`, o que alimenta o medidor) usa o mesmo filtro:
+ * título vencido fora da janela vigente não consome a cota nem aparece no bucket "vencido" --
+ * `totalReaisVencidoOutroAno`/`totalToneladasVencidoOutroAno` expõem esse valor à parte, só por
+ * transparência (não soma em nenhum total exibido no Painel).
  */
 export function calcularResumoCarteiraPrazo(
   itensNotas: ItemCarteiraPrazo[],
@@ -259,35 +267,30 @@ export function calcularResumoCarteiraPrazo(
   limite: LimiteCarteiraPrazoRow,
   hoje: Date = new Date()
 ): ResumoCarteiraPrazo {
-  const anoAtual = hoje.getFullYear()
-
   const itensUnificados: ItemAbertoUnificado[] = [
     ...itensNotas.map((i) => ({ ...i, tipo: 'nota' as const })),
     ...itensPedidos.map((i) => ({ ...i, tipo: 'pedido' as const })),
   ]
 
-  const buckets = agruparPorBucket(
-    itensUnificados,
-    (i) => (i.tipo === 'nota' ? i.pesoToneladas ?? 0 : i.pesoSaldoToneladas),
-    (i) => (i.tipo === 'nota' ? i.liquido : i.valorSaldo)
-  )
-
   const pesoDe = (i: ItemAbertoUnificado) => (i.tipo === 'nota' ? i.pesoToneladas ?? 0 : i.pesoSaldoToneladas)
   const reaisDe = (i: ItemAbertoUnificado) => (i.tipo === 'nota' ? i.liquido : i.valorSaldo)
-  const anoDoVencimento = (i: ItemAbertoUnificado): number | null => {
-    const data = i.tipo === 'nota' ? i.vencimento : i.entrega
-    return data ? Number(data.slice(0, 4)) : null
+  const dataDe = (i: ItemAbertoUnificado): string | null => (i.tipo === 'nota' ? i.vencimento : i.entrega)
+  const dentroDaJanelaVencido = (i: ItemAbertoUnificado): boolean => {
+    const data = dataDe(i)
+    return data !== null && data >= JANELA_VENCIDO_INICIO && data <= JANELA_VENCIDO_FIM
   }
 
-  const paraQuota = itensUnificados.filter((i) => i.bucket !== 'vencido' || anoDoVencimento(i) === anoAtual)
-  const vencidoOutroAno = itensUnificados.filter((i) => i.bucket === 'vencido' && anoDoVencimento(i) !== anoAtual)
+  const itensExibidos = itensUnificados.filter((i) => i.bucket !== 'vencido' || dentroDaJanelaVencido(i))
+  const vencidoForaDaJanela = itensUnificados.filter((i) => i.bucket === 'vencido' && !dentroDaJanelaVencido(i))
 
-  const totalToneladas = paraQuota.reduce((s, i) => s + pesoDe(i), 0)
-  const totalReais = paraQuota.reduce((s, i) => s + reaisDe(i), 0)
-  const totalReaisVencidoOutroAno = vencidoOutroAno.reduce((s, i) => s + reaisDe(i), 0)
-  const totalToneladasVencidoOutroAno = vencidoOutroAno.reduce((s, i) => s + pesoDe(i), 0)
+  const buckets = agruparPorBucket(itensExibidos, pesoDe, reaisDe)
 
-  const notasParaQuota = paraQuota.filter((i): i is ItemCarteiraPrazo & { tipo: 'nota' } => i.tipo === 'nota')
+  const totalToneladas = itensExibidos.reduce((s, i) => s + pesoDe(i), 0)
+  const totalReais = itensExibidos.reduce((s, i) => s + reaisDe(i), 0)
+  const totalReaisVencidoOutroAno = vencidoForaDaJanela.reduce((s, i) => s + reaisDe(i), 0)
+  const totalToneladasVencidoOutroAno = vencidoForaDaJanela.reduce((s, i) => s + pesoDe(i), 0)
+
+  const notasParaQuota = itensExibidos.filter((i): i is ItemCarteiraPrazo & { tipo: 'nota' } => i.tipo === 'nota')
   const totalReaisSemPeso = notasParaQuota.filter((i) => i.pesoToneladas === null).reduce((s, i) => s + i.liquido, 0)
   const totalReaisNaoConfirmado = notasParaQuota.filter((i) => !i.confirmadoPorComissao).reduce((s, i) => s + i.liquido, 0)
   // Limite zerado/mal configurado com exposição real: mostra 100% (gauge cheio/alerta), nunca "0% usado" --
