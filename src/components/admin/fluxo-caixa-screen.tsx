@@ -166,8 +166,9 @@ export function FluxoCaixaScreen() {
           </div>
           <p className="text-[10px] text-white/35">
             Pedidos ainda não faturados + notas fiscais já emitidas, por dias até o vencimento — atualiza sozinho conforme os dias passam, sempre a partir de
-            hoje. Pedido usa a janela emissão→entrega como estimativa de prazo (não existe prazo de pagamento real salvo pra pedido ainda). Título já vencido e
-            não pago fica no bucket &quot;Vencido&quot; em vez de sumir da tela; o que já foi pago não aparece mais aqui. Clique num bucket pra ver os títulos.
+            hoje. Pedido ainda não faturado não tem prazo de pagamento real salvo no sistema, então fica em &quot;Sem vencimento&quot; (a data de entrega é só
+            informativa, não é usada pra estimar prazo). Título já vencido e não pago fica no bucket &quot;Vencido&quot; em vez de sumir da tela; o que já foi
+            pago não aparece mais aqui. Clique num bucket pra ver os títulos.
           </p>
           {resumoCarteira && (
             <BucketsCarteiraPrazo

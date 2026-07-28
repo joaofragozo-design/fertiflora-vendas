@@ -71,12 +71,8 @@ export function ListaBucket({ bucket, itens, onFechar }: ListaBucketProps) {
                   </div>
                 )
               }
-              const vencido = item.diasAteEntrega !== null && item.diasAteEntrega < 0
               return (
-                <div
-                  key={`pedido-${item.vendedorCodigo}-${item.numeroPedido}-${i}`}
-                  className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 ${vencido ? 'bg-danger-500/10' : 'bg-white/5'}`}
-                >
+                <div key={`pedido-${item.vendedorCodigo}-${item.numeroPedido}-${i}`} className="flex items-center justify-between gap-2 rounded-xl bg-white/5 px-3 py-2.5">
                   <div className="min-w-0">
                     <div className="truncate text-xs font-bold text-white">{item.clienteNome}</div>
                     <div className="text-[10px] text-white/45">
@@ -84,7 +80,7 @@ export function ListaBucket({ bucket, itens, onFechar }: ListaBucketProps) {
                       {` · ${item.pesoSaldoToneladas.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}t`}
                     </div>
                   </div>
-                  <span className={`tabular shrink-0 text-xs font-extrabold ${vencido ? 'text-danger-400' : 'text-white'}`}>{fmtBRL(item.valorSaldo)}</span>
+                  <span className="tabular shrink-0 text-xs font-extrabold text-white">{fmtBRL(item.valorSaldo)}</span>
                 </div>
               )
             })}

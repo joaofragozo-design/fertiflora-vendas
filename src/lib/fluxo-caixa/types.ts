@@ -47,7 +47,7 @@ export interface ItemPedidoAbertoPrazo {
   entrega: string | null
   pesoSaldoToneladas: number
   valorSaldo: number
-  /** entrega - hoje, usado como PROXY de prazo (não é prazo de pagamento real -- esse dado não existe no ERP hoje). */
+  /** Sempre null -- entrega não é usada como proxy de prazo (esse dado não existe no ERP hoje). Pedido em aberto cai sempre em `sem_vencimento`. */
   diasAteEntrega: number | null
   bucket: BucketEntrega
 }

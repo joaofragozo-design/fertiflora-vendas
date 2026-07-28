@@ -313,31 +313,30 @@ export function calcularResumoCarteiraPrazo(
   }
 }
 
-// ─── Pedidos em aberto a prazo (proxy por dias-até-entrega) ────────────────
+// ─── Pedidos em aberto a prazo (sem prazo real -- sempre "sem vencimento") ─
 
 /**
  * `entrega` é logística, não prazo de pagamento real (esse dado não existe em nenhuma tabela do
- * sistema hoje) -- usado como PROXY aceito explicitamente pelo usuário, deve ser rotulado como
- * estimativa na UI. `peso_saldo_kg` já vem em KG independente da unidade de venda (confirmado no
+ * sistema hoje) -- por isso NÃO é usada pra bucketar pedido por dias (pedido explicitamente
+ * excluído dos buckets de dias em 2026-07-28 a pedido do usuário: não faz sentido estimar prazo de
+ * pagamento pela data de entrega). Pedido em aberto cai sempre em `sem_vencimento` -- `entrega`
+ * continua exposta no item só como informação de exibição (linha do drill-down), nunca mais como
+ * fonte de bucket. `peso_saldo_kg` já vem em KG independente da unidade de venda (confirmado no
  * parser de `pedidos_erp_importados`), sem precisar filtrar por `un`.
  */
-export function montarItensPedidosAbertoPrazo(pedidos: PedidoErpRow[], hoje: Date = new Date()): ItemPedidoAbertoPrazo[] {
-  const hojeIso = paraIso(hoje)
+export function montarItensPedidosAbertoPrazo(pedidos: PedidoErpRow[]): ItemPedidoAbertoPrazo[] {
   return pedidos
     .filter((p) => p.quantidadeSaldo > 0)
-    .map((p) => {
-      const dias = p.entrega ? diasEntre(hojeIso, p.entrega) : null
-      return {
-        vendedorCodigo: p.vendedorCodigo,
-        clienteCodigo: p.clienteCodigo,
-        clienteNome: p.clienteNome,
-        numeroPedido: p.numeroPedido,
-        emissao: p.emissao,
-        entrega: p.entrega,
-        pesoSaldoToneladas: p.pesoSaldoKg / 1000,
-        valorSaldo: p.valorSaldo,
-        diasAteEntrega: dias,
-        bucket: bucketDeVencimento(dias),
-      }
-    })
+    .map((p) => ({
+      vendedorCodigo: p.vendedorCodigo,
+      clienteCodigo: p.clienteCodigo,
+      clienteNome: p.clienteNome,
+      numeroPedido: p.numeroPedido,
+      emissao: p.emissao,
+      entrega: p.entrega,
+      pesoSaldoToneladas: p.pesoSaldoKg / 1000,
+      valorSaldo: p.valorSaldo,
+      diasAteEntrega: null,
+      bucket: 'sem_vencimento' as const,
+    }))
 }
