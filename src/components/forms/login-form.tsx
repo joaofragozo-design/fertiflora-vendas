@@ -57,12 +57,22 @@ export function LoginForm({ supabaseConfigured = true }: LoginFormProps) {
     // Navegação completa garante que os cookies de sessão do Supabase sejam
     // enviados na próxima request SSR; o pequeno delay deixa o surge visível
     // e o @view-transition do globals.css faz o crossfade entre as páginas.
-    setTimeout(() => { window.location.href = destination }, 700)
+    // Aguardado (não apenas agendado) para que o botão continue desabilitado/
+    // carregando até a navegação realmente acontecer -- sem isso, `isSubmitting`
+    // volta a `false` antes do redirect e o botão fica clicável de novo enquanto
+    // a tela ainda está "parada".
+    await new Promise<void>((resolve) => {
+      setTimeout(() => {
+        window.location.href = destination
+        resolve()
+      }, 700)
+    })
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
       <Input
+        tone="light"
         label="Usuário"
         type="text"
         placeholder="seu.usuario"
@@ -78,6 +88,7 @@ export function LoginForm({ supabaseConfigured = true }: LoginFormProps) {
 
       <div className="relative">
         <Input
+          tone="light"
           label="Senha"
           type={showPassword ? 'text' : 'password'}
           placeholder="••••••••"
@@ -102,6 +113,10 @@ export function LoginForm({ supabaseConfigured = true }: LoginFormProps) {
         {!isSubmitting && <ArrowRight className="h-4 w-4" />}
         Entrar
       </Button>
+
+      <p className="text-center text-xs text-slate-800/50">
+        Esqueceu a senha? Fale com seu gestor.
+      </p>
     </form>
   )
 }

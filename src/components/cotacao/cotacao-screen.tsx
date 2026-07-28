@@ -18,6 +18,7 @@ import type { Cliente } from '@/lib/clientes/types'
 import type { CotacaoConfig } from '@/lib/cotacoes/types'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils/cn'
 import type { FormulaPreco } from '@/lib/pricing/formulas'
 import { buscarFormulasComPrecoAgora, inscreverFormulaPrecosEmTempoReal } from '@/lib/pricing/formula-precos-realtime'
@@ -79,6 +80,8 @@ export function CotacaoScreen({ formulas: formulasIniciais, dataTabela, vendedor
   const [precoVendido, setPrecoVendido] = useState('')
   const [quantidade, setQuantidade] = useState('50')
   const [dolar, setDolar] = useState<number | null>(null)
+  const [dolarAoVivo, setDolarAoVivo] = useState(true)
+  const [confirmandoZerar, setConfirmandoZerar] = useState(false)
 
   const [modoPagamento, setModoPagamento] = useState<ModoPagamento>('avista')
   const [pagamentoAvista, setPagamentoAvista] = useState(toDateInput(new Date(Date.now() + 300 * 86400000)))
@@ -97,8 +100,8 @@ export function CotacaoScreen({ formulas: formulasIniciais, dataTabela, vendedor
     function buscar() {
       fetch('/api/dolar')
         .then((r) => r.json())
-        .then((d) => { if (!cancelado) setDolar(d.bid) })
-        .catch(() => { if (!cancelado) setDolar((atual) => atual ?? 5.2) })
+        .then((d) => { if (!cancelado) { setDolar(d.bid); setDolarAoVivo(true) } })
+        .catch(() => { if (!cancelado) { setDolar((atual) => atual ?? 5.2); setDolarAoVivo(false) } })
     }
     buscar()
     const intervalo = setInterval(buscar, 5000)
@@ -422,7 +425,7 @@ export function CotacaoScreen({ formulas: formulasIniciais, dataTabela, vendedor
 
         {visao === 'form' && temRascunho && (
           <button
-            onClick={handleComecarDoZero}
+            onClick={() => setConfirmandoZerar(true)}
             className="flex items-center gap-1.5 self-start text-[11px] font-bold text-white/40 transition-colors hover:text-white/70"
           >
             <RotateCcw className="h-3 w-3" />
@@ -430,11 +433,28 @@ export function CotacaoScreen({ formulas: formulasIniciais, dataTabela, vendedor
           </button>
         )}
 
+        <ConfirmDialog
+          open={confirmandoZerar}
+          onClose={() => setConfirmandoZerar(false)}
+          onConfirm={() => { handleComecarDoZero(); setConfirmandoZerar(false) }}
+          title="Limpar cotação em andamento?"
+          description="Todos os campos preenchidos (produto, cliente, preço, parcelas) vão ser apagados. Essa ação não pode ser desfeita."
+          confirmLabel="Limpar tudo"
+          variant="danger"
+        />
+
         <div className="glass flex items-center gap-3 rounded-2xl p-3.5">
-          <span className="h-2 w-2 shrink-0 rounded-full bg-brand-400 shadow-[0_0_0_0_rgba(24,165,88,0.6)]" />
+          <span className={cn('h-2 w-2 shrink-0 rounded-full', dolarAoVivo ? 'bg-brand-400' : 'bg-warning-400')} />
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">Dólar agora · tempo real</div>
+            <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">
+              {dolarAoVivo ? 'Dólar agora · tempo real' : 'Dólar · última cotação conhecida'}
+            </div>
             <div className="tabular text-lg font-extrabold">{dolar ? fmtBRL(dolar) : '—'}</div>
+            {!dolarAoVivo && (
+              <div className="mt-0.5 text-[10px] font-semibold text-warning-400">
+                Sem conexão com a cotação ao vivo — confira antes de fechar
+              </div>
+            )}
           </div>
         </div>
 

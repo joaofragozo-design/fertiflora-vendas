@@ -1,13 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { ArrowLeft, KeyRound, Loader2 } from 'lucide-react'
+import { ArrowLeft, Bell, KeyRound, Loader2 } from 'lucide-react'
 import { alterarSenha } from '@/lib/conta/queries'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
+import { somNotificacaoAtivado, definirSomNotificacao } from '@/lib/audio/notificacao-som'
 
 interface ContaScreenProps {
   email: string
@@ -19,6 +21,14 @@ export function ContaScreen({ email }: ContaScreenProps) {
   const [novaSenha, setNovaSenha] = useState('')
   const [confirmarSenha, setConfirmarSenha] = useState('')
   const [salvando, setSalvando] = useState(false)
+  const [somAtivado, setSomAtivado] = useState(true)
+
+  useEffect(() => setSomAtivado(somNotificacaoAtivado()), [])
+
+  function handleSom(ativado: boolean) {
+    setSomAtivado(ativado)
+    definirSomNotificacao(ativado)
+  }
 
   async function handleSalvar() {
     if (novaSenha.length < 6) {
@@ -60,6 +70,20 @@ export function ContaScreen({ email }: ContaScreenProps) {
         <div className="glass flex flex-col gap-1 rounded-2xl p-4">
           <div className="text-[10px] font-bold uppercase tracking-wide text-white/50">E-mail</div>
           <div className="text-sm font-bold text-white">{email}</div>
+        </div>
+
+        <div className="glass flex flex-col gap-4 rounded-3xl p-5">
+          <h2 className="font-display flex items-center gap-2 text-sm font-bold">
+            <Bell className="h-4 w-4 text-white/50" />
+            Notificações
+          </h2>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-white">Som de notificação</div>
+              <div className="text-xs text-white/50">Toque/zoeira de outros vendedores não tocam som nem tremem a tela.</div>
+            </div>
+            <Switch checked={somAtivado} onChange={handleSom} label="Som de notificação" />
+          </div>
         </div>
 
         <div className="glass flex flex-col gap-4 rounded-3xl p-5">

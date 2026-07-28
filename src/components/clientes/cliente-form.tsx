@@ -51,10 +51,18 @@ export function ClienteForm({ nomeInicial, onSalvar, onCancelar }: ClienteFormPr
     }
   }
 
+  function digitosEsperados() {
+    return form.tipoPessoa === 'pj' ? 14 : 11
+  }
+
   async function handleSubmit() {
     setErro(null)
     if (!form.nome.trim() || !form.cpfCnpj.trim()) {
       setErro(form.tipoPessoa === 'pj' ? 'Informe razão social e CNPJ.' : 'Informe nome e CPF.')
+      return
+    }
+    if (somenteDigitos(form.cpfCnpj).length !== digitosEsperados()) {
+      setErro(form.tipoPessoa === 'pj' ? 'CNPJ precisa ter 14 dígitos.' : 'CPF precisa ter 11 dígitos.')
       return
     }
     setSalvando(true)
@@ -73,6 +81,8 @@ export function ClienteForm({ nomeInicial, onSalvar, onCancelar }: ClienteFormPr
         {(['pj', 'pf'] as TipoPessoa[]).map((tipo) => (
           <button
             key={tipo}
+            role="tab"
+            aria-selected={form.tipoPessoa === tipo}
             onClick={() => set('tipoPessoa', tipo)}
             className={cn('flex-1 rounded-xl py-2 text-xs font-bold transition-colors', form.tipoPessoa === tipo ? 'bg-brand-500 text-ink-950' : 'text-white/50')}
           >
@@ -81,16 +91,19 @@ export function ClienteForm({ nomeInicial, onSalvar, onCancelar }: ClienteFormPr
         ))}
       </div>
 
-      <Input tone="dark" label={form.tipoPessoa === 'pj' ? 'Razão social' : 'Nome completo'} value={form.nome} onChange={(e) => set('nome', e.target.value)} />
+      <Input id="cliente-nome" name="nome" autoComplete="name organization" tone="dark" label={form.tipoPessoa === 'pj' ? 'Razão social' : 'Nome completo'} value={form.nome} onChange={(e) => set('nome', e.target.value)} />
       {form.tipoPessoa === 'pj' && (
-        <Input tone="dark" label="Nome fantasia · opcional" value={form.nomeFantasia} onChange={(e) => set('nomeFantasia', e.target.value)} />
+        <Input id="cliente-nome-fantasia" name="nomeFantasia" tone="dark" label="Nome fantasia · opcional" value={form.nomeFantasia} onChange={(e) => set('nomeFantasia', e.target.value)} />
       )}
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold uppercase tracking-wide text-white/50">{form.tipoPessoa === 'pj' ? 'CNPJ' : 'CPF'}</label>
+          <label htmlFor="cliente-cpf-cnpj" className="text-[11px] font-bold uppercase tracking-wide text-white/50">{form.tipoPessoa === 'pj' ? 'CNPJ' : 'CPF'}</label>
           <div className="relative">
             <input
+              id="cliente-cpf-cnpj"
+              name="cpfCnpj"
+              autoComplete="off"
               value={form.cpfCnpj}
               onChange={(e) => set('cpfCnpj', e.target.value)}
               className="w-full rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 pr-11 text-[16px] font-medium text-white outline-none placeholder:text-white/45 focus:border-brand-400 focus:bg-brand-500/10"
@@ -111,12 +124,12 @@ export function ClienteForm({ nomeInicial, onSalvar, onCancelar }: ClienteFormPr
             <p className="text-[10.5px] text-white/50">Digite os 14 dígitos e toque na lupa pra preencher automático.</p>
           )}
         </div>
-        <Input tone="dark" label="I.E. · opcional" value={form.inscricaoEstadual} onChange={(e) => set('inscricaoEstadual', e.target.value)} />
+        <Input id="cliente-ie" name="inscricaoEstadual" tone="dark" label="I.E. · opcional" value={form.inscricaoEstadual} onChange={(e) => set('inscricaoEstadual', e.target.value)} />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Input tone="dark" label="Telefone" value={form.telefone} onChange={(e) => set('telefone', e.target.value)} />
-        <Input tone="dark" label="E-mail · opcional" type="email" value={form.email} onChange={(e) => set('email', e.target.value)} />
+        <Input id="cliente-telefone" name="telefone" autoComplete="tel" tone="dark" label="Telefone" value={form.telefone} onChange={(e) => set('telefone', e.target.value)} />
+        <Input id="cliente-email" name="email" autoComplete="email" tone="dark" label="E-mail · opcional" type="email" value={form.email} onChange={(e) => set('email', e.target.value)} />
       </div>
 
       <div className="mt-1 flex items-center gap-2 border-t border-white/10 pt-4">
@@ -125,25 +138,25 @@ export function ClienteForm({ nomeInicial, onSalvar, onCancelar }: ClienteFormPr
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Input tone="dark" label="CEP" value={form.cep} onChange={(e) => set('cep', e.target.value)} />
-        <Input tone="dark" label="Cidade" value={form.cidade} onChange={(e) => set('cidade', e.target.value)} />
+        <Input id="cliente-cep" name="cep" autoComplete="postal-code" tone="dark" label="CEP" value={form.cep} onChange={(e) => set('cep', e.target.value)} />
+        <Input id="cliente-cidade" name="cidade" autoComplete="address-level2" tone="dark" label="Cidade" value={form.cidade} onChange={(e) => set('cidade', e.target.value)} />
       </div>
 
       <div className="grid grid-cols-3 gap-3">
         <div className="col-span-2">
-          <Input tone="dark" label="Logradouro" value={form.logradouro} onChange={(e) => set('logradouro', e.target.value)} />
+          <Input id="cliente-logradouro" name="logradouro" autoComplete="address-line1" tone="dark" label="Logradouro" value={form.logradouro} onChange={(e) => set('logradouro', e.target.value)} />
         </div>
-        <Input tone="dark" label="Número" value={form.numero} onChange={(e) => set('numero', e.target.value)} />
+        <Input id="cliente-numero" name="numero" tone="dark" label="Número" value={form.numero} onChange={(e) => set('numero', e.target.value)} />
       </div>
 
       <div className="grid grid-cols-3 gap-3">
         <div className="col-span-2">
-          <Input tone="dark" label="Bairro" value={form.bairro} onChange={(e) => set('bairro', e.target.value)} />
+          <Input id="cliente-bairro" name="bairro" tone="dark" label="Bairro" value={form.bairro} onChange={(e) => set('bairro', e.target.value)} />
         </div>
-        <Input tone="dark" label="UF" value={form.estado} onChange={(e) => set('estado', e.target.value.toUpperCase())} maxLength={2} />
+        <Input id="cliente-uf" name="estado" autoComplete="address-level1" tone="dark" label="UF" value={form.estado} onChange={(e) => set('estado', e.target.value.toUpperCase())} maxLength={2} />
       </div>
 
-      <Input tone="dark" label="Complemento · opcional" value={form.complemento} onChange={(e) => set('complemento', e.target.value)} />
+      <Input id="cliente-complemento" name="complemento" autoComplete="address-line2" tone="dark" label="Complemento · opcional" value={form.complemento} onChange={(e) => set('complemento', e.target.value)} />
 
       {erro && (
         <div className="rounded-xl border border-danger-500/35 bg-danger-500/15 p-3 text-xs leading-snug text-danger-300">{erro}</div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PartyPopper } from 'lucide-react'
 import { BadgeTier } from '@/components/perfil/badge-tier'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,16 @@ interface ConquistaOverlayProps {
 export function ConquistaOverlay({ tiers, onFechar }: ConquistaOverlayProps) {
   const [indice, setIndice] = useState(0)
   const tier = tiers[indice]
+
+  useEffect(() => {
+    function aoTeclar(e: KeyboardEvent) {
+      if (e.key === 'Escape') onFechar()
+    }
+    document.addEventListener('keydown', aoTeclar)
+    return () => document.removeEventListener('keydown', aoTeclar)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   if (!tier) return null
 
   function proximo() {
@@ -24,7 +34,7 @@ export function ConquistaOverlay({ tiers, onFechar }: ConquistaOverlayProps) {
 
   return (
     <Portal>
-    <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-5 bg-black/80 p-6 text-center backdrop-blur-md">
+    <div role="dialog" aria-modal="true" aria-label="Conquista desbloqueada" className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-5 bg-black/80 p-6 text-center backdrop-blur-md">
       <div className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest text-warning-400">
         <PartyPopper className="h-4 w-4" />
         Conquista desbloqueada

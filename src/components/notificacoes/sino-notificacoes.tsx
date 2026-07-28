@@ -1,18 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Bell, Flame, Gift } from 'lucide-react'
+import { Bell, RefreshCw } from 'lucide-react'
+import { toast } from 'sonner'
 import { listarMinhasNotificacoes, marcarTodasComoLidas, inscreverNotificacoesEmTempoReal } from '@/lib/notificacoes/queries'
+import { apresentacaoDoTipo } from '@/lib/notificacoes/apresentacao'
 import type { Notificacao } from '@/lib/notificacoes/types'
-
-const ICONE_POR_TIPO: Record<string, { Icone: typeof Bell; tom: string }> = {
-  bau_recompensa: { Icone: Gift, tom: 'bg-warning-500/20 text-warning-400' },
-  provocacao: { Icone: Flame, tom: 'bg-danger-500/20 text-danger-400' },
-}
-const FUNDO_NAO_LIDA_POR_TIPO: Record<string, string> = {
-  bau_recompensa: 'bg-warning-500/10',
-  provocacao: 'bg-danger-500/10',
-}
 
 function fmtRelativo(iso: string): string {
   const diffMin = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
@@ -26,11 +19,17 @@ function fmtRelativo(iso: string): string {
 /** Sino com contador de não lidas -- abrir o painel marca todas como lidas na hora. */
 export function SinoNotificacoes() {
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([])
+  const [falhaAoCarregar, setFalhaAoCarregar] = useState(false)
   const [aberto, setAberto] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const carregar = () => { listarMinhasNotificacoes().then(setNotificacoes) }
+    const carregar = () => {
+      listarMinhasNotificacoes().then(({ ok, dados }) => {
+        setFalhaAoCarregar(!ok)
+        setNotificacoes(dados)
+      })
+    }
     carregar()
     return inscreverNotificacoesEmTempoReal(carregar)
   }, [])
@@ -48,9 +47,15 @@ export function SinoNotificacoes() {
   async function alternar() {
     const abrindo = !aberto
     setAberto(abrindo)
-    if (abrindo && naoLidas > 0) {
-      setNotificacoes((atual) => atual.map((n) => ({ ...n, lida: true })))
+    if (!abrindo || naoLidas === 0) return
+
+    const anteriores = notificacoes
+    setNotificacoes((atual) => atual.map((n) => ({ ...n, lida: true })))
+    try {
       await marcarTodasComoLidas()
+    } catch {
+      setNotificacoes(anteriores)
+      toast.error('Não foi possível marcar como lidas. Tente de novo.')
     }
   }
 
@@ -74,15 +79,22 @@ export function SinoNotificacoes() {
         // "Sair" vem depois dele), então "right-0" relativo ao próprio sino ficava deslocado
         // pra esquerda e vazava pra fora da tela em telas estreitas.
         <div
+          role="dialog"
+          aria-label="Notificações"
           className="glass isolate fixed right-5 top-20 z-50 flex max-h-96 w-[min(20rem,calc(100vw-2.5rem))] flex-col gap-1 overflow-y-auto rounded-2xl p-2 shadow-xl"
           style={{ backgroundColor: 'rgba(15, 18, 16, 0.97)' }}
         >
-          {notificacoes.length === 0 && (
+          {falhaAoCarregar && (
+            <div className="flex items-center gap-2 rounded-xl bg-danger-500/10 p-3 text-xs font-semibold text-danger-300">
+              <RefreshCw className="h-3.5 w-3.5 shrink-0" />
+              Não foi possível carregar suas notificações agora.
+            </div>
+          )}
+          {!falhaAoCarregar && notificacoes.length === 0 && (
             <p className="p-4 text-center text-xs font-semibold text-white/40">Nenhuma notificação ainda</p>
           )}
           {notificacoes.map((n) => {
-            const { Icone, tom } = ICONE_POR_TIPO[n.tipo] ?? { Icone: Bell, tom: 'bg-brand-500/20 text-brand-300' }
-            const fundoNaoLida = FUNDO_NAO_LIDA_POR_TIPO[n.tipo] ?? 'bg-brand-500/10'
+            const { Icone, tom, fundoNaoLida } = apresentacaoDoTipo(n.tipo)
             return (
               <div key={n.id} className={`flex items-start gap-2.5 rounded-xl p-3 ${n.lida ? '' : fundoNaoLida}`}>
                 <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${tom}`}>

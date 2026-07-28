@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Loader2, X } from 'lucide-react'
-import { Portal } from '@/components/ui/portal'
+import { Loader2 } from 'lucide-react'
+import { Dialog } from '@/components/ui/dialog'
 import { enviarProvocacao } from '@/lib/provocacoes/queries'
 import { CATALOGO_PROVOCACOES, type TipoProvocacao } from '@/lib/provocacoes/types'
 
@@ -33,37 +33,25 @@ export function ProvocarModal({ destinatarioProfileId, destinatarioNome, remeten
   }
 
   return (
-    <Portal>
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onClick={onFechar}>
-      <div
-        className="glass flex w-full max-w-md flex-col gap-4 rounded-t-[28px] border border-warning-500/25 p-6 shadow-glow-gold [animation:conquista-pop_0.45s_cubic-bezier(.34,1.56,.64,1)] sm:rounded-[28px]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="font-display flex items-center gap-1.5 text-sm font-bold">
-            <span className="text-base leading-none">😏</span>
-            Provocar {destinatarioNome}
-          </h2>
-          <button onClick={onFechar} aria-label="Fechar" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-white/60 transition-colors hover:bg-white/15 hover:text-white active:scale-90">
-            <X className="h-4 w-4" />
+    <Dialog
+      open
+      onClose={onFechar}
+      title={`😏 Provocar ${destinatarioNome}`}
+      className="border border-warning-500/25 shadow-glow-gold [animation:conquista-pop_0.45s_cubic-bezier(.34,1.56,.64,1)]"
+    >
+      <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4">
+        {OPCOES.map(([tipo, { emoji, texto }]) => (
+          <button
+            key={tipo}
+            onClick={() => handleEnviar(tipo)}
+            disabled={enviando !== null}
+            className="flex flex-col items-center gap-1.5 rounded-2xl bg-warning-500/10 p-3 text-center transition-colors hover:bg-warning-500/20 disabled:opacity-40"
+          >
+            {enviando === tipo ? <Loader2 className="h-7 w-7 animate-spin text-brand-300" /> : <span className="text-3xl leading-none">{emoji}</span>}
+            <span className="text-[10px] font-bold leading-tight text-white/70">{texto}</span>
           </button>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4">
-          {OPCOES.map(([tipo, { emoji, texto }]) => (
-            <button
-              key={tipo}
-              onClick={() => handleEnviar(tipo)}
-              disabled={enviando !== null}
-              className="flex flex-col items-center gap-1.5 rounded-2xl bg-warning-500/10 p-3 text-center transition-colors hover:bg-warning-500/20 disabled:opacity-40"
-            >
-              {enviando === tipo ? <Loader2 className="h-7 w-7 animate-spin text-brand-300" /> : <span className="text-3xl leading-none">{emoji}</span>}
-              <span className="text-[10px] font-bold leading-tight text-white/70">{texto}</span>
-            </button>
-          ))}
-        </div>
+        ))}
       </div>
-    </div>
-    </Portal>
+    </Dialog>
   )
 }

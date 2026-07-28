@@ -8,7 +8,13 @@ import { notificacaoFromRow, type Notificacao } from './types'
  * aqui (ex.: migration da tabela ainda não aplicada) não pode virar um erro não tratado a cada
  * carregamento de tela -- só loga e mostra "sem notificações".
  */
-export async function listarMinhasNotificacoes(): Promise<Notificacao[]> {
+export interface ResultadoNotificacoes {
+  /** false = falha real de carregamento (rede, RLS, migration pendente); distinto de "0 notificações". */
+  ok: boolean
+  dados: Notificacao[]
+}
+
+export async function listarMinhasNotificacoes(): Promise<ResultadoNotificacoes> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('notificacoes')
@@ -18,9 +24,9 @@ export async function listarMinhasNotificacoes(): Promise<Notificacao[]> {
 
   if (error) {
     console.error('[notificacoes] falha ao carregar', error)
-    return []
+    return { ok: false, dados: [] }
   }
-  return ((data ?? []) as Record<string, unknown>[]).map(notificacaoFromRow)
+  return { ok: true, dados: ((data ?? []) as Record<string, unknown>[]).map(notificacaoFromRow) }
 }
 
 export async function marcarTodasComoLidas(): Promise<void> {

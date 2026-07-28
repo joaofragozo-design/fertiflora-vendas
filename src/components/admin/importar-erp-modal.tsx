@@ -10,6 +10,7 @@ import { substituirComissoesErp, substituirComissoesLiquidadasErp } from '@/lib/
 import type { VendedorComercial } from '@/lib/ranking/types'
 import { Button } from '@/components/ui/button'
 import { Portal } from '@/components/ui/portal'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { fmtT } from '@/components/ranking/formatadores'
 import { cn } from '@/lib/utils/cn'
 
@@ -53,6 +54,11 @@ export function ImportarErpModal({ linhasAtuais, ano, onFechar, onImportado }: I
   const [comissoesLiquidadasAplicando, setComissoesLiquidadasAplicando] = useState(false)
   const [comissoesLiquidadasErp, setComissoesLiquidadasErp] = useState<ComissaoErpLinha[] | null>(null)
   const [comissoesLiquidadasErro, setComissoesLiquidadasErro] = useState<string | null>(null)
+
+  /** Cada um desses 3 fluxos substitui a tabela inteira (delete + insert) -- confirma antes de
+   *  aplicar, já que ao contrário do fluxo de notas/faturado (acima) não existe um diff linha a
+   *  linha pra revisar antes. */
+  const [confirmandoSubstituicao, setConfirmandoSubstituicao] = useState<'pedidos' | 'comissoes' | 'comissoesLiquidadas' | null>(null)
 
   async function handleArquivo(file: File) {
     setLendo(true)
@@ -264,10 +270,15 @@ export function ImportarErpModal({ linhasAtuais, ano, onFechar, onImportado }: I
               </p>
             )}
 
-            <Button onClick={handleConfirmar} disabled={aplicando}>
-              {aplicando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              Aplicar {comparacoes.filter((c) => c.faturadoErp !== c.faturadoAtual).length} atualização(ões) + BI
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => setComparacoes(null)} className="w-auto flex-1" disabled={aplicando}>
+                Cancelar
+              </Button>
+              <Button onClick={handleConfirmar} disabled={aplicando} className="w-auto flex-1">
+                {aplicando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                Aplicar {comparacoes.filter((c) => c.faturadoErp !== c.faturadoAtual).length} atualização(ões) + BI
+              </Button>
+            </div>
           </>
         )}
 
@@ -304,7 +315,7 @@ export function ImportarErpModal({ linhasAtuais, ano, onFechar, onImportado }: I
                 <Button variant="ghost" onClick={() => setPedidosErp(null)} className="w-auto flex-1" disabled={pedidosAplicando}>
                   Cancelar
                 </Button>
-                <Button onClick={handleConfirmarPedidos} disabled={pedidosAplicando} className="w-auto flex-1">
+                <Button onClick={() => setConfirmandoSubstituicao('pedidos')} disabled={pedidosAplicando} className="w-auto flex-1">
                   {pedidosAplicando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                   Aplicar
                 </Button>
@@ -346,7 +357,7 @@ export function ImportarErpModal({ linhasAtuais, ano, onFechar, onImportado }: I
                 <Button variant="ghost" onClick={() => setComissoesErp(null)} className="w-auto flex-1" disabled={comissoesAplicando}>
                   Cancelar
                 </Button>
-                <Button onClick={handleConfirmarComissoes} disabled={comissoesAplicando} className="w-auto flex-1">
+                <Button onClick={() => setConfirmandoSubstituicao('comissoes')} disabled={comissoesAplicando} className="w-auto flex-1">
                   {comissoesAplicando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                   Aplicar
                 </Button>
@@ -388,7 +399,7 @@ export function ImportarErpModal({ linhasAtuais, ano, onFechar, onImportado }: I
                 <Button variant="ghost" onClick={() => setComissoesLiquidadasErp(null)} className="w-auto flex-1" disabled={comissoesLiquidadasAplicando}>
                   Cancelar
                 </Button>
-                <Button onClick={handleConfirmarComissoesLiquidadas} disabled={comissoesLiquidadasAplicando} className="w-auto flex-1">
+                <Button onClick={() => setConfirmandoSubstituicao('comissoesLiquidadas')} disabled={comissoesLiquidadasAplicando} className="w-auto flex-1">
                   {comissoesLiquidadasAplicando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                   Aplicar
                 </Button>
@@ -398,6 +409,22 @@ export function ImportarErpModal({ linhasAtuais, ano, onFechar, onImportado }: I
         </div>
       </div>
     </div>
+
+    <ConfirmDialog
+      open={confirmandoSubstituicao !== null}
+      onClose={() => setConfirmandoSubstituicao(null)}
+      onConfirm={() => {
+        if (confirmandoSubstituicao === 'pedidos') void handleConfirmarPedidos()
+        if (confirmandoSubstituicao === 'comissoes') void handleConfirmarComissoes()
+        if (confirmandoSubstituicao === 'comissoesLiquidadas') void handleConfirmarComissoesLiquidadas()
+        setConfirmandoSubstituicao(null)
+      }}
+      loading={pedidosAplicando || comissoesAplicando || comissoesLiquidadasAplicando}
+      title="Substituir dados atuais?"
+      description="Essa importação substitui TODOS os registros atuais dessa categoria pelas linhas do arquivo. Não pode ser desfeita — confira o total de linhas antes de confirmar."
+      confirmLabel="Confirmar substituição"
+      variant="danger"
+    />
     </Portal>
   )
 }

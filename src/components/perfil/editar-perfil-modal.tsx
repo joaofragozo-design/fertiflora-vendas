@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Camera, Loader2, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -23,6 +23,16 @@ export function EditarPerfilModal({ perfil, onFechar, onAtualizado }: EditarPerf
   const [salvando, setSalvando] = useState(false)
   const [enviandoFoto, setEnviandoFoto] = useState(false)
   const inputFotoRef = useRef<HTMLInputElement>(null)
+  const tituloId = useId()
+
+  useEffect(() => {
+    function aoTeclar(e: KeyboardEvent) {
+      if (e.key === 'Escape') onFechar()
+    }
+    document.addEventListener('keydown', aoTeclar)
+    return () => document.removeEventListener('keydown', aoTeclar)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const arquivo = e.target.files?.[0]
@@ -64,12 +74,15 @@ export function EditarPerfilModal({ perfil, onFechar, onAtualizado }: EditarPerf
     <Portal>
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onClick={onFechar}>
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={tituloId}
         className="glass flex max-h-[85dvh] w-full max-w-md flex-col rounded-t-[28px] sm:rounded-[28px]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-6 pb-2">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-sm font-bold">Editar perfil</h2>
+            <h2 id={tituloId} className="font-display text-sm font-bold">Editar perfil</h2>
             <button onClick={onFechar} aria-label="Fechar" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/8 text-white/60 transition-colors hover:bg-white/15 hover:text-white active:scale-90">
               <X className="h-4 w-4" />
             </button>

@@ -26,13 +26,13 @@ export function PedidoProgresso({ itens, chave, formatarValor }: PedidoProgresso
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <div className="text-[11px] font-semibold leading-snug text-white/80">{item.produto}</div>
-                <div className="text-[10px] text-white/40">
+                <div className="text-[10px] text-white/50">
                   Pedido {item.numeroPedido} · {new Date(item.emissao + 'T00:00:00').toLocaleDateString('pt-BR')}
                 </div>
               </div>
               <div className="shrink-0 text-right">
                 <div className="tabular text-[11px] font-bold text-white">
-                  {formatarValor(carregado)} <span className="text-white/40">/ {formatarValor(total)}</span>
+                  {formatarValor(carregado)} <span className="text-white/50">/ {formatarValor(total)}</span>
                 </div>
                 <div className="text-[9.5px] font-bold text-brand-300">{pct.toFixed(0)}% carregado</div>
               </div>

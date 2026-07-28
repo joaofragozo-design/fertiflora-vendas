@@ -19,7 +19,16 @@ export function SplashScreen({ destination }: SplashScreenProps) {
   }, [destination, router])
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center">
+    <main
+      className="relative flex min-h-screen cursor-pointer items-center justify-center"
+      onClick={() => router.replace(destination)}
+      role="button"
+      aria-label="Toque para pular"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') router.replace(destination)
+      }}
+    >
       <div className="relative z-10 flex flex-col items-center gap-4 animate-fade-in">
         <Logo variant="full" height={44} priority />
         <div className="mt-1 h-1 w-32 overflow-hidden rounded-full bg-white/10">

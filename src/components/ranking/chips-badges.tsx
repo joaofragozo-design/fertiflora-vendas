@@ -4,9 +4,14 @@ export function ChipsBadges({ badges, compacto = false }: { badges: Badge[]; com
   if (badges.length === 0) return null
   if (compacto) {
     return (
-      <div className="flex shrink-0 items-center gap-0.5" title={badges.map((b) => b.label).join(' · ')}>
+      <div
+        role="group"
+        aria-label={badges.map((b) => b.label).join(', ')}
+        title={badges.map((b) => b.label).join(' · ')}
+        className="flex shrink-0 items-center gap-0.5"
+      >
         {badges.map((b) => (
-          <span key={b.label} className="text-xs leading-none">{b.emoji}</span>
+          <span key={b.label} aria-hidden="true" className="text-xs leading-none">{b.emoji}</span>
         ))}
       </div>
     )

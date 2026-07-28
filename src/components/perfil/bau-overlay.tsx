@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { Gift } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Portal } from '@/components/ui/portal'
@@ -16,12 +17,30 @@ interface BauOverlayProps {
 export function BauOverlay({ baus, onFechar }: BauOverlayProps) {
   const [indice, setIndice] = useState(0)
   const [recompensa, setRecompensa] = useState<RecompensaBau | null>(null)
+  const [falhou, setFalhou] = useState(false)
   const bau = baus[indice]
 
   useEffect(() => {
     setRecompensa(null)
-    if (bau) abrirBau(bau.id).then(setRecompensa)
+    setFalhou(false)
+    if (bau) {
+      abrirBau(bau.id)
+        .then(setRecompensa)
+        .catch(() => {
+          setFalhou(true)
+          toast.error('Não foi possível abrir o baú agora')
+        })
+    }
   }, [bau])
+
+  useEffect(() => {
+    function aoTeclar(e: KeyboardEvent) {
+      if (e.key === 'Escape') onFechar()
+    }
+    document.addEventListener('keydown', aoTeclar)
+    return () => document.removeEventListener('keydown', aoTeclar)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (!bau) return null
 
@@ -32,7 +51,11 @@ export function BauOverlay({ baus, onFechar }: BauOverlayProps) {
 
   return (
     <Portal>
-    <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-5 bg-black/80 p-6 text-center backdrop-blur-md">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Baú de recompensa"
+      className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-5 bg-black/80 p-6 text-center backdrop-blur-md">
       <div className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest text-warning-400">
         <Gift className="h-4 w-4" />
         Baú de recompensa
@@ -57,6 +80,16 @@ export function BauOverlay({ baus, onFechar }: BauOverlayProps) {
 
           <Button onClick={proximo} className="mt-2 max-w-[240px]">
             {indice + 1 < baus.length ? 'Próximo baú' : 'Continuar'}
+          </Button>
+        </>
+      ) : falhou ? (
+        <>
+          <div className="flex h-[140px] w-[140px] items-center justify-center rounded-full bg-white/10">
+            <Gift className="h-16 w-16 text-white/25" />
+          </div>
+          <p className="text-sm font-semibold text-white/70">Não foi possível abrir esse baú agora. Tente de novo mais tarde.</p>
+          <Button onClick={onFechar} variant="ghost" className="mt-2 max-w-[240px]">
+            Fechar
           </Button>
         </>
       ) : (

@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { PackageCheck, Trophy } from 'lucide-react'
+import { toast } from 'sonner'
+import { PackageCheck, ShieldCheck, Trophy } from 'lucide-react'
 import {
   listarRanking,
   listarHistoricoRecente,
@@ -37,27 +38,35 @@ export function RankingScreen({ ehAdmin, userId }: { ehAdmin: boolean; userId: s
   const [vendasSemana, setVendasSemana] = useState<VendaSemanalPorCodigo[]>([])
   const [pedidosSemana, setPedidosSemana] = useState<VendaSemanalPorCodigo[]>([])
   const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState<string | null>(null)
+  const [tentativa, setTentativa] = useState(0)
   const [ajustando, setAjustando] = useState<RankingEntry | null>(null)
   const [provocando, setProvocando] = useState<AlvoProvocacao | null>(null)
 
   useEffect(() => {
     let ativo = true
+    setCarregando(true)
     function carregar() {
-      Promise.all([listarRanking(ANO), listarHistoricoRecente(), listarVendasSemana(), listarPedidosSemana()]).then(
-        ([r, h, vs, ps]) => {
+      Promise.all([listarRanking(ANO), listarHistoricoRecente(), listarVendasSemana(), listarPedidosSemana()])
+        .then(([r, h, vs, ps]) => {
           if (!ativo) return
           setEntradas(r)
           setHistorico(h)
           setVendasSemana(vs)
           setPedidosSemana(ps)
+          setErro(null)
           setCarregando(false)
-        }
-      )
+        })
+        .catch((e) => {
+          if (!ativo) return
+          setErro(e instanceof Error ? e.message : 'Falha ao carregar o ranking')
+          setCarregando(false)
+        })
     }
     carregar()
     const parar = inscreverRankingEmTempoReal(carregar)
     return () => { ativo = false; parar() }
-  }, [])
+  }, [tentativa])
 
   useEffect(() => {
     listarEquipeApoio().then(setEquipeApoio).catch(() => setEquipeApoio([]))
@@ -100,7 +109,7 @@ export function RankingScreen({ ehAdmin, userId }: { ehAdmin: boolean; userId: s
   }, [entradas, historico, topVendasSemana, topPedidosSemana])
 
   function recarregar() {
-    listarRanking(ANO).then(setEntradas)
+    listarRanking(ANO).then(setEntradas).catch(() => toast.error('Falha ao atualizar o ranking'))
   }
 
   return (
@@ -117,7 +126,18 @@ export function RankingScreen({ ehAdmin, userId }: { ehAdmin: boolean; userId: s
 
           {carregando && <SkeletonListaCards />}
 
-          {!carregando && entradas.length === 0 && (
+          {!carregando && erro && (
+            <div className="glass flex flex-col items-center gap-2 rounded-3xl p-8 text-center">
+              <ShieldCheck className="h-8 w-8 text-danger-400" />
+              <p className="text-sm font-semibold text-white/70">Não foi possível carregar o ranking</p>
+              <p className="text-xs text-white/45">{erro}</p>
+              <button onClick={() => setTentativa((t) => t + 1)} className="mt-2 text-[11px] font-bold text-brand-300">
+                Tentar de novo
+              </button>
+            </div>
+          )}
+
+          {!carregando && !erro && entradas.length === 0 && (
             <div className="glass flex flex-col items-center gap-2 rounded-3xl p-8 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-warning-500/10 text-warning-400">
                 <Trophy className="h-7 w-7" />

@@ -35,7 +35,8 @@ export function LimiteCredito({ resumo, statusCredito }: LimiteCreditoProps) {
     return (
       <div className="glass flex flex-col items-center gap-2 rounded-2xl p-6 text-center">
         <Banknote className="h-6 w-6 text-white/25" />
-        <p className="text-xs font-semibold text-white/50">Cliente sem análise de crédito -- provavelmente paga à vista.</p>
+        <p className="text-xs font-semibold text-white/50">Sem dados de crédito para esse cliente.</p>
+        <p className="text-[10.5px] text-white/35">Não é uma confirmação de pagamento à vista — só não há análise registrada ainda.</p>
       </div>
     )
   }

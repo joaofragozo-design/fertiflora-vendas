@@ -173,11 +173,13 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
               className="w-full flex-1 bg-transparent text-xs font-bold text-white placeholder:text-white/35 outline-none"
             />
             <button
-              onClick={() => setListaAberta((v) => !v)}
-              aria-label={listaAberta ? 'Fechar lista de clientes' : 'Selecionar da lista de clientes'}
+              onClick={() => {
+                if (listaAberta || busca) { setListaAberta(false); setBusca('') } else { setListaAberta(true) }
+              }}
+              aria-label={listaAberta || busca ? 'Fechar lista de clientes' : 'Selecionar da lista de clientes'}
               className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${listaAberta ? 'bg-brand-500 text-ink-950' : 'bg-white/8 text-white/50'}`}
             >
-              {listaAberta ? <X className="h-3.5 w-3.5" /> : <List className="h-3.5 w-3.5" />}
+              {listaAberta || busca ? <X className="h-3.5 w-3.5" /> : <List className="h-3.5 w-3.5" />}
             </button>
           </div>
           {(busca || listaAberta) && (
@@ -242,12 +244,12 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
               {resumoPedidos.itens.length > 0 ? (
                 <>
                   <ContadorAnimado valor={resumoPedidos.totalValorSaldo} formatar={fmtBRL} className="tabular font-display text-lg font-extrabold text-white" />
-                  <span className="text-[10px] font-semibold text-white/35">{fmtT(resumoPedidos.totalSaldoT)} restantes</span>
+                  <span className="text-[10px] font-semibold text-white/50">{fmtT(resumoPedidos.totalSaldoT)} restantes</span>
                 </>
               ) : (
                 <>
                   <div className="font-display text-lg font-extrabold text-white/25">—</div>
-                  <span className="text-[10px] font-semibold text-white/35">Nenhum pedido em aberto</span>
+                  <span className="text-[10px] font-semibold text-white/50">Nenhum pedido em aberto</span>
                 </>
               )}
             </div>
@@ -276,8 +278,8 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
                   Últimos 12 meses
                 </div>
                 <div className="flex gap-1 rounded-lg bg-white/8 p-0.5">
-                  <button onClick={() => setSerieChave('toneladas')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${serieChave === 'toneladas' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>t</button>
-                  <button onClick={() => setSerieChave('reais')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${serieChave === 'reais' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>R$</button>
+                  <button aria-pressed={serieChave === 'toneladas'} onClick={() => setSerieChave('toneladas')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${serieChave === 'toneladas' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>t</button>
+                  <button aria-pressed={serieChave === 'reais'} onClick={() => setSerieChave('reais')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${serieChave === 'reais' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>R$</button>
                 </div>
               </div>
               <GraficoBarras
@@ -307,8 +309,8 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
                     Top produtos em {ANO}
                   </div>
                   <div className="flex gap-1 rounded-lg bg-white/8 p-0.5">
-                    <button onClick={() => setProdutosChave('toneladas')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${produtosChave === 'toneladas' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>t</button>
-                    <button onClick={() => setProdutosChave('reais')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${produtosChave === 'reais' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>R$</button>
+                    <button aria-pressed={produtosChave === 'toneladas'} onClick={() => setProdutosChave('toneladas')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${produtosChave === 'toneladas' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>t</button>
+                    <button aria-pressed={produtosChave === 'reais'} onClick={() => setProdutosChave('reais')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${produtosChave === 'reais' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>R$</button>
                   </div>
                 </div>
                 <GraficoBarras
@@ -327,8 +329,8 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
                     Pedidos em aberto
                   </div>
                   <div className="flex gap-1 rounded-lg bg-white/8 p-0.5">
-                    <button onClick={() => setPedidosChave('toneladas')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${pedidosChave === 'toneladas' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>t</button>
-                    <button onClick={() => setPedidosChave('reais')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${pedidosChave === 'reais' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>R$</button>
+                    <button aria-pressed={pedidosChave === 'toneladas'} onClick={() => setPedidosChave('toneladas')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${pedidosChave === 'toneladas' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>t</button>
+                    <button aria-pressed={pedidosChave === 'reais'} onClick={() => setPedidosChave('reais')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${pedidosChave === 'reais' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>R$</button>
                   </div>
                 </div>
                 <PedidoProgresso itens={resumoPedidos.itens} chave={pedidosChave} formatarValor={pedidosChave === 'toneladas' ? fmtT : fmtBRL} />

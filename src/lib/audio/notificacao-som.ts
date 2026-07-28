@@ -3,6 +3,19 @@
  * áudio externo. Dois tons curtos e ascendentes (acorde tipo "ding-ding").
  */
 
+const CHAVE_PREFERENCIA_SOM = 'ff:notificacoes:som'
+
+/** Preferência do usuário p/ som de notificação -- persistida no dispositivo, ligada por padrão. */
+export function somNotificacaoAtivado(): boolean {
+  if (typeof window === 'undefined') return true
+  return window.localStorage.getItem(CHAVE_PREFERENCIA_SOM) !== 'off'
+}
+
+export function definirSomNotificacao(ativado: boolean) {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(CHAVE_PREFERENCIA_SOM, ativado ? 'on' : 'off')
+}
+
 let audioCtx: AudioContext | null = null
 
 function obterAudioContext(): AudioContext | null {

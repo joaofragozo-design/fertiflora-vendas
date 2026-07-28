@@ -14,6 +14,9 @@ import { estaNaJanelaDeDefinicao, periodoQueAJanelaDefine } from '@/lib/fluxo-ca
 import type { BucketVencimento, LimiteCarteiraPrazoRow } from '@/lib/fluxo-caixa/types'
 import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
 import { SkeletonListaCards } from '@/components/ui/skeleton'
+import { ConfirmDialog } from '@/components/ui/dialog'
+import { AlertTriangle } from 'lucide-react'
+import { cn } from '@/lib/utils/cn'
 import { GaugeCarteiraPrazo } from '@/components/fluxo-caixa/gauge-carteira-prazo'
 import { BucketsCarteiraPrazo } from '@/components/fluxo-caixa/buckets-carteira-prazo'
 import { ListaBucket } from '@/components/fluxo-caixa/lista-bucket'
@@ -36,6 +39,8 @@ export function FluxoCaixaScreen() {
   const [bucketSelecionado, setBucketSelecionado] = useState<BucketVencimento | null>(null)
   const [definindoLimite, setDefinindoLimite] = useState(false)
   const [carteiraChave, setCarteiraChave] = useState<'toneladas' | 'reais'>('toneladas')
+  const [confirmandoReserva, setConfirmandoReserva] = useState(false)
+  const [liberandoReserva, setLiberandoReserva] = useState(false)
 
   function carregar() {
     setCarregando(true)
@@ -75,13 +80,16 @@ export function FluxoCaixaScreen() {
 
   async function handleLiberarReserva() {
     if (!limite) return
-    if (!confirm('Confirma liberar a reserva da safrinha? Isso só deve ser feito com o caixa no Nível 3 (180 dias) ou acima e garantia de recebimento (Pilar 5).')) return
+    setLiberandoReserva(true)
     try {
       await liberarReservaSafrinha(limite.id)
       toast.success('Reserva da safrinha liberada')
+      setConfirmandoReserva(false)
       carregar()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Falha ao liberar reserva')
+    } finally {
+      setLiberandoReserva(false)
     }
   }
 
@@ -205,19 +213,46 @@ export function FluxoCaixaScreen() {
               </p>
             )}
             {resumoCarteira.totalReaisNaoConfirmado > 0 && (
-              <p className="px-1 text-[10px] text-white/35">
-                {fmtBRL(resumoCarteira.totalReaisNaoConfirmado)} sem nenhuma correspondência no relatório de comissões — status de pagamento não confirmado, contado como em aberto
+              <p className="flex items-start gap-1.5 rounded-xl border border-warning-500/30 bg-warning-500/10 p-2.5 text-[11px] font-semibold text-warning-300">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                {fmtBRL(resumoCarteira.totalReaisNaoConfirmado)} sem confirmação de pagamento — sem correspondência no relatório de comissões, contado como em aberto
               </p>
             )}
           </>
         )}
 
         {limite && !limite.reservaLiberada && (
-          <button onClick={handleLiberarReserva} className="glass rounded-2xl p-3 text-center text-xs font-bold text-white/70 transition-colors hover:bg-white/10">
+          <button onClick={() => setConfirmandoReserva(true)} className="glass rounded-2xl p-3 text-center text-xs font-bold text-white/70 transition-colors hover:bg-white/10">
             Liberar reserva da safrinha
           </button>
         )}
       </div>
+
+      {resumoCarteira && (
+        <ConfirmDialog
+          open={confirmandoReserva}
+          onClose={() => setConfirmandoReserva(false)}
+          onConfirm={handleLiberarReserva}
+          loading={liberandoReserva}
+          title="Liberar reserva da safrinha?"
+          description={
+            <div className="flex flex-col gap-2">
+              <p>Só deve ser feito com o caixa no Nível 3 (180 dias) ou acima e garantia de recebimento (Pilar 5).</p>
+              <div className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 text-xs font-bold text-white">
+                <span>Carteira atual</span>
+                <span className={cn('tabular', resumoCarteira.alertaReserva && 'text-danger-400')}>
+                  {resumoCarteira.percentualUsado.toFixed(0)}% do limite
+                </span>
+              </div>
+              {resumoCarteira.alertaReserva && (
+                <p className="font-bold text-danger-400">Atenção: a carteira já consumiu a reserva atual.</p>
+              )}
+            </div>
+          }
+          confirmLabel="Liberar reserva"
+          variant="danger"
+        />
+      )}
 
       {bucketSelecionado && <ListaBucket bucket={bucketSelecionado} itens={bucketItens} onFechar={() => setBucketSelecionado(null)} />}
 

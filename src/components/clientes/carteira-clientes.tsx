@@ -79,14 +79,18 @@ export function CarteiraClientes({ userId, ehAdmin }: { userId: string; ehAdmin:
           </Link>
         </div>
 
-        <div className="flex gap-1.5 rounded-2xl bg-white/[0.06] p-1">
+        <div role="tablist" className="flex gap-1.5 rounded-2xl bg-white/[0.06] p-1">
           <button
+            role="tab"
+            aria-selected={aba === 'lista'}
             onClick={() => setAba('lista')}
             className={cn('flex-1 rounded-xl py-2 text-xs font-bold transition-colors', aba === 'lista' ? 'bg-brand-500 text-ink-950' : 'text-white/50')}
           >
             Lista
           </button>
           <button
+            role="tab"
+            aria-selected={aba === 'bi'}
             onClick={() => setAba('bi')}
             className={cn('flex-1 rounded-xl py-2 text-xs font-bold transition-colors', aba === 'bi' ? 'bg-brand-500 text-ink-950' : 'text-white/50')}
           >

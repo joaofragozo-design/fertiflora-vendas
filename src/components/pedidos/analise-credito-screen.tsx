@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { ArrowLeft, CheckCircle2, Clock3, ShieldCheck, XCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Clock3, Loader2, ShieldCheck, XCircle } from 'lucide-react'
 import { listarTodosPedidos, aprovarCredito, reprovarCredito } from '@/lib/pedidos/queries'
 import type { Pedido } from '@/lib/pedidos/types'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Dialog } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils/cn'
 import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
 import { SkeletonListaCards } from '@/components/ui/skeleton'
@@ -21,6 +23,9 @@ export function AnaliseCreditoScreen() {
   const [carregando, setCarregando] = useState(true)
   const [aba, setAba] = useState<Aba>('analise')
   const [reprovando, setReprovando] = useState<Pedido | null>(null)
+  const [aprovando, setAprovando] = useState<Pedido | null>(null)
+  const [numeroContrato, setNumeroContrato] = useState('')
+  const [confirmandoAprovacao, setConfirmandoAprovacao] = useState(false)
 
   function carregar() {
     listarTodosPedidos().then((p) => { setPedidos(p); setCarregando(false) })
@@ -34,15 +39,23 @@ export function AnaliseCreditoScreen() {
     return pedidos.filter((p) => p.status === 'reprovado_credito')
   }, [pedidos, aba])
 
-  async function handleAprovar(p: Pedido) {
-    const numero = window.prompt('Número do contrato (deixe em branco se ainda não definido):', p.numeroContrato ?? '')
-    if (numero === null) return
+  function abrirAprovacao(p: Pedido) {
+    setNumeroContrato(p.numeroContrato ?? '')
+    setAprovando(p)
+  }
+
+  async function handleAprovar() {
+    if (!aprovando) return
+    setConfirmandoAprovacao(true)
     try {
-      await aprovarCredito(p.id, numero.trim() || null)
+      await aprovarCredito(aprovando.id, numeroContrato.trim() || null)
       toast.success('Pedido aprovado')
+      setAprovando(null)
       carregar()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Falha ao aprovar')
+    } finally {
+      setConfirmandoAprovacao(false)
     }
   }
 
@@ -90,7 +103,7 @@ export function AnaliseCreditoScreen() {
                 aba === 'analise' ? (
                   <>
                     <Button variant="ghost" className="w-auto flex-1 py-2 text-xs" onClick={() => setReprovando(p)}>Reprovar</Button>
-                    <Button className="w-auto flex-1 py-2 text-xs" onClick={() => handleAprovar(p)}>Aprovar</Button>
+                    <Button className="w-auto flex-1 py-2 text-xs" onClick={() => abrirAprovacao(p)}>Aprovar</Button>
                   </>
                 ) : undefined
               }
@@ -107,6 +120,23 @@ export function AnaliseCreditoScreen() {
           onConfirmado={() => { setReprovando(null); carregar() }}
         />
       )}
+
+      <Dialog open={!!aprovando} onClose={() => setAprovando(null)} title={aprovando ? `Aprovar pedido de ${aprovando.dados.clienteNome}` : undefined}>
+        <p className="text-xs text-white/60">
+          Essa decisão libera a entrega e obriga a empresa pelo contrato. Confira os dados do pedido antes de confirmar.
+        </p>
+        <Input
+          tone="dark"
+          label="Número do contrato · opcional"
+          placeholder="Deixe em branco se ainda não definido"
+          value={numeroContrato}
+          onChange={(e) => setNumeroContrato(e.target.value)}
+        />
+        <Button onClick={handleAprovar} disabled={confirmandoAprovacao}>
+          {confirmandoAprovacao ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+          Confirmar aprovação
+        </Button>
+      </Dialog>
     </main>
   )
 }

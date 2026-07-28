@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { AlertTriangle, Plus, CheckCircle2, Clock3, Download, FileText, XCircle } from 'lucide-react'
-import { listarMeusPedidos } from '@/lib/pedidos/queries'
+import { toast } from 'sonner'
+import { AlertTriangle, Plus, CheckCircle2, Clock3, Download, FileText, Loader2, Send, XCircle } from 'lucide-react'
+import { listarMeusPedidos, solicitarAprovacao } from '@/lib/pedidos/queries'
 import { baixarContratoPdf } from '@/lib/pedidos/contrato-pdf'
 import { precisaAvisoMinimo, type Pedido, type StatusPedido } from '@/lib/pedidos/types'
 import { cn } from '@/lib/utils/cn'
@@ -23,10 +24,24 @@ export function PedidosScreen() {
   usePageIntensity(0.2)
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [carregando, setCarregando] = useState(true)
+  const [solicitandoId, setSolicitandoId] = useState<string | null>(null)
 
   useEffect(() => {
     listarMeusPedidos().then((p) => { setPedidos(p); setCarregando(false) })
   }, [])
+
+  async function handleSolicitarAprovacao(pedidoId: string) {
+    setSolicitandoId(pedidoId)
+    try {
+      await solicitarAprovacao(pedidoId)
+      setPedidos((atual) => atual.map((p) => (p.id === pedidoId ? { ...p, status: 'aguardando_conferencia' } : p)))
+      toast.success('Pedido enviado pra conferência')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Falha ao solicitar aprovação')
+    } finally {
+      setSolicitandoId(null)
+    }
+  }
 
   return (
     <main className="relative z-10 min-h-screen pb-28">
@@ -85,6 +100,16 @@ export function PedidosScreen() {
                     Baixar PDF
                   </button>
                 </div>
+                {p.status === 'rascunho' && (
+                  <button
+                    onClick={() => handleSolicitarAprovacao(p.id)}
+                    disabled={solicitandoId === p.id}
+                    className="flex items-center justify-center gap-1.5 rounded-xl bg-brand-500/15 py-2.5 text-xs font-bold text-brand-300 transition-colors hover:bg-brand-500/25 disabled:opacity-50"
+                  >
+                    {solicitandoId === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                    Solicitar aprovação
+                  </button>
+                )}
               </div>
             )
           })}

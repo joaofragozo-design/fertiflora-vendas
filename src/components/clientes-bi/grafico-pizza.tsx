@@ -65,7 +65,7 @@ export function GraficoPizza({ fatias, formatarValor, limite = 6 }: GraficoPizza
             <span className="tabular shrink-0 font-bold text-white">{p.pct.toFixed(0)}%</span>
           </div>
         ))}
-        <p className="mt-0.5 text-[10px] text-white/35">Total: {formatarValor(total)}</p>
+        <p className="mt-0.5 text-[10px] text-white/50">Total: {formatarValor(total)}</p>
       </div>
     </div>
   )

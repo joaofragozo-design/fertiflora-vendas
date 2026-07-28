@@ -14,7 +14,6 @@ import { usePageIntensity } from '@/components/scene/living-background/use-page-
 import { SkeletonListaCards } from '@/components/ui/skeleton'
 import { GraficoBarras } from '@/components/clientes-bi/grafico-barras'
 import { GraficoPizza } from '@/components/clientes-bi/grafico-pizza'
-import { ContadorAnimado } from '@/components/clientes-bi/contador-animado'
 
 const ANO = new Date().getFullYear()
 const NOMES_MES_CURTO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
@@ -158,7 +157,7 @@ export function VendasGeraisScreen() {
                   <Package className="h-3 w-3 text-brand-300" />
                   Toneladas {ANO}
                 </div>
-                <ContadorAnimado valor={resumo.totalToneladas} formatar={fmtT} className="tabular font-display text-xl font-extrabold text-white" />
+                <span className="tabular font-display text-xl font-extrabold text-white">{fmtT(resumo.totalToneladas)}</span>
                 {variacaoToneladas !== null && (
                   <span className={`text-[10px] font-bold ${variacaoToneladas >= 0 ? 'text-brand-300' : 'text-danger-400'}`}>{fmtVariacao(variacaoToneladas)} vs {ANO - 1}</span>
                 )}
@@ -168,7 +167,7 @@ export function VendasGeraisScreen() {
                   <Wallet className="h-3 w-3 text-brand-300" />
                   Faturado {ANO}
                 </div>
-                <ContadorAnimado valor={resumo.totalReais} formatar={fmtBRL} className="tabular font-display text-xl font-extrabold text-white" />
+                <span className="tabular font-display text-xl font-extrabold text-white">{fmtBRL(resumo.totalReais)}</span>
                 {variacaoReais !== null && (
                   <span className={`text-[10px] font-bold ${variacaoReais >= 0 ? 'text-brand-300' : 'text-danger-400'}`}>{fmtVariacao(variacaoReais)} vs {ANO - 1}</span>
                 )}
@@ -184,6 +183,11 @@ export function VendasGeraisScreen() {
             </div>
 
             <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start lg:gap-4 xl:grid-cols-3">
+              <div className="flex items-center gap-2 lg:col-span-2 xl:col-span-3">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-white/45">Tendência</span>
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+
               <div className="glass flex flex-col gap-3 rounded-2xl p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/50">
@@ -191,8 +195,8 @@ export function VendasGeraisScreen() {
                     Últimos 12 meses
                   </div>
                   <div className="flex gap-1 rounded-lg bg-white/8 p-0.5">
-                    <button onClick={() => setSerieChave('toneladas')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${serieChave === 'toneladas' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>t</button>
-                    <button onClick={() => setSerieChave('reais')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${serieChave === 'reais' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>R$</button>
+                    <button aria-pressed={serieChave === 'toneladas'} onClick={() => setSerieChave('toneladas')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${serieChave === 'toneladas' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>t</button>
+                    <button aria-pressed={serieChave === 'reais'} onClick={() => setSerieChave('reais')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${serieChave === 'reais' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>R$</button>
                   </div>
                 </div>
                 <GraficoBarras
@@ -222,6 +226,11 @@ export function VendasGeraisScreen() {
                 </div>
               )}
 
+              <div className="flex items-center gap-2 lg:col-span-2 xl:col-span-3">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-white/45">Comparativos</span>
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+
               <div className="glass flex flex-col gap-3 rounded-2xl p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/50">
@@ -229,8 +238,8 @@ export function VendasGeraisScreen() {
                     Comparativo entre vendedores
                   </div>
                   <div className="flex gap-1 rounded-lg bg-white/8 p-0.5">
-                    <button onClick={() => setVendedoresChave('toneladas')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${vendedoresChave === 'toneladas' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>t</button>
-                    <button onClick={() => setVendedoresChave('reais')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${vendedoresChave === 'reais' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>R$</button>
+                    <button aria-pressed={vendedoresChave === 'toneladas'} onClick={() => setVendedoresChave('toneladas')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${vendedoresChave === 'toneladas' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>t</button>
+                    <button aria-pressed={vendedoresChave === 'reais'} onClick={() => setVendedoresChave('reais')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${vendedoresChave === 'reais' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>R$</button>
                   </div>
                 </div>
                 {maiorCrescimento && (
@@ -254,11 +263,11 @@ export function VendasGeraisScreen() {
                     Faturamento por praça
                   </div>
                   <div className="flex gap-1 rounded-lg bg-white/8 p-0.5">
-                    <button onClick={() => setPracaChave('toneladas')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${pracaChave === 'toneladas' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>t</button>
-                    <button onClick={() => setPracaChave('reais')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${pracaChave === 'reais' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>R$</button>
+                    <button aria-pressed={pracaChave === 'toneladas'} onClick={() => setPracaChave('toneladas')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${pracaChave === 'toneladas' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>t</button>
+                    <button aria-pressed={pracaChave === 'reais'} onClick={() => setPracaChave('reais')} className={`rounded-md px-2 py-1 text-[9.5px] font-bold ${pracaChave === 'reais' ? 'bg-brand-500 text-ink-950' : 'text-white/50'}`}>R$</button>
                   </div>
                 </div>
-                <p className="text-[10px] text-white/35">Praça vem do perfil de cada vendedor -- pode estar incompleta.</p>
+                <p className="text-[10px] text-white/50">Praça vem do perfil de cada vendedor -- pode estar incompleta.</p>
                 <GraficoPizza
                   fatias={porPraca.map((p) => ({ id: p.chave, label: p.chave, valor: pracaChave === 'toneladas' ? p.toneladas : p.reais }))}
                   formatarValor={pracaChave === 'toneladas' ? fmtT : fmtBRL}
@@ -275,12 +284,17 @@ export function VendasGeraisScreen() {
                 </div>
               )}
 
+              <div className="flex items-center gap-2 lg:col-span-2 xl:col-span-3">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-white/45">Metas</span>
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+
               <div className="glass flex flex-col gap-3 rounded-2xl p-4">
                 <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/50">
                   <Target className="h-3.5 w-3.5 text-brand-300" />
                   Metas vs realizado
                 </div>
-                <p className="text-[10px] text-white/35">
+                <p className="text-[10px] text-white/50">
                   Toneladas, ano corrente — cobre os {rankingComMeta.length} vendedores cadastrados no Ranking Comercial
                 </p>
                 <div className="flex flex-col gap-3">
