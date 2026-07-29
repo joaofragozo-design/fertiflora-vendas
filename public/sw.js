@@ -41,3 +41,40 @@ self.addEventListener('fetch', (e) => {
     })
   )
 })
+
+// Notificação push de verdade (chat) -- chega mesmo com o app/navegador fechado. Payload
+// vem de src/app/api/push/enviar/route.ts como JSON { title, body, url }; nunca deve lançar
+// (um push malformado não pode quebrar o service worker inteiro).
+self.addEventListener('push', (e) => {
+  let dados = {}
+  try {
+    dados = e.data ? e.data.json() : {}
+  } catch {
+    dados = {}
+  }
+  const titulo = dados.title || 'FertiFlora Vendas'
+  const corpo = dados.body || 'Você tem uma notificação nova.'
+  const url = dados.url || '/'
+  e.waitUntil(
+    self.registration.showNotification(titulo, {
+      body: corpo,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      data: { url },
+    })
+  )
+})
+
+// Ao tocar na notificação: foca uma janela já aberta na URL certa, senão abre uma nova.
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close()
+  const url = e.notification.data && e.notification.data.url ? e.notification.data.url : '/'
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((lista) => {
+      for (const cliente of lista) {
+        if (cliente.url.includes(url) && 'focus' in cliente) return cliente.focus()
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(url)
+    })
+  )
+})

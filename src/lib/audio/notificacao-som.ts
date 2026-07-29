@@ -60,3 +60,18 @@ export function tocarSomNotificacao() {
     // Web Audio indisponível/bloqueado -- não pode quebrar o resto da notificação (toast/tremor).
   }
 }
+
+/** Som distinto pra mensagem de chat (DM/aviso) -- dois toques graves e rápidos, contorno
+ *  DESCENDENTE (D5 -> C5), o oposto do chime ascendente de recompensa acima (A5 -> E6), pra
+ *  nunca confundir "alguém te mandou mensagem" com "você ganhou uma recompensa" de ouvido. */
+export function tocarSomMensagem() {
+  try {
+    const ctx = obterAudioContext()
+    if (!ctx) return
+    if (ctx.state === 'suspended') void ctx.resume()
+    tocarTom(ctx, 587.33, 0, 0.09, 0.22)
+    tocarTom(ctx, 523.25, 0.11, 0.12, 0.22)
+  } catch {
+    // Web Audio indisponível/bloqueado -- não pode quebrar o resto da notificação (toast).
+  }
+}

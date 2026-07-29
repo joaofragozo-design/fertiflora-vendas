@@ -10,24 +10,45 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
 import { somNotificacaoAtivado, definirSomNotificacao } from '@/lib/audio/notificacao-som'
+import { pushSuportado, notificacoesPushAtivas, ativarNotificacoesPush, desativarNotificacoesPush } from '@/lib/push/queries'
 
 interface ContaScreenProps {
   email: string
+  userId: string
 }
 
-export function ContaScreen({ email }: ContaScreenProps) {
+export function ContaScreen({ email, userId }: ContaScreenProps) {
   usePageIntensity(0.15)
   const [senhaAtual, setSenhaAtual] = useState('')
   const [novaSenha, setNovaSenha] = useState('')
   const [confirmarSenha, setConfirmarSenha] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [somAtivado, setSomAtivado] = useState(true)
+  const [pushAtivado, setPushAtivado] = useState(false)
+  const [alterandoPush, setAlterandoPush] = useState(false)
 
   useEffect(() => setSomAtivado(somNotificacaoAtivado()), [])
+  useEffect(() => { notificacoesPushAtivas().then(setPushAtivado) }, [])
 
   function handleSom(ativado: boolean) {
     setSomAtivado(ativado)
     definirSomNotificacao(ativado)
+  }
+
+  async function handlePush(ativado: boolean) {
+    setAlterandoPush(true)
+    try {
+      if (ativado) {
+        await ativarNotificacoesPush(userId)
+      } else {
+        await desativarNotificacoesPush()
+      }
+      setPushAtivado(ativado)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Falha ao alterar notificações push')
+    } finally {
+      setAlterandoPush(false)
+    }
   }
 
   async function handleSalvar() {
@@ -84,6 +105,16 @@ export function ContaScreen({ email }: ContaScreenProps) {
             </div>
             <Switch checked={somAtivado} onChange={handleSom} label="Som de notificação" />
           </div>
+
+          {pushSuportado() && (
+            <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-4">
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-white">Notificações push</div>
+                <div className="text-xs text-white/50">Receba avisos e mensagens mesmo com o app fechado.</div>
+              </div>
+              <Switch checked={pushAtivado} onChange={handlePush} label="Notificações push" disabled={alterandoPush} />
+            </div>
+          )}
         </div>
 
         <div className="glass flex flex-col gap-4 rounded-3xl p-5">

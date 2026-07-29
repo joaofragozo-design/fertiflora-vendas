@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Bell, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { listarMinhasNotificacoes, marcarTodasComoLidas, inscreverNotificacoesEmTempoReal } from '@/lib/notificacoes/queries'
-import { apresentacaoDoTipo } from '@/lib/notificacoes/apresentacao'
+import { apresentacaoDoTipo, destinoDaNotificacao } from '@/lib/notificacoes/apresentacao'
 import type { Notificacao } from '@/lib/notificacoes/types'
 
 function fmtRelativo(iso: string): string {
@@ -18,6 +19,7 @@ function fmtRelativo(iso: string): string {
 
 /** Sino com contador de não lidas -- abrir o painel marca todas como lidas na hora. */
 export function SinoNotificacoes() {
+  const router = useRouter()
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([])
   const [falhaAoCarregar, setFalhaAoCarregar] = useState(false)
   const [aberto, setAberto] = useState(false)
@@ -95,8 +97,9 @@ export function SinoNotificacoes() {
           )}
           {notificacoes.map((n) => {
             const { Icone, tom, fundoNaoLida } = apresentacaoDoTipo(n.tipo)
-            return (
-              <div key={n.id} className={`flex items-start gap-2.5 rounded-xl p-3 ${n.lida ? '' : fundoNaoLida}`}>
+            const destino = destinoDaNotificacao(n)
+            const conteudo = (
+              <>
                 <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${tom}`}>
                   <Icone className="h-3.5 w-3.5" />
                 </div>
@@ -107,6 +110,22 @@ export function SinoNotificacoes() {
                   </div>
                   <p className="text-[11px] leading-snug text-white/60">{n.corpo}</p>
                 </div>
+              </>
+            )
+            if (destino) {
+              return (
+                <button
+                  key={n.id}
+                  onClick={() => { setAberto(false); router.push(destino) }}
+                  className={`flex items-start gap-2.5 rounded-xl p-3 text-left transition-colors hover:bg-white/8 ${n.lida ? '' : fundoNaoLida}`}
+                >
+                  {conteudo}
+                </button>
+              )
+            }
+            return (
+              <div key={n.id} className={`flex items-start gap-2.5 rounded-xl p-3 ${n.lida ? '' : fundoNaoLida}`}>
+                {conteudo}
               </div>
             )
           })}
