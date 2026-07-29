@@ -9,6 +9,8 @@ export interface CnpjDados {
   bairro: string
   cidade: string
   estado: string
+  /** Código IBGE do município -- só metadado (útil pra rota/geo no futuro), não editável na tela. */
+  codigoIbge: string | null
 }
 
 export function somenteDigitos(v: string) {
@@ -34,5 +36,6 @@ export async function buscarCnpj(cnpjBruto: string): Promise<CnpjDados> {
     bairro: data.bairro ?? '',
     cidade: data.municipio ?? '',
     estado: data.uf ?? '',
+    codigoIbge: data.codigo_municipio != null ? String(data.codigo_municipio) : null,
   }
 }

@@ -8,6 +8,7 @@ import { SinoNotificacoes } from '@/components/notificacoes/sino-notificacoes'
 import { BauIndicador } from '@/components/perfil/bau-indicador'
 import { PerfilCard } from '@/components/perfil/perfil-card'
 import { TrioFaturamentoVendedor } from '@/components/ranking/trio-faturamento-vendedor'
+import { ProximosLembretesCard } from '@/components/lembretes/proximos-lembretes-card'
 import { createClient } from '@/lib/supabase/server'
 import { emailToUsername } from '@/lib/validations/auth'
 import { ehGestorGeral } from '@/lib/gamificacao/tiers-gestao'
@@ -90,6 +91,8 @@ export default async function DashboardPage() {
             </Link>
           </div>
         </div>
+
+        <ProximosLembretesCard />
 
         {ehAdmin && (
           <Link

@@ -71,6 +71,9 @@ export interface Pedido {
   decididoEm: string | null
   decididoPor: string | null
   motivoRejeicao: string | null
+  /** Path no bucket privado `assinaturas` (não é URL pública) -- null enquanto o cliente não assinou. */
+  assinaturaUrl: string | null
+  assinadoEm: string | null
 }
 
 /** Mostra o aviso enquanto o pedido não passou pela decisão final da análise de crédito. */
@@ -97,6 +100,8 @@ export function pedidoFromRow(row: Record<string, unknown>): Pedido {
     decididoEm: (row.decidido_em as string) ?? null,
     decididoPor: (row.decidido_por as string) ?? null,
     motivoRejeicao: (row.motivo_rejeicao as string) ?? null,
+    assinaturaUrl: (row.assinatura_url as string) ?? null,
+    assinadoEm: (row.assinado_em as string) ?? null,
   }
 }
 

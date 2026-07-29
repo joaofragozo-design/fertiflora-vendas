@@ -42,6 +42,7 @@ export function ClienteForm({ nomeInicial, onSalvar, onCancelar }: ClienteFormPr
         bairro: dados.bairro || f.bairro,
         cidade: dados.cidade || f.cidade,
         estado: dados.estado || f.estado,
+        codigoIbge: dados.codigoIbge ?? f.codigoIbge,
       }))
       toast.success('Dados do CNPJ preenchidos automaticamente')
     } catch (e) {

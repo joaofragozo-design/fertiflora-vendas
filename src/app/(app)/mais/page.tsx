@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { HandCoins, UserPlus, ShieldCheck, ClipboardCheck, Trophy, ChevronRight, KeyRound } from 'lucide-react'
+import { HandCoins, UserPlus, ShieldCheck, ClipboardCheck, Trophy, ChevronRight, KeyRound, BellRing } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { ROUTES } from '@/constants/routes'
 import { Logo } from '@/components/brand/logo'
@@ -33,6 +33,7 @@ export default async function MaisPage() {
 
         <div className="flex flex-col gap-2">
           <ItemMenu href="/mais/conta" icone={KeyRound} titulo="Minha Conta" descricao="Trocar senha de acesso" tone="neutral" />
+          <ItemMenu href="/lembretes" icone={BellRing} titulo="Lembretes" descricao="Follow-up e tarefas pendentes" tone="neutral" />
           <ItemMenu href="/clientes/novo" icone={UserPlus} titulo="Cadastro de Clientes" descricao="Dados para nota fiscal" tone="earth" />
           {(ehConferencia || ehAdmin) && (
             <ItemMenu href="/conferencia" icone={ClipboardCheck} titulo="Conferência" descricao="Pedidos aguardando conferência" tone="warning" destaque />

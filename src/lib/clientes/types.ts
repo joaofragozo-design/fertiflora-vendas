@@ -17,6 +17,8 @@ export interface Cliente {
   bairro: string | null
   cidade: string | null
   estado: string | null
+  /** Código IBGE do município -- vem do lookup de CNPJ quando disponível; só metadado, não editável na tela. */
+  codigoIbge: string | null
   createdAt: string
 }
 
@@ -35,12 +37,14 @@ export interface ClienteInput {
   bairro: string
   cidade: string
   estado: string
+  codigoIbge: string | null
 }
 
 export function clienteEmBranco(): ClienteInput {
   return {
     tipoPessoa: 'pj', nome: '', nomeFantasia: '', cpfCnpj: '', inscricaoEstadual: '',
     telefone: '', email: '', cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '',
+    codigoIbge: null,
   }
 }
 
@@ -62,6 +66,7 @@ export function clienteFromRow(row: Record<string, unknown>): Cliente {
     bairro: (row.bairro as string) ?? null,
     cidade: (row.cidade as string) ?? null,
     estado: (row.estado as string) ?? null,
+    codigoIbge: (row.codigo_ibge as string) ?? null,
     createdAt: row.created_at as string,
   }
 }
@@ -83,5 +88,6 @@ export function clienteToRow(input: ClienteInput, vendedorId: string) {
     bairro: input.bairro.trim() || null,
     cidade: input.cidade.trim() || null,
     estado: input.estado.trim().toUpperCase() || null,
+    codigo_ibge: input.codigoIbge,
   }
 }

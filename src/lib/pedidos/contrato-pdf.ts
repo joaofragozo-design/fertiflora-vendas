@@ -71,7 +71,7 @@ async function carregarLogoBase64(): Promise<{ dataUrl: string; largura: number;
   }
 }
 
-export async function gerarContratoPdf(pedido: Pedido): Promise<jsPDF> {
+export async function gerarContratoPdf(pedido: Pedido, assinaturaDataUrl?: string | null): Promise<jsPDF> {
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' })
   const { dados } = pedido
   const calculo = calcularPedido(pedido.quantidadeToneladas, pedido.embalagem, dados.precoVendidoTon, dados.freteTon)
@@ -286,10 +286,14 @@ export async function gerarContratoPdf(pedido: Pedido): Promise<jsPDF> {
   doc.text('A combinar', MARGEM + 178, y)
   y += 10
 
-  // Assinaturas
+  // Assinaturas -- se o cliente já assinou (canvas de assinatura, ver assinatura-canvas.tsx),
+  // carimba o traço desenhado em cima do traço em branco do lado do comprador.
   quebrarPagina(20)
   linha(y)
   y += 10
+  if (assinaturaDataUrl) {
+    doc.addImage(assinaturaDataUrl, 'PNG', MARGEM + 148, y - 11, 50, 12)
+  }
   doc.text('_______________________________________', MARGEM, y)
   doc.text('_______________________________________', MARGEM + 148, y)
   y += 5
@@ -327,7 +331,7 @@ export async function gerarContratoPdf(pedido: Pedido): Promise<jsPDF> {
   return doc
 }
 
-export async function baixarContratoPdf(pedido: Pedido) {
-  const doc = await gerarContratoPdf(pedido)
+export async function baixarContratoPdf(pedido: Pedido, assinaturaDataUrl?: string | null) {
+  const doc = await gerarContratoPdf(pedido, assinaturaDataUrl)
   doc.save(`contrato-venda-${pedido.dados.clienteNome.replace(/\s+/g, '-').toLowerCase()}.pdf`)
 }

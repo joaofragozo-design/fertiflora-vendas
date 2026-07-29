@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { AlertTriangle, ArrowLeft, CheckCircle2, Download, FileText, Loader2, Package, Search, Send, UserCircle2 } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, CheckCircle2, Download, FileText, Loader2, Package, PenLine, Search, Send, UserCircle2 } from 'lucide-react'
 import { listarCotacoes } from '@/lib/cotacoes/queries'
 import { statusCotacao, type CotacaoSalva } from '@/lib/cotacoes/types'
 import { listarClientes } from '@/lib/clientes/queries'
@@ -11,13 +11,16 @@ import type { Cliente } from '@/lib/clientes/types'
 import { buscarPerfil } from '@/lib/perfil/queries'
 import { criarPedido, solicitarAprovacao } from '@/lib/pedidos/queries'
 import { baixarContratoPdf } from '@/lib/pedidos/contrato-pdf'
+import { enviarAssinatura } from '@/lib/pedidos/assinatura'
 import { EMBALAGENS, calcularPedido, type Embalagem, type Pedido, type PedidoDados } from '@/lib/pedidos/types'
 import { ClientePicker } from '@/components/cotacao/cliente-picker'
 import { ClienteForm } from '@/components/clientes/cliente-form'
+import { AssinaturaCanvas } from '@/components/pedidos/assinatura-canvas'
 import { criarCliente } from '@/lib/clientes/queries'
 import { createClient } from '@/lib/supabase/client'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Dialog } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils/cn'
 import { usePageIntensity } from '@/components/scene/living-background/use-page-intensity'
 import { SkeletonListaCards } from '@/components/ui/skeleton'
@@ -44,6 +47,8 @@ export function NovoPedidoScreen({ userId }: { userId: string }) {
   const [pedidoGerado, setPedidoGerado] = useState<Pedido | null>(null)
   const [solicitando, setSolicitando] = useState(false)
   const [solicitado, setSolicitado] = useState(false)
+  const [assinaturaAberta, setAssinaturaAberta] = useState(false)
+  const [assinado, setAssinado] = useState(false)
 
   useEffect(() => {
     Promise.all([listarCotacoes(), listarClientes()]).then(([cots, clis]) => {
@@ -118,6 +123,21 @@ export function NovoPedidoScreen({ userId }: { userId: string }) {
       toast.error(e instanceof Error ? e.message : 'Falha ao gerar contrato')
     } finally {
       setSalvando(false)
+    }
+  }
+
+  async function handleSalvarAssinatura(dataUrl: string) {
+    if (!pedidoGerado) return
+    try {
+      await enviarAssinatura(pedidoGerado.id, dataUrl)
+      setAssinado(true)
+      setAssinaturaAberta(false)
+      toast.success('Assinatura salva')
+      // Re-baixa o contrato já com a assinatura carimbada -- a assinatura ainda está em
+      // memória aqui (dataURL), então não precisa buscar de volta do Storage pra isso.
+      await baixarContratoPdf(pedidoGerado, dataUrl)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Falha ao salvar assinatura')
     }
   }
 
@@ -247,12 +267,23 @@ export function NovoPedidoScreen({ userId }: { userId: string }) {
           </div>
 
           <Button variant="ghost" onClick={() => { void baixarContratoPdf(pedidoGerado) }}><Download className="h-4 w-4" />Baixar novamente</Button>
+          <Button variant={assinado ? 'ghost' : 'primary'} onClick={() => setAssinaturaAberta(true)}>
+            <PenLine className="h-4 w-4" />
+            {assinado ? 'Assinatura colhida — assinar de novo' : 'Colher assinatura do cliente'}
+          </Button>
           <Button disabled={solicitando || solicitado} onClick={handleSolicitarAprovacao}>
             {solicitando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             {solicitado ? 'Aprovação solicitada' : 'Solicitar aprovação'}
           </Button>
           <Link href="/pedidos" className="text-center text-xs font-bold text-white/50">Ver meus pedidos</Link>
         </div>
+
+        {assinaturaAberta && (
+          <Dialog open onClose={() => setAssinaturaAberta(false)} title="Assinatura do cliente">
+            <p className="text-xs text-white/60">Peça pro cliente assinar com o dedo direto na tela.</p>
+            <AssinaturaCanvas onSalvar={handleSalvarAssinatura} />
+          </Dialog>
+        )}
       </main>
     )
   }
