@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import { autenticarRealtime } from '@/lib/supabase/realtime'
+import { autenticarRealtime, removerCanalExistente } from '@/lib/supabase/realtime'
 import { debounce } from '@/lib/utils/debounce'
 import { chavePeriodoAtual } from './safra'
 import { limiteCarteiraPrazoFromRow, type LimiteCarteiraPrazoRow } from './types'
@@ -75,6 +75,7 @@ export async function liberarReservaSafrinha(id: string): Promise<void> {
 export function inscreverFluxoCaixaEmTempoReal(onChange: () => void): () => void {
   const supabase = createClient()
   const onChangeDebounced = debounce(onChange, 1200)
+  removerCanalExistente(supabase, 'fluxo-caixa-realtime')
 
   const channel = supabase
     .channel('fluxo-caixa-realtime')

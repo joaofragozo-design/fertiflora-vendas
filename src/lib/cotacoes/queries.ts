@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import { autenticarRealtime } from '@/lib/supabase/realtime'
+import { autenticarRealtime, removerCanalExistente } from '@/lib/supabase/realtime'
 import { cotacaoConfigFromRow, cotacaoFromRow, type CotacaoConfig, type CotacaoDados, type CotacaoSalva } from './types'
 
 export async function salvarCotacao(params: {
@@ -84,6 +84,7 @@ export async function definirCampanhaAvista(id: string, params: { ativa: boolean
 /** RLS aberta pra qualquer autenticado (não depende de auth.uid() na condição) -- autenticarRealtime não é estritamente necessário aqui, mas mantém o mesmo padrão do resto do app. */
 export function inscreverConfigCotacaoEmTempoReal(onChange: (config: CotacaoConfig) => void): () => void {
   const supabase = createClient()
+  removerCanalExistente(supabase, 'cotacao-config-realtime')
   const channel = supabase
     .channel('cotacao-config-realtime')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'cotacao_config' }, (payload) => {

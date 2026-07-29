@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import { autenticarRealtime } from '@/lib/supabase/realtime'
+import { autenticarRealtime, removerCanalExistente } from '@/lib/supabase/realtime'
 import type { FormulaPreco } from './formulas'
 
 /** Versão client-side de `getFormulasComPreco` (aquela usa o client de servidor, não pode rodar no browser). */
@@ -25,6 +25,7 @@ export async function buscarFormulasComPrecoAgora(): Promise<FormulaPreco[]> {
  */
 export function inscreverFormulaPrecosEmTempoReal(onChange: () => void): () => void {
   const supabase = createClient()
+  removerCanalExistente(supabase, 'formula-precos-realtime')
 
   const channel = supabase
     .channel('formula-precos-realtime')

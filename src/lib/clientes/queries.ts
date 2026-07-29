@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import { autenticarRealtime } from '@/lib/supabase/realtime'
+import { autenticarRealtime, removerCanalExistente } from '@/lib/supabase/realtime'
 import { clienteFromRow, clienteToRow, type Cliente, type ClienteInput } from './types'
 
 export async function listarClientes(): Promise<Cliente[]> {
@@ -28,6 +28,7 @@ export async function criarCliente(input: ClienteInput): Promise<Cliente> {
 
 export function inscreverClientesEmTempoReal(onChange: () => void) {
   const supabase = createClient()
+  removerCanalExistente(supabase, 'clientes-realtime')
   const channel = supabase
     .channel('clientes-realtime')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, onChange)

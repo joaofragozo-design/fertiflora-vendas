@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import { autenticarRealtime } from '@/lib/supabase/realtime'
+import { autenticarRealtime, removerCanalExistente } from '@/lib/supabase/realtime'
 import type { TaxasJuros } from './taxas-juros'
 
 /** Versão client-side de `buscarTaxasJuros` (aquela usa o client de servidor, não pode rodar no browser). */
@@ -16,6 +16,7 @@ export async function buscarTaxasJurosAgora(): Promise<TaxasJuros | null> {
 /** Sem debounce -- mesmo espírito de inscreverFormulaPrecosEmTempoReal: se a taxa mudar na planilha (MP!D3/G1), a cotação não pode ficar com valor desatualizado. */
 export function inscreverTaxasJurosEmTempoReal(onChange: () => void): () => void {
   const supabase = createClient()
+  removerCanalExistente(supabase, 'taxas-juros-realtime')
 
   const channel = supabase
     .channel('taxas-juros-realtime')

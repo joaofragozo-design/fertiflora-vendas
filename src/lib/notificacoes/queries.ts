@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import { autenticarRealtime } from '@/lib/supabase/realtime'
+import { autenticarRealtime, removerCanalExistente } from '@/lib/supabase/realtime'
 import { notificacaoFromRow, type Notificacao } from './types'
 
 /**
@@ -37,6 +37,7 @@ export async function marcarTodasComoLidas(): Promise<void> {
 
 export function inscreverNotificacoesEmTempoReal(onChange: () => void) {
   const supabase = createClient()
+  removerCanalExistente(supabase, 'notificacoes-realtime')
   const channel = supabase
     .channel('notificacoes-realtime')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notificacoes' }, onChange)
@@ -49,6 +50,7 @@ export function inscreverNotificacoesEmTempoReal(onChange: () => void) {
 /** RLS já restringe a `destinatario_id = auth.uid()` -- só chega evento de notificação recebida por mim. */
 export function inscreverNovasNotificacoes(onNova: (notificacao: Notificacao) => void) {
   const supabase = createClient()
+  removerCanalExistente(supabase, 'notificacoes-novas')
   const channel = supabase
     .channel('notificacoes-novas')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notificacoes' }, (payload) => {

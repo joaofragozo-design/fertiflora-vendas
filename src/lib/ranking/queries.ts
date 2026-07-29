@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import { autenticarRealtime } from '@/lib/supabase/realtime'
+import { autenticarRealtime, removerCanalExistente } from '@/lib/supabase/realtime'
 import { calcularFalta, calcularPercentual, diasUteisRestantes } from './calculos'
 import { vendedorComercialFromRow, type RankingEntry, type VendedorComercial } from './types'
 
@@ -224,6 +224,7 @@ export async function ajustarMeta(vendedorId: string, ano: number, novaMeta: num
 /** Qualquer mudança em faturamento/meta/vendedor dispara `onChange` — sem refresh manual. */
 export function inscreverRankingEmTempoReal(onChange: () => void) {
   const supabase = createClient()
+  removerCanalExistente(supabase, 'ranking-comercial-realtime')
   const channel = supabase
     .channel('ranking-comercial-realtime')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'faturamento_comercial' }, onChange)

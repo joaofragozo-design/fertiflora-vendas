@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import { autenticarRealtime } from '@/lib/supabase/realtime'
+import { autenticarRealtime, removerCanalExistente } from '@/lib/supabase/realtime'
 import { listarRanking } from '@/lib/ranking/queries'
 import { listarEquipeApoio } from '@/lib/equipe-apoio/queries'
 import { anuncioFromRow, mensagemDiretaFromRow, type Anexo, type Anuncio, type ConversaResumo, type ContatoChat, type MensagemDireta } from './types'
@@ -83,6 +83,7 @@ export async function marcarAnunciosComoLidos(): Promise<void> {
 
 export function inscreverAnunciosEmTempoReal(onChange: () => void) {
   const supabase = createClient()
+  removerCanalExistente(supabase, 'chat-anuncios-realtime')
   const channel = supabase.channel('chat-anuncios-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'chat_anuncios' }, onChange)
   autenticarRealtime(supabase).then(() => channel.subscribe())
   return () => { supabase.removeChannel(channel) }
@@ -199,6 +200,7 @@ export async function editarMensagemDireta(id: string, novoCorpo: string): Promi
  *  linhas onde o usuário é remetente ou destinatário). */
 export function inscreverChatDiretoEmTempoReal(onChange: () => void) {
   const supabase = createClient()
+  removerCanalExistente(supabase, 'chat-mensagens-diretas-realtime')
   const channel = supabase.channel('chat-mensagens-diretas-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'chat_mensagens_diretas' }, onChange)
   autenticarRealtime(supabase).then(() => channel.subscribe())
   return () => { supabase.removeChannel(channel) }
@@ -225,6 +227,7 @@ export interface CanalDigitando {
 export function abrirCanalDigitando(userId: string, outroProfileId: string, onDigitando: () => void): CanalDigitando {
   const supabase = createClient()
   const nomeCanal = `chat-digitando-${[userId, outroProfileId].sort().join('-')}`
+  removerCanalExistente(supabase, nomeCanal)
   const channel = supabase.channel(nomeCanal)
 
   channel
