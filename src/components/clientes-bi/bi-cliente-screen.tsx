@@ -1,11 +1,11 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Calendar, ChevronDown, List, Package, Search, ShoppingCart, TrendingUp, User, X } from 'lucide-react'
+import { AlertTriangle, Calendar, ChevronDown, List, Package, Search, ShoppingCart, TrendingUp, User, X } from 'lucide-react'
 import { buscarVendedorComercialDoUsuario } from '@/lib/ranking/queries'
 import type { VendedorComercial } from '@/lib/ranking/types'
 import { buscarNotasDoCliente, buscarPedidosDoCliente, listarClientesDoVendedor, listarVendedoresComNotas } from '@/lib/clientes-bi/queries'
-import { calcularInsights, calcularKpis, calcularResumoPedidos, calcularSazonalidade, calcularSerieAnual, calcularSerieMensal, calcularTopProdutos } from '@/lib/clientes-bi/calculos'
+import { calcularInsights, calcularKpis, calcularResumoPedidos, calcularRiscoCliente, calcularSazonalidade, calcularSerieAnual, calcularSerieMensal, calcularTopProdutos } from '@/lib/clientes-bi/calculos'
 import type { ClienteResumo, NotaFiscalRow, PedidoErpRow, VendedorComNotas } from '@/lib/clientes-bi/types'
 import { buscarComissoesDoCliente, buscarComissoesLiquidadasDoCliente } from '@/lib/comissoes/queries'
 import type { ComissaoErpRow } from '@/lib/comissoes/types'
@@ -119,6 +119,7 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
   const topProdutos = useMemo(() => calcularTopProdutos(notas, ANO, 6, produtosChave), [notas, produtosChave])
   const sazonalidade = useMemo(() => calcularSazonalidade(notas), [notas])
   const insights = useMemo(() => calcularInsights(notas, ANO), [notas])
+  const risco = useMemo(() => calcularRiscoCliente(notas), [notas])
   const resumoPedidos = useMemo(() => calcularResumoPedidos(pedidos), [pedidos])
   const resumoCredito = useMemo(
     () =>
@@ -258,6 +259,20 @@ export function BiClienteScreen({ userId, ehAdmin }: { userId: string; ehAdmin: 
               <div className="tabular font-display text-lg font-extrabold text-white">{fmtBRL(kpis.ticketMedioReaisPorTonelada)}</div>
             </div>
           </div>
+
+          {risco && risco.nivel !== 'em_dia' && (
+            <div className={`glass flex items-center gap-2.5 rounded-2xl p-3 ring-1 ${risco.nivel === 'risco' ? 'ring-danger-400/40' : 'ring-warning-400/40'}`}>
+              <AlertTriangle className={`h-4 w-4 shrink-0 ${risco.nivel === 'risco' ? 'text-danger-400' : 'text-warning-400'}`} />
+              <div className="min-w-0 flex-1">
+                <div className={`text-xs font-extrabold ${risco.nivel === 'risco' ? 'text-danger-400' : 'text-warning-400'}`}>
+                  {risco.nivel === 'risco' ? 'Risco de perda' : 'Atenção — recompra pode estar atrasada'}
+                </div>
+                <div className="text-[10.5px] font-semibold text-white/50">
+                  {risco.diasSemComprar} dias sem comprar (costuma comprar a cada {risco.intervaloMedioDias} dias)
+                </div>
+              </div>
+            </div>
+          )}
 
           {insights.length > 0 && (
             <div className="flex flex-wrap gap-1.5">

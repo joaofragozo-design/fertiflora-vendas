@@ -135,6 +135,25 @@ export interface ClienteRanqueado {
   participacaoPct: number // fatia do total do vendedor, 0-100
 }
 
+export type NivelRiscoCliente = 'em_dia' | 'atencao' | 'risco'
+
+/**
+ * Score de risco de perda calculado a partir do próprio ritmo de compra histórico do
+ * cliente (não um prazo fixo igual pra todo mundo) -- ver `calcularRiscoCliente`.
+ */
+export interface RiscoCliente {
+  nivel: NivelRiscoCliente
+  diasSemComprar: number
+  intervaloMedioDias: number
+  foraDeSazonalidade: boolean
+}
+
+export interface ClienteEmRisco {
+  codigo: number
+  nome: string
+  risco: RiscoCliente
+}
+
 export interface ItemPedidoAberto {
   numeroPedido: string
   emissao: string

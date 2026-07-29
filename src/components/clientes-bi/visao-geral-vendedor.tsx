@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { PieChart, Trophy, Users } from 'lucide-react'
+import { AlertTriangle, PieChart, Trophy, Users } from 'lucide-react'
 import { buscarNotasDoVendedor, buscarTodasAsNotas } from '@/lib/clientes-bi/queries'
-import { calcularResumoVendedor, variacaoPct } from '@/lib/clientes-bi/calculos'
+import { calcularClientesEmRisco, calcularResumoVendedor, variacaoPct } from '@/lib/clientes-bi/calculos'
 import type { NotaFiscalRow } from '@/lib/clientes-bi/types'
 import { SkeletonListaCards } from '@/components/ui/skeleton'
 import { ContadorAnimado } from './contador-animado'
@@ -41,6 +41,7 @@ export function VisaoGeralVendedor({ vendedorCodigo, onSelecionarCliente }: { ve
   }, [vendedorCodigo, geral])
 
   const resumo = useMemo(() => calcularResumoVendedor(notas, ANO), [notas])
+  const clientesEmRisco = useMemo(() => calcularClientesEmRisco(notas), [notas])
   const variacaoToneladas = variacaoPct(resumo.totalToneladas, resumo.totalToneladasAnoAnterior)
   const variacaoReais = variacaoPct(resumo.totalReais, resumo.totalReaisAnoAnterior)
   const lider = resumo.clientesRanqueados[0]
@@ -97,6 +98,38 @@ export function VisaoGeralVendedor({ vendedorCodigo, onSelecionarCliente }: { ve
             <Trophy className="h-3 w-3 text-warning-400" />
             {topClienteRotulo}: {lider.nome} ({lider.participacaoPct.toFixed(0)}%)
           </span>
+        </div>
+      )}
+
+      {clientesEmRisco.length > 0 && (
+        <div className="glass flex flex-col gap-2 rounded-2xl p-4">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-white/50">
+            <AlertTriangle className="h-3.5 w-3.5 text-danger-400" />
+            Clientes em risco de perda
+          </div>
+          <div className="flex flex-col gap-0.5">
+            {clientesEmRisco.slice(0, 8).map((c) => {
+              const conteudo = (
+                <>
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${c.risco.nivel === 'risco' ? 'bg-danger-400' : 'bg-warning-400'}`} />
+                  <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-white/80">{c.nome}</span>
+                  <span className="tabular shrink-0 text-right text-[10px] font-bold text-white/50">
+                    {c.risco.diasSemComprar}d parado <span className="text-white/30">(rotina: {c.risco.intervaloMedioDias}d)</span>
+                  </span>
+                </>
+              )
+              return geral ? (
+                <div key={c.codigo} className="flex items-center gap-2 rounded-xl px-1 py-1.5">{conteudo}</div>
+              ) : (
+                <button key={c.codigo} onClick={() => onSelecionarCliente(c.codigo)} className="flex items-center gap-2 rounded-xl px-1 py-1.5 text-left transition-colors hover:bg-white/8">
+                  {conteudo}
+                </button>
+              )
+            })}
+          </div>
+          {clientesEmRisco.length > 8 && (
+            <p className="px-1 text-[10px] font-semibold text-white/40">+{clientesEmRisco.length - 8} outro{clientesEmRisco.length - 8 === 1 ? '' : 's'} em risco</p>
+          )}
         </div>
       )}
 

@@ -1,4 +1,4 @@
-import type { ClienteRanqueado, ItemPedidoAberto, Insight, KpiCliente, NotaFiscalRow, PedidoErpRow, PontoAnual, PontoMensal, PontoSazonalidade, ResumoPedidosCliente, ResumoVendedor, TopProduto } from './types'
+import type { ClienteEmRisco, ClienteRanqueado, ItemPedidoAberto, Insight, KpiCliente, NivelRiscoCliente, NotaFiscalRow, PedidoErpRow, PontoAnual, PontoMensal, PontoSazonalidade, ResumoPedidosCliente, ResumoVendedor, RiscoCliente, TopProduto } from './types'
 
 export function anoDe(emissao: string): number {
   return Number(emissao.slice(0, 4))
@@ -128,6 +128,68 @@ export function calcularSazonalidade(notas: NotaFiscalRow[], hoje: Date = new Da
   return ordemMeses.map((mes) => {
     const toneladas = porMes.get(mes) ?? 0
     return { mes, toneladas, intensidade: toneladas / pico }
+  })
+}
+
+/**
+ * Risco de perda calculado a partir do próprio ritmo histórico do cliente -- não um prazo
+ * fixo igual pra todo mundo. Um cliente que compra a cada 20 dias fica em risco depois de
+ * ~30 dias parado; um que compra a cada 90 dias só fica em risco depois de ~130. `null`
+ * quando não há histórico suficiente (menos de 3 datas de compra distintas) pra um ritmo
+ * confiável. Se o mês atual é historicamente fraco pra esse cliente (baixa intensidade em
+ * `calcularSazonalidade`), o nível é rebaixado -- ficar parado na baixa temporada não é sinal
+ * de risco real.
+ */
+export function calcularRiscoCliente(notas: NotaFiscalRow[], hoje: Date = new Date()): RiscoCliente | null {
+  const datasUnicas = [...new Set(notas.map((n) => n.emissao))].sort()
+  if (datasUnicas.length < 3) return null
+
+  const intervalos: number[] = []
+  for (let i = 1; i < datasUnicas.length; i++) {
+    const dias = (new Date(datasUnicas[i] + 'T00:00:00').getTime() - new Date(datasUnicas[i - 1] + 'T00:00:00').getTime()) / 86_400_000
+    intervalos.push(dias)
+  }
+  const intervaloMedioDias = intervalos.reduce((s, d) => s + d, 0) / intervalos.length
+  if (intervaloMedioDias <= 0) return null
+
+  const ultimaData = datasUnicas[datasUnicas.length - 1]
+  const diasSemComprar = Math.round((hoje.getTime() - new Date(ultimaData + 'T00:00:00').getTime()) / 86_400_000)
+  const razao = diasSemComprar / intervaloMedioDias
+
+  const sazonalidade = calcularSazonalidade(notas, hoje)
+  const foraDeSazonalidade = (sazonalidade[0]?.intensidade ?? 1) < 0.15
+
+  let nivel: NivelRiscoCliente = razao >= 2 ? 'risco' : razao >= 1.2 ? 'atencao' : 'em_dia'
+  if (foraDeSazonalidade && nivel !== 'em_dia') {
+    nivel = nivel === 'risco' ? 'atencao' : 'em_dia'
+  }
+
+  return { nivel, diasSemComprar, intervaloMedioDias: Math.round(intervaloMedioDias), foraDeSazonalidade }
+}
+
+/**
+ * Carteira ordenada por risco de perda -- quem já deveria ter comprado de novo (considerando
+ * o próprio ritmo histórico, não um prazo fixo) aparece primeiro. Base da seção "Clientes em
+ * risco" na Visão Geral do vendedor.
+ */
+export function calcularClientesEmRisco(notas: NotaFiscalRow[], hoje: Date = new Date()): ClienteEmRisco[] {
+  const porCliente = new Map<number, { nome: string; notas: NotaFiscalRow[] }>()
+  for (const n of notas) {
+    const atual = porCliente.get(n.clienteCodigo) ?? { nome: n.clienteNome, notas: [] }
+    atual.notas.push(n)
+    porCliente.set(n.clienteCodigo, atual)
+  }
+
+  const resultado: ClienteEmRisco[] = []
+  for (const [codigo, { nome, notas: notasDoCliente }] of porCliente) {
+    const risco = calcularRiscoCliente(notasDoCliente, hoje)
+    if (!risco || risco.nivel === 'em_dia') continue
+    resultado.push({ codigo, nome, risco })
+  }
+
+  return resultado.sort((a, b) => {
+    if (a.risco.nivel !== b.risco.nivel) return a.risco.nivel === 'risco' ? -1 : 1
+    return b.risco.diasSemComprar / b.risco.intervaloMedioDias - a.risco.diasSemComprar / a.risco.intervaloMedioDias
   })
 }
 
