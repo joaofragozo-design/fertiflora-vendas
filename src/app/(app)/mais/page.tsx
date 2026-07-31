@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { HandCoins, UserPlus, ShieldCheck, ClipboardCheck, Trophy, ChevronRight, KeyRound, BellRing } from 'lucide-react'
+import { HandCoins, UserPlus, ShieldCheck, ClipboardCheck, Trophy, ChevronRight, KeyRound, BellRing, Factory } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { ROUTES } from '@/constants/routes'
 import { Logo } from '@/components/brand/logo'
@@ -42,6 +42,7 @@ export default async function MaisPage() {
             <>
               <ItemMenu href="/admin/pedidos" icone={ShieldCheck} titulo="Análise de Crédito" descricao="Decisão final dos pedidos" tone="danger" destaque />
               <ItemMenu href="/admin/vendedores" icone={Trophy} titulo="Vendedores Comerciais" descricao="Gerenciar ranking, metas e faturamento" tone="warning" destaque />
+              <ItemMenu href="/producao" icone={Factory} titulo="Fábrica — Santa Tereza" descricao="Controle de produção da granuladora" tone="earth" />
             </>
           )}
         </div>
