@@ -3,7 +3,7 @@
 // para amarelo mantendo saturação/luminosidade (resultado: amarelo-claro) e
 // produz:
 //   public/fertiflora-mark-amarelo.png  (folha recolorida, alpha preservado)
-//   src/app/icon.png                    (favicon 512, folha sobre amarelo-escuro, cantos arredondados)
+//   src/app/icon.png                    (favicon 512, folha centrada, fundo transparente — padrão FertiLog/STO)
 //   src/app/apple-icon.png              (180, "adicionar à tela de início" do iPhone)
 //   public/icons/icon-192.png / icon-512.png (maskable: folha centrada sobre amarelo-escuro)
 import sharp from 'sharp'
@@ -93,9 +93,17 @@ async function icone(tam, alturaFolhaPct, raio) {
   return img.png()
 }
 
-// 3. Favicon: cantos arredondados (fica bem na aba clara ou escura)
-await (await icone(512, 0.62, 512 * 0.22)).toFile(join(root, 'src/app/icon.png'))
-console.log('ok: src/app/icon.png (512)')
+// 3. Favicon: folha centrada em quadrado transparente, como nos outros apps —
+//    o fundo escuro fica só nos ícones do app instalado
+const lado = Math.round(Math.max(meta.width, meta.height) * 1.14)
+await sharp({
+  create: { width: lado, height: lado, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+})
+  .composite([{ input: folhaAmarela, left: Math.round((lado - meta.width) / 2), top: Math.round((lado - meta.height) / 2) }])
+  .png()
+  .toBuffer()
+  .then((buf) => sharp(buf).resize(512, 512).png().toFile(join(root, 'src/app/icon.png')))
+console.log('ok: src/app/icon.png (512, transparente)')
 
 // 4. Ícones do app instalado: maskable → sangria total, folha na zona segura (~58%)
 for (const [tam, destino] of [
