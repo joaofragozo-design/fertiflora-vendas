@@ -52,7 +52,7 @@ self.addEventListener('push', (e) => {
   } catch {
     dados = {}
   }
-  const titulo = dados.title || 'FertiFlora Vendas'
+  const titulo = dados.title || 'FertiVendas'
   const corpo = dados.body || 'Você tem uma notificação nova.'
   const url = dados.url || '/'
   e.waitUntil(

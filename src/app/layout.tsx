@@ -10,15 +10,15 @@ const manrope = Manrope({ variable: '--font-manrope', subsets: ['latin'], weight
 
 export const metadata: Metadata = {
   title: {
-    default: 'FertiFlora Vendas',
-    template: '%s | FertiFlora Vendas',
+    default: 'FertiVendas',
+    template: '%s | FertiVendas',
   },
   description: 'Sistema de gestão de vendas da FertiFlora Organomineral.',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'FertiFlora',
+    title: 'FertiVendas',
   },
   robots: { index: false, follow: false },
 }

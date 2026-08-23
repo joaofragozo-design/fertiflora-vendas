@@ -18,7 +18,7 @@ export function LogoMark({ size = 32, className, priority }: LogoMarkProps) {
   return (
     <Image
       src="/fertiflora-mark-amarelo.png"
-      alt="FertiFlora"
+      alt="FertiVendas"
       width={width}
       height={size}
       priority={priority}
@@ -50,7 +50,7 @@ export function Logo({ variant = 'full', height = 40, className, priority }: Log
         className="font-display font-semibold tracking-tight text-white"
         style={{ fontSize: Math.round(height * 0.4), lineHeight: 1 }}
       >
-        FertiFlora <span style={{ color: AMARELO_CLARO }}>Vendas</span>
+        Ferti<span style={{ color: AMARELO_CLARO }}>Vendas</span>
       </span>
     </span>
   )

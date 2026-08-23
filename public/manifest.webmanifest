@@ -1,6 +1,6 @@
 {
-  "name": "FertiFlora Vendas",
-  "short_name": "FertiFlora",
+  "name": "FertiVendas",
+  "short_name": "FertiVendas",
   "description": "Sistema de gestão de vendas da FertiFlora Organomineral",
   "start_url": "/",
   "display": "standalone",
